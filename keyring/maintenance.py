@@ -221,6 +221,8 @@ class CleanUserKeyrings(MaintenanceTask):
     Remove old user keyrings
     """
     def run(self):
+        if not os.path.isdir(KEYRINGS_TMPDIR):
+            return
         # Delete everything older than three days ago
         threshold = time.time() - 86400 * 3
         for fn in os.listdir(KEYRINGS_TMPDIR):

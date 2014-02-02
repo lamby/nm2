@@ -166,6 +166,8 @@ class Inconsistencies(MaintenanceTask):
     def log_stats(self):
         # FIXME: we're abusing this for post-maintenance finalization. Add a
         # post-run pass to django_maintenance
+        maintproc = None
+
         if self.imodels:
             for maintproc, person, log, kw in self.ann_person:
                 self.imodels.InconsistentPerson.annotate(person, log=log, **kw)

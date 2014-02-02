@@ -627,8 +627,11 @@ class Changelog(object):
         from debian import changelog
 
         fname = os.path.join(KEYRINGS, "../changelog")
-        with open(fname) as fd:
-            changes = changelog.Changelog(file=fd)
+        if os.path.isfile(fname):
+            with open(fname) as fd:
+                changes = changelog.Changelog(file=fd)
+        else:
+            changes = []
 
         for c in changes:
             d = self._parse_date(c.date)
