@@ -101,6 +101,11 @@ $(function() {
         admin: true,
         label: "Advocacies ok",
         prog_if: [ PROGRESS_ADV_RCVD ],
+        prog_to: PROGRESS_POLL_SENT,
+    }, {
+        admin: true,
+        label: "Activity poll answer received",
+        prog_if: [ PROGRESS_POLL_SENT ],
         prog_to: PROGRESS_APP_OK,
     }, {
         admin: true,
