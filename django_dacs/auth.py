@@ -4,7 +4,7 @@ from django.conf import settings
 from collections import namedtuple
 
 # Name the various bits of information DACS gives us
-DACSInfo = namedtuple('DACSInfo', ('unknown0', 'unknown1', "jurisdiction", "username"))
+DACSInfo = namedtuple('DACSInfo', ('federation', 'unknown1', "jurisdiction", "username"))
 
 TEST_REMOTE_USER = getattr(settings, "DACS_TEST_USERNAME", None)
 
@@ -71,4 +71,7 @@ class DACSUserBackend(django.contrib.auth.backends.RemoteUserBackend):
         """
         # Take the username out of DACS parts
         info = self.split_dacs_user(username)
+        # FIXME: enable it as soon as we're ready
+        if info.jurisdiction != "DEBIAN":
+            return None
         return info.username
