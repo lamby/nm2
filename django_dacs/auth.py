@@ -73,5 +73,6 @@ class DACSUserBackend(django.contrib.auth.backends.RemoteUserBackend):
         info = self.split_dacs_user(username)
         # FIXME: enable it as soon as we're ready
         if info.jurisdiction != "DEBIAN":
-            return None
+            from django.core.exceptions import ImproperlyConfigured
+            raise ImproperlyConfigured("Non-DEBIAN jurisdiction not supported")
         return info.username
