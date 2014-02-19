@@ -15,9 +15,6 @@ class DACSRemoteUserMiddleware(django.contrib.auth.middleware.RemoteUserMiddlewa
         from django.contrib import auth
         from django.core.exceptions import ImproperlyConfigured
 
-        # Disabled authenticated access
-        request.META.pop(self.header, None)
-
         # AuthenticationMiddleware is required so that request.user exists.
         if not hasattr(request, 'user'):
             raise ImproperlyConfigured(

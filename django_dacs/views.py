@@ -1,9 +1,8 @@
 from django.shortcuts import redirect
 
-def login_redirect(request):
-    url = request.GET.get("url", None)
-    if not url:
-        return redirect('/')
+def logout(request):
+    if request.user.is_authenticated():
+        return redirect("/cgi-bin/dacs/dacs_signout")
     else:
-        return redirect(url)
+        return redirect("https://sso.debian.org/sso/logout")
 
