@@ -287,7 +287,7 @@ class CheckKeyringLogs(MaintenanceTask):
         if p is None:
             fpr, ktype = self.maint.keyrings.resolve_keyid(key)
             if fpr is None:
-                log.info("%s: unknown key ID %s found in log for %s RT#ss", self.IDENTIFIER, key, d, rt)
+                log.info("%s: unknown key ID %s found in log for %s RT#%s", self.IDENTIFIER, key, d, rt)
             else:
                 # TODO: connect to RT and try to fetch person details
                 self._ann_fpr(d, rt, fpr, "keyring logs report a new DM",
