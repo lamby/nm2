@@ -9,6 +9,11 @@
 
 {% block breadcrumbs %}{{block.super}} / <a href="{% url 'inconsistencies_list' %}">inconsistency list</a>{% endblock %}
 
+{% block relatedpages %}
+<a href="{% url 'admin:backend_person_change' person.id  %}">admin</a>
+{{block.super}}
+{% endblock %}
+
 {% block content %}
 
 <h2>Inconsistency status for {{person.fullname}}</h2>
