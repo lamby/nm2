@@ -1,6 +1,6 @@
-# nm.debian.org website maintenance
+# nm.debian.org website housekeeping
 #
-# Copyright (C) 2012  Enrico Zini <enrico@debian.org>
+# Copyright (C) 2012--2014  Enrico Zini <enrico@debian.org>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -19,9 +19,9 @@ from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
-from django_maintenance import MaintenanceTask
+import django_housekeeping as hk
 from django.conf import settings
-from backend.maintenance import MakeLink, Inconsistencies
+from backend.housekeeping import MakeLink, Inconsistencies
 import backend.models as bmodels
 from backend import const
 from . import models as kmodels
@@ -37,7 +37,7 @@ log = logging.getLogger(__name__)
 
 KEYRINGS_TMPDIR = getattr(settings, "KEYRINGS_TMPDIR", "/srv/keyring.debian.org/data/tmp_keyrings")
 
-class Keyrings(MaintenanceTask):
+class Keyrings(hk.Task):
     """
     Load keyrings
     """
@@ -45,7 +45,7 @@ class Keyrings(MaintenanceTask):
 
     KEYID_LEN = 16
 
-    def run(self):
+    def run_main(self, stage):
         log.info("%s: Importing dm keyring...", self.IDENTIFIER)
         self.dm = frozenset(kmodels.list_dm())
         log.info("%s: Importing dd_u keyring...", self.IDENTIFIER)
@@ -110,13 +110,13 @@ class Keyrings(MaintenanceTask):
         return rec
 
 
-class CheckKeyringConsistency(MaintenanceTask):
+class CheckKeyringConsistency(hk.Task):
     """
     Show entries that do not match between keyrings and our DB
     """
     DEPENDS = [Keyrings, MakeLink, Inconsistencies]
 
-    def run(self):
+    def run_main(self, stage):
         # Prefetch people and index them by fingerprint
         people_by_fpr = dict()
         for p in bmodels.Person.objects.all():
@@ -125,12 +125,12 @@ class CheckKeyringConsistency(MaintenanceTask):
             people_by_fpr[p.fpr] = p
 
         keyring_by_status = {
-            const.STATUS_DM: self.maint.keyrings.dm,
-            const.STATUS_DM_GA: self.maint.keyrings.dm,
-            const.STATUS_DD_U: self.maint.keyrings.dd_u,
-            const.STATUS_DD_NU: self.maint.keyrings.dd_nu,
-            const.STATUS_EMERITUS_DD: self.maint.keyrings.emeritus_dd,
-            const.STATUS_REMOVED_DD: self.maint.keyrings.removed_dd,
+            const.STATUS_DM: self.hk.keyrings.dm,
+            const.STATUS_DM_GA: self.hk.keyrings.dm,
+            const.STATUS_DD_U: self.hk.keyrings.dd_u,
+            const.STATUS_DD_NU: self.hk.keyrings.dd_nu,
+            const.STATUS_EMERITUS_DD: self.hk.keyrings.emeritus_dd,
+            const.STATUS_REMOVED_DD: self.hk.keyrings.removed_dd,
         }
 
         self.count = 0
@@ -146,14 +146,14 @@ class CheckKeyringConsistency(MaintenanceTask):
             found = False
             for status, keyring in keyring_by_status.iteritems():
                 if fpr in keyring:
-                    self.maint.inconsistencies.log_person(self, p,
+                    self.hk.inconsistencies.log_person(self, p,
                                                                 "has status {} but is in {} keyring".format(p.status, status),
                                                                 keyring_status=status)
                     self.count += 1
                     found = True
                     break
             if not found and p.status != const.STATUS_REMOVED_DD:
-                self.maint.inconsistencies.log_person(self, p,
+                self.hk.inconsistencies.log_person(self, p,
                                                       "has status {} but is not in any keyring".format(p.status),
                                                       keyring_status=None)
                 self.count += 1
@@ -165,7 +165,7 @@ class CheckKeyringConsistency(MaintenanceTask):
             if status == const.STATUS_REMOVED_DD: continue
             for fpr in keyring:
                 if fpr not in people_by_fpr:
-                    self.maint.inconsistencies.log_fingerprint(self, fpr,
+                    self.hk.inconsistencies.log_fingerprint(self, fpr,
                                                                "is in {} keyring but not in our db".format(status),
                                                                keyring_status=status)
                     self.count += 1
@@ -216,11 +216,11 @@ class CheckKeyringConsistency(MaintenanceTask):
     #        if i["cur"] != cand:
     #            log.info("%s: %s %r != %r", keyring, fpr, i["cur"], cand)
 
-class CleanUserKeyrings(MaintenanceTask):
+class CleanUserKeyrings(hk.Task):
     """
     Remove old user keyrings
     """
-    def run(self):
+    def run_main(self, stage):
         if not os.path.isdir(KEYRINGS_TMPDIR):
             return
         # Delete everything older than three days ago
@@ -242,7 +242,7 @@ def keyring_log_matcher(regexp, **kw):
         return f
     return decorator
 
-class CheckKeyringLogs(MaintenanceTask):
+class CheckKeyringLogs(hk.Task):
     """
     Show entries that do not match between keyrings and our DB
     """
@@ -259,25 +259,25 @@ class CheckKeyringLogs(MaintenanceTask):
 
     def _ann_fpr(self, d, rt, fpr, log, **kw):
         if rt is not None:
-            self.maint.inconsistencies.annotate_fingerprint(self, fpr,
+            self.hk.inconsistencies.annotate_fingerprint(self, fpr,
                                                     "{}, RT #{}".format(log, rt),
                                                     keyring_rt=rt,
                                                     keyring_log_date=d.strftime("%Y%m%d %H%M%S"),
                                                     **kw)
         else:
-            self.maint.inconsistencies.annotate_fingerprint(self, fpr, log,
+            self.hk.inconsistencies.annotate_fingerprint(self, fpr, log,
                                                     keyring_log_date=d.strftime("%Y%m%d %H%M%S"),
                                                     **kw)
 
     def _ann_person(self, d, rt, person, log, **kw):
         if rt is not None:
-            self.maint.inconsistencies.annotate_person(self, person,
+            self.hk.inconsistencies.annotate_person(self, person,
                                                     "{}, RT #{}".format(log, rt),
                                                     keyring_rt=rt,
                                                     keyring_log_date=d.strftime("%Y%m%d %H%M%S"),
                                                     **kw)
         else:
-            self.maint.inconsistencies.annotate_person(self, person, log,
+            self.hk.inconsistencies.annotate_person(self, person, log,
                                                     keyring_log_date=d.strftime("%Y%m%d %H%M%S"),
                                                     **kw)
 
@@ -285,7 +285,7 @@ class CheckKeyringLogs(MaintenanceTask):
     def do_new_dm(self, d, key, rt):
         p = self.person_for_key_id(key)
         if p is None:
-            fpr, ktype = self.maint.keyrings.resolve_keyid(key)
+            fpr, ktype = self.hk.keyrings.resolve_keyid(key)
             if fpr is None:
                 log.info("%s: unknown key ID %s found in log for %s RT#%s", self.IDENTIFIER, key, d, rt)
             else:
@@ -310,7 +310,7 @@ class CheckKeyringLogs(MaintenanceTask):
     def do_new_dd(self, d, key, rt):
         p = self.person_for_key_id(key)
         if p is None:
-            fpr, ktype = self.maint.keyrings.resolve_keyid(key)
+            fpr, ktype = self.hk.keyrings.resolve_keyid(key)
             self._ann_fpr(d, rt, fpr, "keyring logs report a new DD, with no known record in our database", keyring_status=ktype)
             #print("! New DD %s %s (no account before??)" % (key, self.rturl(rt)))
         elif p.status == const.STATUS_DD_U:
@@ -326,7 +326,7 @@ class CheckKeyringLogs(MaintenanceTask):
     def do_new_em(self, d, key, rt):
         p = self.person_for_key_id(key)
         if p is None:
-            fpr, ktype = self.maint.keyrings.resolve_keyid(key)
+            fpr, ktype = self.hk.keyrings.resolve_keyid(key)
             self._ann_fpr(d, rt, fpr, "keyring logs report a new emeritus DD, with no known record in our database", keyring_status=ktype)
             #print("! New Emeritus DD %s %s (no account before??)" % (key, self.rturl(rt)))
         elif p.status == const.STATUS_EMERITUS_DD:
@@ -342,7 +342,7 @@ class CheckKeyringLogs(MaintenanceTask):
     def do_new_rem(self, d, key, rt):
         p = self.person_for_key_id(key)
         if p is None:
-            fpr, ktype = self.maint.keyrings.resolve_keyid(key)
+            fpr, ktype = self.hk.keyrings.resolve_keyid(key)
             self._ann_fpr(d, rt, fpr, "keyring logs report a new removed DD, with no known record in our database", keyring_status=ktype)
             #print("! New removed key %s %s (no account before??)" % (key, self.rturl(rt)))
         else:
@@ -355,8 +355,8 @@ class CheckKeyringLogs(MaintenanceTask):
         p2 = self.person_for_key_id(key2)
         if p1 is None and p2 is None:
             # No before or after match with our records
-            fpr1, ktype1 = self.maint.keyrings.resolve_keyid(key1)
-            fpr2, ktype2 = self.maint.keyrings.resolve_keyid(key2)
+            fpr1, ktype1 = self.hk.keyrings.resolve_keyid(key1)
+            fpr2, ktype2 = self.hk.keyrings.resolve_keyid(key2)
             if fpr1 is not None:
                 if fpr2 is not None:
                     # Before and after keyrings known
@@ -388,7 +388,7 @@ class CheckKeyringLogs(MaintenanceTask):
                     pass
                     # print("! Replaced %s with %s (none of which are in the database!) %s" % (key1, key2, self.rturl(rt)))
         elif p1 is None and p2 is not None:
-            #self.maint.inconsistencies.annotate_person(self, p,
+            #self.hk.inconsistencies.annotate_person(self, p,
             #                                            "keyring logs report key change from {} to {}, RT#{}".format(key1, key2, rt),
             #                                            keyring_rt=rt,
             #                                            keyring_log_date=d,
@@ -396,7 +396,7 @@ class CheckKeyringLogs(MaintenanceTask):
             #print("# Replaced %s with %s (already done in the database) %s" % (key1, key2, self.rturl(rt)))
             pass # Already known
         elif p1 is not None and p2 is None:
-            fpr, ktype = self.maint.keyrings.resolve_keyid(key2)
+            fpr, ktype = self.hk.keyrings.resolve_keyid(key2)
             if fpr is None:
                 self._ann_person(d, rt, p1, "key changed to unknown key {}".format(key2))
                 # print("! %s replaced key %s with %s but could not find %s in keyrings %s" % (p.lookup_key, key1, key2, key2, self.rturl(rt)))
@@ -408,7 +408,7 @@ class CheckKeyringLogs(MaintenanceTask):
         else:
             # This is very weird, so we log instead of just annotating
             for p in (p1, p2):
-                self.maint.inconsistencies.log_person(self, p,
+                self.hk.inconsistencies.log_person(self, p,
                                                         "keyring logs report key change from {} to {}, but the keys belong to two different people, {} and {}. RT #{}".format(key1, key2, p1.lookup_key, p2.lookup_key, rt),
                                                         keyring_rt=rt,
                                                         keyring_log_date=d.strftime("%Y%m%d %H%M%S"))
@@ -430,7 +430,7 @@ class CheckKeyringLogs(MaintenanceTask):
                 self._ann_person(d, rt, p, "relevant but unparsed log entry: \"{}\"".format(line))
                 continue
 
-            fpr, ktype = self.maint.keyrings.resolve_keyid(key)
+            fpr, ktype = self.hk.keyrings.resolve_keyid(key)
             if fpr is not None:
                 self._ann_fpr(d, rt, fpr, "relevant but unparsed log entry: \"{}\"".format(line))
 
@@ -455,7 +455,7 @@ class CheckKeyringLogs(MaintenanceTask):
                 return True
         return False
 
-    def run(self):
+    def run_main(self, stage):
         """
         Parse changes from changelog entries after the given date (non inclusive).
         """

@@ -1,6 +1,6 @@
-# nm.debian.org website maintenance
+# nm.debian.org website housekeeping
 #
-# Copyright (C) 2012  Enrico Zini <enrico@debian.org>
+# Copyright (C) 2014  Enrico Zini <enrico@debian.org>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -20,8 +20,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 from django.conf import settings
-from backend.maintenance import MakeLink
-from django_maintenance import MaintenanceTask
+from backend.housekeeping import MakeLink
+import django_housekeeping as hk
 import backend.models as bmodels
 import debiancontributors as dc
 import logging
@@ -33,12 +33,15 @@ DC_SUBMIT_URL = getattr(settings, "DC_SUBMIT_URL", None)
 DC_GIT_REPO_NM = getattr(settings, "DC_GIT_REPO_NM", "/srv/nm.debian.org/nm2/.git")
 DC_GIT_REPO_DC = getattr(settings, "DC_GIT_REPO_DC", "/srv/contributors.debian.org/dc/.git")
 
-class SubmitContributors(MaintenanceTask):
+STAGES = ["main", "reports", "stats"]
+
+class SubmitContributors(hk.Task):
     """
     Compute contributions and submit them to contributors.debian.org
     """
     DEPENDS = [MakeLink]
-    def run(self):
+
+    def run_reports(self, stage):
         from django.db.models import Min, Max
 
         if DC_AUTH_TOKEN is None:
@@ -67,7 +70,7 @@ dirs: {git_repo_nm}
             submission.add_contribution_data(
                 dc.Identifier(type="login", id=am.person.uid, desc=am.person.fullname),
                 type="am", begin=res["since"].date(), end=res["until"].date(),
-                url=self.maint.link(am))
+                url=self.hk.link(am))
 
         for am in bmodels.AM.objects.filter(is_fd=True):
             res = bmodels.Log.objects.filter(changed_by=am.person).exclude(process__manager=am).aggregate(
@@ -78,7 +81,7 @@ dirs: {git_repo_nm}
             submission.add_contribution_data(
                 dc.Identifier(type="login", id=am.person.uid, desc=am.person.fullname),
                 type="fd", begin=res["since"].date(), end=res["until"].date(),
-                url=self.maint.link(am))
+                url=self.hk.link(am))
 
         submission.set_auth_token(DC_AUTH_TOKEN)
         if DC_SUBMIT_URL:

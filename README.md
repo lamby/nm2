@@ -5,17 +5,12 @@ Debian NM Front Desk web application
 ### Dependencies
     
     apt-get install python-django python-ldap python-psycopg2 python-xapian \
-     python-debian python-django-south python-markdown
+     python-debian python-django-south python-markdown python-debiancontributors
 
-    # http://anonscm.debian.org/gitweb/?p=users/enrico/django_maintenance.git
-    git clone https://alioth.debian.org/anonscm/git/users/enrico/django_maintenance.git
+    # https://github.com/spanezz/django-housekeeping
+    git clone https://github.com/spanezz/django-housekeeping
       (you can either build the package from it or symlink the module directory
-      into the nm.debian.org sources)
-
-    # http://anonscm.debian.org/gitweb/?p=nm/python-debiancontributors.git
-    git clone https://alioth.debian.org/anonscm/git/nm/python-debiancontributors.git
-      (you can either build the package from it or symlink the module directory
-      into the nm.debian.org sources)
+      into the contributors.debian.org sources)
 
     # https://github.com/jsocol/django-ratelimit
     git clone https://github.com/jsocol/django-ratelimit.git

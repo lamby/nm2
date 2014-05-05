@@ -1,4 +1,4 @@
-# nm.debian.org website maintenance
+# nm.debian.org website housekeeping
 #
 # Copyright (C) 2012--2014  Enrico Zini <enrico@debian.org>
 #
@@ -19,9 +19,9 @@ from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
-from django_maintenance import MaintenanceTask
+import django_housekeeping as hk
 from django.db import transaction
-from backend.maintenance import MakeLink, BackupDB, Inconsistencies
+from backend.housekeeping import MakeLink, Inconsistencies
 from . import models as dmodels
 from backend import const
 import backend.models as bmodels
@@ -29,14 +29,14 @@ import logging
 
 log = logging.getLogger(__name__)
 
-class ProgressFinalisationsOnAccountsCreated(MaintenanceTask):
+class ProgressFinalisationsOnAccountsCreated(hk.Task):
     """
     Update pending dm_ga processes after the account is created
     """
-    DEPENDS = [BackupDB, MakeLink]
+    DEPENDS = [MakeLink]
 
     @transaction.commit_on_success
-    def run(self):
+    def run_main(self, stage):
         # Get a lits of accounts from DSA
         dm_ga_uids = set()
         dd_uids = set()
@@ -60,16 +60,16 @@ class ProgressFinalisationsOnAccountsCreated(MaintenanceTask):
                 old_status = proc.person.status
                 proc.finalize(finalised_msg)
                 log.info("%s: %s finalised: %s changes status %s->%s",
-                         self.IDENTIFIER, self.maint.link(proc), proc.person.uid, old_status, proc.person.status)
+                         self.IDENTIFIER, self.hk.link(proc), proc.person.uid, old_status, proc.person.status)
 
-class NewGuestAccountsFromDSA(MaintenanceTask):
+class NewGuestAccountsFromDSA(hk.Task):
     """
     Create new Person entries for guest accounts created by DSA
     """
-    DEPENDS = [BackupDB, MakeLink, Inconsistencies]
+    DEPENDS = [MakeLink, Inconsistencies]
 
     @transaction.commit_on_success
-    def run(self):
+    def run_main(self, stage):
         for entry in dmodels.list_people():
             # Skip DDs
             if entry.single("gidNumber") == "800" and entry.single("keyFingerPrint") is not None: continue
@@ -86,7 +86,7 @@ class NewGuestAccountsFromDSA(MaintenanceTask):
             # Check for fingerprint duplicates
             try:
                 p = bmodels.Person.objects.get(fpr=entry.single("keyFingerPrint"))
-                self.maint.inconsistencies.log_person(self, p,
+                self.hk.inconsistencies.log_person(self, p,
                                                       "has the same fingerprint as LDAP uid {}".format(entry.uid),
                                                       ldap_uid=entry.uid)
                 continue
@@ -103,15 +103,15 @@ class NewGuestAccountsFromDSA(MaintenanceTask):
                 status=const.STATUS_MM_GA,
             )
             p.save()
-            log.info("%s (guest account only) imported from LDAP", self.maint.link(p))
+            log.info("%s (guest account only) imported from LDAP", self.hk.link(p))
 
-class CheckLDAPConsistency(MaintenanceTask):
+class CheckLDAPConsistency(hk.Task):
     """
     Show entries that do not match between LDAP and our DB
     """
-    DEPENDS = [BackupDB, MakeLink, Inconsistencies]
+    DEPENDS = [MakeLink, Inconsistencies]
 
-    def run(self):
+    def run_main(self, stage):
         # Prefetch people and index them by uid
         people_by_uid = dict()
         for p in bmodels.Person.objects.all():
@@ -124,7 +124,7 @@ class CheckLDAPConsistency(MaintenanceTask):
             except bmodels.Person.DoesNotExist:
                 fpr = entry.single("keyFingerPrint")
                 if fpr:
-                    self.maint.inconsistencies.log_fingerprint(self, fpr,
+                    self.hk.inconsistencies.log_fingerprint(self, fpr,
                                                                "is in LDAP as {} but not in our db".format(entry.uid),
                                                                ldap_uid=entry.uid)
                 else:
@@ -133,7 +133,7 @@ class CheckLDAPConsistency(MaintenanceTask):
 
             if entry.single("gidNumber") == "800" and entry.single("keyFingerPrint") is not None:
                 if person.status not in (const.STATUS_DD_U, const.STATUS_DD_NU):
-                    self.maint.inconsistencies.log_person(self, person,
+                    self.hk.inconsistencies.log_person(self, person,
                                                           "has gidNumber 800 and a key, but the db has state {}".format(person.status),
                                                           dsa_status="dd")
 
@@ -141,7 +141,7 @@ class CheckLDAPConsistency(MaintenanceTask):
             if email != person.email:
                 if email is not None:
                     log.info("%s: %s changing email from %s to %s (source: LDAP)",
-                             self.IDENTIFIER, self.maint.link(person), person.email, email)
+                             self.IDENTIFIER, self.hk.link(person), person.email, email)
                     person.email = email
                     person.save()
                 # It gives lots of errors when run outside of the debian.org
@@ -150,4 +150,4 @@ class CheckLDAPConsistency(MaintenanceTask):
                 #
                 # else:
                 #     log.info("%s: %s has email %s but emailForward is empty in LDAP",
-                #              self.IDENTIFIER, self.maint.link(person), person.email)
+                #              self.IDENTIFIER, self.hk.link(person), person.email)

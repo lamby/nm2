@@ -131,8 +131,8 @@ INSTALLED_APPS = (
     'django.contrib.admin',
     # Uncomment the next line to enable admin documentation:
     'django.contrib.admindocs',
-    # http://git.debian.org/?p=users/enrico/django_maintenance.git
-    'django_maintenance',
+    # https://github.com/spanezz/django-housekeeping
+    'django_housekeeping',
     'django_dacs',
     'ratelimit',
     'keyring',
