@@ -56,8 +56,8 @@ class BackupDB(hk.Task):
     Backup of the whole database
     """
     def run_backup(self, stage):
-        if BACKUP_DIR is None:
-            log.info("BACKUP_DIR is not set: skipping backups")
+        if self.hk.outdir is None:
+            log.info("HOUSEKEEPING_ROOT is not set: skipping backups")
             return
 
         people = list(bmodels.export_db(full=True))
@@ -69,14 +69,11 @@ class BackupDB(hk.Task):
                 return json.JSONEncoder.default(self, o)
 
         # Base filename for the backup
-        fname = os.path.join(BACKUP_DIR, datetime.datetime.utcnow().strftime("%Y%m%d-db-full.json.gz"))
+        basedir = self.hk.outdir.path()
+        fname = os.path.join(basedir, "db-full.json.gz")
         log.info("%s: backing up to %s", self.IDENTIFIER, fname)
         if self.hk.dry_run: return
 
-        # Use a sequential number to avoid overwriting old backups when run manually
-        while os.path.exists(fname):
-            time.sleep(0.5)
-            fname = os.path.join(BACKUP_DIR, datetime.datetime.utcnow().strftime("%Y%m%d%H%M%S-db-full.json.gz"))
         # Write the backup file
         with utils.atomic_writer(fname, 0640) as fd:
             try:

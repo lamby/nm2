@@ -200,7 +200,7 @@ MINECHANGELOGS_CACHEDIR = os.path.join(DATA_DIR, "mc_cache")
 MINECHANGELOGS_INDEXDIR = os.path.join(DATA_DIR, "mc_index")
 
 # Directory where site backups are stored
-BACKUP_DIR = os.path.join(DATA_DIR, "backups")
+HOUSEKEEPING_ROOT = os.path.join(DATA_DIR, "housekeeping")
 
 # Directory where applicant mailboxes are stored
 PROCESS_MAILBOX_DIR = os.path.join(DATA_DIR, "applicant-mailboxes")
