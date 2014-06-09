@@ -1,4 +1,5 @@
 # nm.debian.org website housekeeping
+# pymode:lint_ignore=E501
 #
 # Copyright (C) 2012--2014  Enrico Zini <enrico@debian.org>
 #
@@ -27,7 +28,6 @@ from . import models as bmodels
 from . import utils, const
 import gzip
 import datetime
-import time
 import json
 import os.path
 import logging
@@ -37,6 +37,7 @@ log = logging.getLogger(__name__)
 BACKUP_DIR = getattr(settings, "BACKUP_DIR", None)
 
 STAGES = ["backup", "main", "stats"]
+
 
 class MakeLink(hk.Task):
     NAME = "link"
@@ -50,6 +51,7 @@ class MakeLink(hk.Task):
             return "http://localhost:8000" + obj.get_absolute_url()
         else:
             return "https://%s%s" % (self.site.domain, obj.get_absolute_url())
+
 
 class BackupDB(hk.Task):
     """
@@ -72,7 +74,8 @@ class BackupDB(hk.Task):
         basedir = self.hk.outdir.path()
         fname = os.path.join(basedir, "db-full.json.gz")
         log.info("%s: backing up to %s", self.IDENTIFIER, fname)
-        if self.hk.dry_run: return
+        if self.hk.dry_run:
+            return
 
         # Write the backup file
         with utils.atomic_writer(fname, 0640) as fd:
@@ -81,6 +84,7 @@ class BackupDB(hk.Task):
                 json.dump(people, gzfd, cls=Serializer, indent=2)
             finally:
                 gzfd.close()
+
 
 class Inconsistencies(hk.Task):
     """
@@ -102,7 +106,8 @@ class Inconsistencies(hk.Task):
         """
         Reset the inconsistency log at the start of maintenance
         """
-        if not self.imodels: return
+        if not self.imodels:
+            return
         # Make a snapshot of the previous inconsistency state
         self.prev_person = {}
         for i in self.imodels.InconsistentPerson.objects.all():
@@ -162,6 +167,36 @@ class Inconsistencies(hk.Task):
         self.ann_fpr.append((maintproc, fpr, log, kw))
         self.logger.debug("%s: annotation for %s: %s", maintproc.IDENTIFIER, fpr, log)
 
+    def _log_inconsistent_persons(self, maintproc):
+        for i in self.imodels.InconsistentPerson.objects.all():
+            old = self.prev_person.get(i.person.lookup_key, frozenset())
+            for l in i.info_log:
+                if l not in old:
+                    if maintproc is None:
+                        self.logger.warning("%s: new inconsistency (no process): %s", self.hk.link(i.person), l)
+                    else:
+                        self.logger.warning("%s: new inconsistency for %s: %s", maintproc.IDENTIFIER, self.hk.link(i.person), l)
+
+    def _log_inconsistent_processes(self, maintproc):
+        for i in self.imodels.InconsistentProcess.objects.all():
+            old = self.prev_process.get(i.process.lookup_key, frozenset())
+            for l in i.info_log:
+                if l not in old:
+                    if maintproc is None:
+                        self.logger.warning("%s: new inconsistency (no process): %s", self.hk.link(i.process), l)
+                    else:
+                        self.logger.warning("%s: new inconsistency for %s: %s", maintproc.IDENTIFIER, self.hk.link(i.process), l)
+
+    def _log_inconsistent_fingerprints(self, maintproc):
+        for i in self.imodels.InconsistentFingerprint.objects.all():
+            old = self.prev_fpr.get(i.fpr, frozenset())
+            for l in i.info_log:
+                if l not in old:
+                    if maintproc is None:
+                        self.logger.warning("%s: new inconsistency for (no process): %s", i.fpr, l)
+                    else:
+                        self.logger.warning("%s: new inconsistency for %s: %s", maintproc.IDENTIFIER, i.fpr, l)
+
     def run_stats(self, stage):
         # FIXME: we're abusing this for post-maintenance finalization. Add a
         # post-run pass to django_maintenance
@@ -176,21 +211,10 @@ class Inconsistencies(hk.Task):
                 self.imodels.InconsistentFingerprint.annotate(fpr, log=log, **kw)
 
         # Log what is new
-        for i in self.imodels.InconsistentPerson.objects.all():
-            old = self.prev_person.get(i.person.lookup_key, frozenset())
-            for l in i.info_log:
-                if l not in old:
-                    self.logger.warning("%s: new inconsistency for %s: %s", maintproc.IDENTIFIER, self.hk.link(person), l)
-        for i in self.imodels.InconsistentProcess.objects.all():
-            old = self.prev_process.get(i.process.lookup_key, frozenset())
-            for l in i.info_log:
-                if l not in old:
-                    self.logger.warning("%s: new inconsistency for %s: %s", maintproc.IDENTIFIER, self.hk.link(process), l)
-        for i in self.imodels.InconsistentFingerprint.objects.all():
-            old = self.prev_fpr.get(i.fpr, frozenset())
-            for l in i.info_log:
-                if l not in old:
-                    self.logger.warning("%s: new inconsistency for %s: %s", maintproc.IDENTIFIER, i.fpr, l)
+        self._log_inconsistent_persons(maintproc)
+        self._log_inconsistent_processes(maintproc)
+        self._log_inconsistent_fingerprints(maintproc)
+
 
 class ComputeAMCTTE(hk.Task):
     """
@@ -202,7 +226,7 @@ class ComputeAMCTTE(hk.Task):
         bmodels.AM.objects.update(is_am_ctte=False)
 
         cutoff = datetime.datetime.utcnow()
-        cutoff = cutoff - datetime.timedelta(days=30*6)
+        cutoff = cutoff - datetime.timedelta(days=30 * 6)
 
         # Set the active ones to True
         cursor = connection.cursor()
@@ -220,6 +244,7 @@ class ComputeAMCTTE(hk.Task):
         transaction.commit_unless_managed()
         log.info("%s: %d CTTE members", self.IDENTIFIER, bmodels.AM.objects.filter(is_am_ctte=True).count())
 
+
 class ComputeProcessActiveFlag(hk.Task):
     """
     Compute Process.is_active from Process.progress
@@ -235,6 +260,7 @@ class ComputeProcessActiveFlag(hk.Task):
                  self.IDENTIFIER,
                  bmodels.Process.objects.filter(is_active=True).count(),
                  cursor.rowcount)
+
 
 class PersonExpires(hk.Task):
     """
@@ -263,6 +289,7 @@ class PersonExpires(hk.Task):
                 log.info("%s: deleting expired Person %s", self.IDENTIFIER, p)
                 p.delete()
 
+
 class CheckOneProcessPerPerson(hk.Task):
     """
     Check that one does not have more than one open process at the current time
@@ -272,11 +299,12 @@ class CheckOneProcessPerPerson(hk.Task):
     def run_main(self, stage):
         from django.db.models import Count
         for p in bmodels.Person.objects.filter(processes__is_active=True) \
-                 .annotate(num_processes=Count("processes")) \
-                 .filter(num_processes__gt=1):
-            self.hk.inconsistencies.log_person(self, p,
-                                                  "has {} open processes".format(p.num_processes),
-                                                  processes=[pr.lookup_key for pr in p.processes.filter(is_active=True)])
+                .annotate(num_processes=Count("processes")) \
+                .filter(num_processes__gt=1):
+            self.hk.inconsistencies.log_person(
+                self, p, "has {} open processes".format(p.num_processes),
+                processes=[pr.lookup_key for pr in p.processes.filter(is_active=True)])
+
 
 class CheckAMMustHaveUID(hk.Task):
     """
@@ -285,6 +313,7 @@ class CheckAMMustHaveUID(hk.Task):
     def run_main(self, stage):
         for am in bmodels.AM.objects.filter(person__uid=None):
             log.warning("%s: AM %d (person %d %s) has no uid", self.IDENTIFIER, am.id, am.person.id, am.person.email)
+
 
 class CheckStatusProgressMatch(hk.Task):
     """
@@ -301,10 +330,12 @@ class CheckStatusProgressMatch(hk.Task):
             except IndexError:
                 continue
             if p.status != last_proc.applying_for:
-                self.hk.inconsistencies.log_person(self, p,
-                                                      "status {} but the last completed process was applying for {}".format(
-                                                          p.status, last_proc.applying_for),
-                                                      process_status=last_proc.applying_for)
+                self.hk.inconsistencies.log_person(
+                    self, p,
+                    "status {} but the last completed process was applying for {}".format(
+                        p.status, last_proc.applying_for),
+                    process_status=last_proc.applying_for)
+
 
 class CheckLogProgressMatch(hk.Task):
     """
@@ -323,6 +354,7 @@ class CheckLogProgressMatch(hk.Task):
             if p.progress != last_log.progress:
                 log.warning("%s: %s (%s) has progress %s but the last log entry has progress %s",
                             self.IDENTIFIER, self.hk.link(p), repr(p), p.progress, last_log.progress)
+
 
 class CheckEnums(hk.Task):
     """
@@ -347,6 +379,7 @@ class CheckEnums(hk.Task):
             log.warning("%s: %s: log entry %d has invalid progress %s",
                         self.IDENTIFIER, self.hk.link(l.process), l.id, l.progress)
 
+
 class CheckCornerCases(hk.Task):
     """
     Check for known corner cases, to be fixed somehow eventually maybe in case
@@ -360,6 +393,7 @@ class CheckCornerCases(hk.Task):
         c = bmodels.Person.objects.filter(status_changed__isnull=True).count()
         if c > 0:
             log.warning("%s: %d entries still have a NULL status_changed date", self.IDENTIFIER, c)
+
 
 class CheckDjangoPermissions(hk.Task):
     """
@@ -391,4 +425,3 @@ class CheckDjangoPermissions(hk.Task):
         for id in (nm_power_users - django_power_users):
             log.warning("%s: auth.models.User.id %d has powers in NM that django does not know about",
                         self.IDENTIFIER, id)
-
