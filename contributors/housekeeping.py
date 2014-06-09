@@ -1,4 +1,5 @@
 # nm.debian.org website housekeeping
+# pymode:lint_ignore=E501
 #
 # Copyright (C) 2014  Enrico Zini <enrico@debian.org>
 #
@@ -20,6 +21,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from backend.housekeeping import MakeLink
 import django_housekeeping as hk
 import backend.models as bmodels
@@ -35,6 +37,7 @@ DC_GIT_REPO_DC = getattr(settings, "DC_GIT_REPO_DC", "/srv/contributors.debian.o
 
 STAGES = ["main", "reports", "stats"]
 
+
 class SubmitContributors(hk.Task):
     """
     Compute contributions and submit them to contributors.debian.org
@@ -45,7 +48,12 @@ class SubmitContributors(hk.Task):
         from django.db.models import Min, Max
 
         if DC_AUTH_TOKEN is None:
-            raise Exception("DC_AUTH_TOKEN is not configured, we cannot submit to contributors.debian.org")
+            if settings.DEBUG:
+                log.warning("DC_AUTH_TOKEN is not configured, we cannot submit to contributors.debian.org")
+                log.warning("Stopping processing here, this would result in an exception in production.")
+                return
+            else:
+                raise ImproperlyConfigured("DC_AUTH_TOKEN is not configured, we cannot submit to contributors.debian.org")
 
         datamine = dc.DataMine(configstr="""
 source: nm.debian.org
