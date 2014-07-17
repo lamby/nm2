@@ -28,7 +28,7 @@ Debian NM Front Desk web application
 
 ### First setup
     
-    ./manage.py syncdb
+    ./manage.py syncdb --migrate
 
 ### Fill in data
 Visit https://nm.debian.org/am/db-export to download nm-mock.json; for privacy,
@@ -48,7 +48,7 @@ https://nm.debian.org/am/db-export?full for a full database export.
 
 ### Run database maintenance
     
-    ./manage.py maintenance
+    ./manage.py housekeeping
 
 ### Run the web server
     
@@ -59,7 +59,7 @@ https://nm.debian.org/am/db-export?full for a full database export.
 You need to run periodic maintenance to check/regenerate the denormalised
 fields:
 
-    ./manage.py maintenance
+    ./manage.py housekeeping
 
 
 ## Development
