@@ -96,7 +96,7 @@ $(function() {
 <p>Currently the database thinks you have the following functions:</p>
 <ul>
     {% if request.am.is_am_ctte %}<li>New Member Committee</li>{% endif %}
-    {% if request.am.is_am %}<li>Application Manager</li>{% endif %}
+    {% if request.am.is_am %}<li>Application Manager with {{ request.am.slots }} slots</li>{% endif %}
     {% if request.am.is_fd %}<li>Front Desk</li>{% endif %}
     {% if request.am.is_dam %}<li>Debian Account Manager</li>{% endif %}
 </ul>
@@ -105,21 +105,26 @@ $(function() {
 
 <h2>Front Desk</h2>
 
-<p>The following managers have free slots (#free/#slots):
+{% if am_available %}
+<p>The following managers have free slots (#free/#slots):</p>
 <ul class="horizontal">
     {% for a in am_available %}
     <li><a href="{% url 'restricted_amprofile' uid=a.person.uid %}">{{a.person.uid}}</a>
         ({{a.stats_free}}/{{a.slots}})</li>
     {% endfor %}
 </ul>
-</p>
+{% else %}
+<p>Currently there are no free application managers.</p>
+{% endif %}
 
-<p>The following people have applied but have not replied to our initial mail
-yet, or their advocacies are incomplete.</p>
+<p>The following people have applied but have not enough advocates or we did not send the activity poll yet.</p>
 {% usemacro process_table prog_app_new "" %}
 
+<p>The following people have not replied to the activity poll yet.</p>
+{% usemacro process_table prog_poll_sent "" %}
+
 <p>The following applicants are waiting for an Application Manager to be
-assigned (first one is oldest). <a href="{% url 'restricted_nm_am_match' %}">Compute best matches</a>.</p>
+assigned (first one is oldest). {% if am_available %}<a href="{% url 'restricted_nm_am_match' %}">Compute best matches</a>.{% else %}Currently there are no free application managers.{% endif %}</p>
 {% usemacro process_table prog_app_ok "" %}
 
 <p>Applicants currently not ready to be assigned to an AM (ordered by hold date):</p>
@@ -151,6 +156,9 @@ but a DAM has not fully processed them yet (sorted by FD approval):</p>
 
 {% endif %}
 
+
+{# only show application manager section if the current user either has AM slots or any existing process assigned #}
+{% if request.am.slots or am_prog_rcvd or am_prog_am or am_prog_hold or am_prog_done %}
 <h2>Application Manager</h2>
 
 <p>Hello <b>{{request.person.uid}}</b>, here is a list of New Member applicants that
@@ -180,6 +188,7 @@ are expected to be able to work around that soon (ordered by hold date).</p>
 <p>These applicants you have processed through the system and are here for
 historical or informational purposes (ordered by account creation date).</p>
 {% usemacro process_table am_prog_done "" %}
+{% endif %}
 
 {% comment %}
                       <H2>Key</H2>
