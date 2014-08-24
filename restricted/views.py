@@ -503,40 +503,6 @@ def _assign_am(request, nm, am):
     if 'impersonate' in request.session:
         l.logtext = "[%s as %s] %s" % (request.user, request.person.lookup_key, l.logtext)
     l.save()
-    # Send mail
-    lines = [
-        "Hello," % parms,
-        "",
-    ]
-    lines.extend(textwrap.wrap(
-        "I have just assigned you a new NM applicant: %(nmname)s, who is"
-        " %(nmcurstatus)s and is applying for %(nmnewstatus)s." % parms, 72))
-    lines.append("")
-    if nm.mailbox_file:
-        lines.append("The mailbox with everything so far can be downloaded at:")
-        lines.append(request.build_absolute_uri(reverse("download_mail_archive", kwargs=dict(key=nm.lookup_key))))
-        lines.append("")
-    lines.extend(textwrap.wrap(
-        "Note that you have not acknowledged the assignment yet, and"
-        " could still refuse it, for example if you do not"
-        " have time at the moment." % parms, 72))
-    lines.append("")
-    lines.extend(textwrap.wrap(
-        "Please visit [1] to acknowledge the assignment and, later,"
-        " to track the progress of the application. Please email"
-        " nm@debian.org if you wish to decline the assignment." % parms, 72))
-    lines.append("")
-    lines.append("[1] %(procurl)s" % parms)
-    lines.append("")
-    lines.extend(textwrap.wrap(
-        "Have a good AMing, and if you need anything please mail nm@debian.org.", 72))
-    lines.append("")
-    lines.append("%(fdname)s (for Front Desk)" % parms)
-    backend.email.personal_email(request,
-                                    [am.person.uid + "@debian.org", nm.person.email],
-                                    "New NM applicant %s <%s>" % (nm.person.fullname, nm.person.email),
-                                    "\n".join(lines))
-
 
 @backend.auth.is_admin
 def nm_am_match(request):
