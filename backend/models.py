@@ -317,18 +317,9 @@ class Person(models.Model):
     # Link to Django web user information
     user = models.OneToOneField(User, null=True)
 
-    #  enrico> Ok, it's time to try deployment. If it goes like debtags.d.n,
-    #          then we need mod_wsgi to be enabled on nono to run
-    #          nono:/srv/nm.debian.org/nm2/nm2.wsgi in something like /nm2 (to
-    #          be moved to / once it's ready)
-    #  enrico> should I do a RT ticket for it?
-    # @sgran> please
-    #  enrico> sgran: done
-    # @sgran> thanks
     #  enrico> For people like Wookey, do you prefer we use only cn or only sn?
     #          "sn" is used currently, and "cn" has a dash, but rather than
-    #          cargo-culting that in the new NM
-    # double check it with you
+    #          cargo-culting that in the new NM double check it with you
     # @sgran> cn would be more usual
     # @sgran> cn is the "whole name" and you can split it up into givenName + sn if you like
     #  phil> Except that in Debian LDAP it isn't.
