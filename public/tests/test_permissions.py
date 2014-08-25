@@ -17,6 +17,7 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
         """
         class WhenView(NMTestUtilsWhen):
             url = reverse("public_newnm")
+        self.assertVisit(WhenView(), ThenSuccess())
         for u in self.users.itervalues():
             self.assertVisit(WhenView(user=u), ThenSuccess())
 
@@ -26,8 +27,23 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
         """
         class WhenView(NMTestUtilsWhen):
             url = reverse("processes")
-        for u in self.users.itervalues():
-            self.assertVisit(WhenView(user=u), ThenSuccess())
+            def __unicode__(self): return "visiting {}".format(self.url)
+        class ThenSeesFDComments(ThenSuccess):
+            def __call__(self, fixture, response, when, test_client):
+                super(ThenSeesFDComments, self).__call__(fixture, response, when, test_client)
+                if b"FD_COMMENTS" not in response.content:
+                    fixture.fail("FD comments not visible by {} when {}".format(when.user, when))
+        class ThenDoesNotSeeFDComments(ThenSuccess):
+            def __call__(self, fixture, response, when, test_client):
+                super(ThenDoesNotSeeFDComments, self).__call__(fixture, response, when, test_client)
+                if b"FD_COMMENTS" in response.content:
+                    fixture.fail("FD comments are visible by {} when {}".format(when.user, when))
+
+        self.assertVisit(WhenView(), ThenDoesNotSeeFDComments())
+        for u in self.users.viewkeys() - frozenset(("fd", "dam")):
+            self.assertVisit(WhenView(user=self.users[u]), ThenDoesNotSeeFDComments())
+        for u in ("fd", "dam"):
+            self.assertVisit(WhenView(user=self.users[u]), ThenSeesFDComments())
 
     def test_managers(self):
         """
@@ -35,6 +51,7 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
         """
         class WhenView(NMTestUtilsWhen):
             url = reverse("managers")
+        self.assertVisit(WhenView(), ThenSuccess())
         for u in self.users.itervalues():
             self.assertVisit(WhenView(user=u), ThenSuccess())
 
@@ -44,6 +61,7 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
         """
         class WhenView(NMTestUtilsWhen):
             url = reverse("public_stats")
+        self.assertVisit(WhenView(), ThenSuccess())
         for u in self.users.itervalues():
             self.assertVisit(WhenView(user=u), ThenSuccess())
 
@@ -53,6 +71,7 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
         """
         class WhenView(NMTestUtilsWhen):
             url = reverse("public_stats_latest")
+        self.assertVisit(WhenView(), ThenSuccess())
         for u in self.users.itervalues():
             self.assertVisit(WhenView(user=u), ThenSuccess())
 
@@ -62,6 +81,7 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
         """
         class WhenView(NMTestUtilsWhen):
             url = reverse("public_findperson")
+        self.assertVisit(WhenView(), ThenSuccess())
         for u in self.users.itervalues():
             self.assertVisit(WhenView(user=u), ThenSuccess())
 
@@ -73,6 +93,7 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
         """
         class WhenView(NMTestUtilsWhen):
             url = reverse("people")
+        self.assertVisit(WhenView(), ThenSuccess())
         for u in self.users.itervalues():
             self.assertVisit(WhenView(user=u), ThenSuccess())
 
@@ -84,6 +105,7 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
             def setUp(self, fixture):
                 super(WhenViewSelf, self).setUp(fixture)
                 self.url = reverse("person", kwargs={ "key": self.user.lookup_key })
+        self.assertVisit(WhenViewSelf(), ThenSuccess())
         for u in self.users.itervalues():
             self.assertVisit(WhenViewSelf(user=u), ThenSuccess())
 
@@ -109,6 +131,7 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
                 self.process.delete()
                 self.person.delete()
 
+        self.assertVisit(WhenViewOther(), ThenSuccess())
         for u in self.users.itervalues():
             self.assertVisit(WhenViewOther(user=u), ThenSuccess())
 
@@ -121,6 +144,7 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
         """
         class WhenView(NMTestUtilsWhen):
             url = reverse("public_progress", kwargs={ "progress": "app_ok" })
+        self.assertVisit(WhenView(), ThenSuccess())
         for u in self.users.itervalues():
             self.assertVisit(WhenView(user=u), ThenSuccess())
 

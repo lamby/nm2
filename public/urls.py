@@ -1,6 +1,7 @@
+# coding: utf-8
 # nm.debian.org website reports
 #
-# Copyright (C) 2012--2013  Enrico Zini <enrico@debian.org>
+# Copyright (C) 2012--2014  Enrico Zini <enrico@debian.org>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -15,15 +16,20 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
 from django.conf.urls import *
 from django.views.generic import RedirectView
+from . import views
 
 urlpatterns = patterns('public.views',
     url(r'^$', RedirectView.as_view(url="/"), name="public_index"),
     url(r'^newnm$', 'newnm', name="public_newnm"),
     url(r'^newnm/resend_challenge/(?P<key>[^/]+)$', 'newnm_resend_challenge', name="public_newnm_resend_challenge"),
     url(r'^newnm/confirm/(?P<nonce>[^/]+)$', 'newnm_confirm', name="public_newnm_confirm"),
-    url(r'^processes$', 'processes', name="processes"),
+    url(r'^processes$', views.Processes.as_view(), name="processes"),
     url(r'^managers$', 'managers', name="managers"),
     url(r'^people(?:/(?P<status>\w+))?$', 'people', name="people"),
     url(r'^person/(?P<key>[^/]+)$', 'person', name="person"),
@@ -36,5 +42,5 @@ urlpatterns = patterns('public.views',
     # Compatibility
     url(r'^whoisam$', 'managers', name="public_whoisam"),
     url(r'^nmstatus/(?P<key>[^/]+)$', 'process', name="public_nmstatus"),
-    url(r'^nmlist$', 'processes', name="public_nmlist"),
+    url(r'^nmlist$', views.Processes.as_view(), name="public_nmlist"),
 )

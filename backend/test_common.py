@@ -18,14 +18,18 @@ class NMBasicFixtureMixin(object):
         self.users = {}
 
         def _make_user(tag, status, alioth=False, **kw):
+            if alioth:
+                remote_user = "NM::DEBIAN:{}-guest@users.alioth.debian.org".format(tag)
+                uid = tag + "-guest"
+            else:
+                remote_user = "NM::DEBIAN:{}".format(tag)
+                uid = tag
             res = bmodels.Person.objects.create(cn=tag.capitalize(),
+                                        uid=uid,
                                         email=tag + "@example.org",
                                         status=status,
                                         **kw)
-            if alioth:
-                res.remote_user = "NM::DEBIAN:{}-guest@users.alioth.debian.org".format(tag)
-            else:
-                res.remote_user = "NM::DEBIAN:{}".format(tag)
+            res.remote_user = remote_user
             self.users[tag] = res
             return res
 
@@ -35,7 +39,7 @@ class NMBasicFixtureMixin(object):
         # non-dd non-applicant
         _make_user("bystander", const.STATUS_MM, alioth=True)
         # non-dd applicant
-        applicant = _make_user("applicant", const.STATUS_MM_GA, alioth=True)
+        applicant = _make_user("applicant", const.STATUS_MM_GA, alioth=True, fd_comment="FD_COMMENTS")
         # dd
         _make_user("dd", const.STATUS_DD_NU)
         # dd advocate,

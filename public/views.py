@@ -1,6 +1,6 @@
 # nm.debian.org website reports
 #
-# Copyright (C) 2012  Enrico Zini <enrico@debian.org>
+# Copyright (C) 2012--2014  Enrico Zini <enrico@debian.org>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -20,12 +20,38 @@ from django.shortcuts import render_to_response, redirect, render, get_object_or
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 from django.utils.timezone import now
+from django.views.generic import TemplateView
 import backend.models as bmodels
 import backend.email as bemail
 from backend import const
 import markdown
 import datetime
 import json
+
+class NMVisitorMixin(object):
+    """
+    Add a 'visitor' entry to the context with the Person object for the person
+    visiting the site
+    """
+    def get_context_data(self, **kw):
+        ctx = super(NMVisitorMixin, self).get_context_data(**kw)
+
+        if self.request.user.is_authenticated():
+            visitor = self.request.user.get_profile()
+
+            # Implement impersonation if requested in session
+            if self.request.person.is_admin:
+                key = self.request.session.get("impersonate", None)
+                if key is not None:
+                    p = bmodels.Person.lookup(key)
+                    if p is not None:
+                        visitor = p
+        else:
+            visitor = None
+
+        ctx["visitor"] = visitor
+        return ctx
+
 
 def managers(request):
     from django.db import connection
@@ -62,29 +88,29 @@ def managers(request):
                               ),
                               context_instance=template.RequestContext(request))
 
-def processes(request):
-    from django.db.models import Min, Max, Q
+class Processes(NMVisitorMixin, TemplateView):
+    template_name = "public/processes.html"
 
-    context=dict()
+    def get_context_data(self, **kw):
+        from django.db.models import Min, Max
+        ctx = super(Processes, self).get_context_data(**kw)
 
-    cutoff = now() - datetime.timedelta(days=180)
+        cutoff = now() - datetime.timedelta(days=180)
 
-    context["open"] = bmodels.Process.objects.filter(is_active=True) \
+        ctx["open"] = bmodels.Process.objects.filter(is_active=True) \
                                              .annotate(
                                                  started=Min("log__logdate"),
                                                  last_change=Max("log__logdate")) \
                                              .order_by("-last_change")
 
-    context["done"] = bmodels.Process.objects.filter(progress=const.PROGRESS_DONE) \
+        ctx["done"] = bmodels.Process.objects.filter(progress=const.PROGRESS_DONE) \
                                              .annotate(
                                                  started=Min("log__logdate"),
                                                  last_change=Max("log__logdate")) \
                                              .order_by("-last_change") \
                                              .filter(last_change__gt=cutoff)
 
-    return render_to_response("public/processes.html",
-                              context,
-                              context_instance=template.RequestContext(request))
+        return ctx
 
 def make_statusupdateform(editor):
     if editor.is_fd:
@@ -554,7 +580,6 @@ def newnm(request):
         form = NewPersonForm()
     errors = []
     for k, v in form.errors.iteritems():
-        print(k)
         if k in ("cn", "mn", "sn"):
             section = "name"
         elif k in ("sc_ok", "dmup_ok"):
