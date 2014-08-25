@@ -37,7 +37,7 @@ urlpatterns = patterns('public.views',
     url(r'^progress/(?P<progress>\w+)$', 'progress', name="public_progress"),
     url(r'^stats/$', views.Stats.as_view(), name="public_stats"),
     url(r'^stats/latest$', views.StatsLatest.as_view(), name="public_stats_latest"),
-    url(r'^findperson/$', 'findperson', name="public_findperson"),
+    url(r'^findperson/$', views.Findperson.as_view(), name="public_findperson"),
 
     # Compatibility
     url(r'^whoisam$', views.Managers.as_view(), name="public_whoisam"),

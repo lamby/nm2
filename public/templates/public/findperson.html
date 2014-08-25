@@ -13,7 +13,7 @@
 {% nm_js_support %}
 
 $(function() {
-    var is_admin = {{request.am.is_admin|yesno:"true,false"}};
+    var is_admin = {{visitor.is_admin|yesno:"true,false"}};
     var form = $("#search_form");
     var fsubmit = $("#search_form_submit");
     var perstable = $("#perstable");
@@ -158,11 +158,11 @@ $(function() {
 
 {% block content %}
 
-<h1>Debian New Member - Find{% if request.am.is_admin %}/create{% endif %} person</h2>
+<h1>Debian New Member - Find{% if visitor.is_admin %}/create{% endif %} person</h2>
 
 <div id="intro">
 Fill in fields of the form to look for people.
-{% if request.am.is_admin %}
+{% if visitor.is_admin %}
 If the person you are looking for is not found, you can use the same form to
 create a new Person record.
 {% endif %}
@@ -177,7 +177,7 @@ create a new Person record.
     </tr>
     {% endfor %}
 </table>
-{% if request.am.is_admin %}
+{% if visitor.is_admin %}
     <input id="search_form_submit" type="submit" value="Create person" />
 {% endif %}
 </form>

@@ -18,6 +18,7 @@
 from django import http, template, forms
 from django.shortcuts import render_to_response, redirect, render, get_object_or_404
 from django.core.urlresolvers import reverse
+from django.core.exceptions import PermissionDenied
 from django.utils.translation import ugettext as _
 from django.utils.timezone import now
 from django.views.generic import TemplateView
@@ -33,23 +34,24 @@ class NMVisitorMixin(object):
     Add a 'visitor' entry to the context with the Person object for the person
     visiting the site
     """
+    def get_visitor(self, request):
+        if not request.user.is_authenticated():
+            return None
+
+        visitor = request.user.get_profile()
+
+        # Implement impersonation if requested in session
+        if request.person.is_admin:
+            key = request.session.get("impersonate", None)
+            if key is not None:
+                p = bmodels.Person.lookup(key)
+                if p is not None:
+                    visitor = p
+        return visitor
+
     def get_context_data(self, **kw):
         ctx = super(NMVisitorMixin, self).get_context_data(**kw)
-
-        if self.request.user.is_authenticated():
-            visitor = self.request.user.get_profile()
-
-            # Implement impersonation if requested in session
-            if self.request.person.is_admin:
-                key = self.request.session.get("impersonate", None)
-                if key is not None:
-                    p = bmodels.Person.lookup(key)
-                    if p is not None:
-                        visitor = p
-        else:
-            visitor = None
-
-        ctx["visitor"] = visitor
+        ctx["visitor"] = self.get_visitor(self.request)
         return ctx
 
 
@@ -418,24 +420,30 @@ def make_findperson_form(request):
             exclude = excludes
     return FindpersonForm
 
-def findperson(request):
-    FindpersonForm = make_findperson_form(request)
+class Findperson(NMVisitorMixin, TemplateView):
+    template_name = "public/findperson.html"
 
-    if request.method == 'POST':
-        if not request.am or not request.am.is_admin:
-            return http.HttpResponseForbidden("Only FD members can create new people in the site")
+    def get_context_data(self, **kw):
+        ctx = super(Findperson, self).get_context_data(**kw)
+        FindpersonForm = make_findperson_form(self.request)
+        form = FindpersonForm()
+        ctx["form"] = form
+        return ctx
 
+    def post(self, request, *args, **kw):
+        visitor = self.get_visitor(request)
+        if not visitor.is_admin:
+            raise PermissionDenied()
+
+        FindpersonForm = make_findperson_form(request)
         form = FindpersonForm(request.POST)
         if form.is_valid():
             person = form.save()
             return redirect(person.get_absolute_url())
-    else:
-        form = FindpersonForm()
 
-    return render_to_response("public/findperson.html", dict(
-                                  form=form,
-                              ),
-                              context_instance=template.RequestContext(request))
+        context = self.get_context_data(**kw)
+        return self.render_to_response(context)
+
 
 class StatsLatest(NMVisitorMixin, TemplateView):
     template_name = "public/stats_latest.html"

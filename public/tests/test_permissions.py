@@ -105,11 +105,38 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
         """
         class WhenView(NMTestUtilsWhen):
             url = reverse("public_findperson")
-        self.assertVisit(WhenView(), ThenSuccess())
-        for u in self.users.itervalues():
-            self.assertVisit(WhenView(user=u), ThenSuccess())
+        class ThenSeesDetails(ThenSuccess):
+            def __call__(self, fixture, response, when, test_client):
+                super(ThenSeesDetails, self).__call__(fixture, response, when, test_client)
+                if b'id="search_form_submit"' not in response.content:
+                    fixture.fail("details not visible by {} when {}".format(when.user, when))
+        class ThenDoesNotSeeDetails(ThenSuccess):
+            def __call__(self, fixture, response, when, test_client):
+                super(ThenDoesNotSeeDetails, self).__call__(fixture, response, when, test_client)
+                if b'id="search_form_submit"' in response.content:
+                    fixture.fail("details are visible by {} when {}".format(when.user, when))
+        self.assertVisit(WhenView(), ThenDoesNotSeeDetails())
+        for u in self.users.viewkeys() - frozenset(("fd", "dam")):
+            self.assertVisit(WhenView(user=self.users[u]), ThenDoesNotSeeDetails())
+        for u in ("fd", "dam"):
+            self.assertVisit(WhenView(user=self.users[u]), ThenSeesDetails())
 
-        # TODO: test POST
+        # Test POST
+        class WhenPost(NMTestUtilsWhen):
+            method = "post"
+            url = reverse("public_findperson")
+            data = {}
+        class ThenCreatesUser(ThenRedirect):
+            target = "/public/person/"
+            def __call__(self, fixture, response, when, test_client):
+                super(ThenCreatesUser, self).__call__(fixture, response, when, test_client)
+                # TODO: check database
+
+        self.assertVisit(WhenPost(), ThenForbidden())
+        for u in self.users.viewkeys() - frozenset(("fd", "dam")):
+            self.assertVisit(WhenPost(user=self.users[u]), ThenForbidden())
+        for u in ("fd", "dam"):
+            self.assertVisit(WhenPost(user=self.users[u]), ThenCreatesUser())
 
     def test_people(self):
         """
