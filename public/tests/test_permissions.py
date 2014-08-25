@@ -27,7 +27,6 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
         """
         class WhenView(NMTestUtilsWhen):
             url = reverse("processes")
-            def __unicode__(self): return "visiting {}".format(self.url)
         class ThenSeesFDComments(ThenSuccess):
             def __call__(self, fixture, response, when, test_client):
                 super(ThenSeesFDComments, self).__call__(fixture, response, when, test_client)
@@ -62,9 +61,10 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
                 if b"<th>Hold</th>" in response.content:
                     fixture.fail("details are visible by {} when {}".format(when.user, when))
         self.assertVisit(WhenView(), ThenDoesNotSeeDetails())
-        for u in self.users.viewkeys() - frozenset(("fd", "dam")):
+        ams = ("am", "am_other", "am_past", "fd", "dam")
+        for u in self.users.viewkeys() - frozenset(ams):
             self.assertVisit(WhenView(user=self.users[u]), ThenDoesNotSeeDetails())
-        for u in ("fd", "dam"):
+        for u in ams:
             self.assertVisit(WhenView(user=self.users[u]), ThenSeesDetails())
 
     def test_stats(self):
@@ -156,7 +156,7 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
             def setUp(self, fixture):
                 super(WhenViewSelf, self).setUp(fixture)
                 self.url = reverse("person", kwargs={ "key": self.user.lookup_key })
-        self.assertVisit(WhenViewSelf(), ThenSuccess())
+        #self.assertVisit(WhenViewSelf(), ThenSuccess())
         for u in self.users.itervalues():
             self.assertVisit(WhenViewSelf(user=u), ThenSuccess())
 

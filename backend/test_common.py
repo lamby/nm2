@@ -108,6 +108,8 @@ class NMTestUtilsWhen(object):
     def tearDown(self, fixture):
         pass
 
+    def __unicode__(self): return "performing {} {}".format(self.method.upper(), self.url)
+
 class NMTestUtilsThen(object):
     def __call__(self, fixture, response, when, test_client):
         fixture.fail("test not implemented")
