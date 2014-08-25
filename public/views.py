@@ -299,51 +299,54 @@ class People(NMVisitorMixin, TemplateView):
         )
         return ctx
 
-def person(request, key):
-    from django.db.models import Min, Max
-    person = bmodels.Person.lookup_or_404(key)
+class Person(NMVisitorMixin, TemplateView):
+    template_name = "public/person.html"
 
-    processes = person.processes \
-            .annotate(started=Min("log__logdate"), ended=Max("log__logdate")) \
-            .order_by("is_active", "ended")
+    def get_context_data(self, **kw):
+        from django.db.models import Min, Max
+        ctx = super(Person, self).get_context_data(**kw)
+        key = self.kwargs["key"]
+        person = bmodels.Person.lookup_or_404(key)
 
-    can_be_am = False
-    if person.is_am:
-        am = person.am
-        am_processes = am.processed \
-                .annotate(started=Min("log__logdate"), ended=Max("log__logdate")) \
-                .order_by("is_active", "ended")
-    else:
-        am = None
-        am_processes = []
-        if person.status in (const.STATUS_DD_U, const.STATUS_DD_NU) and person.status_changed and (now() - person.status_changed > datetime.timedelta(days=6*30)):
-            can_be_am = True
-
-    ctx = dict(
-        person=person,
-        am=am,
-        processes=processes,
-        am_processes=am_processes,
-        can_be_am=can_be_am,
-        can_advocate_as_dd=(request.person and request.person.can_advocate_as_dd(person)),
-    )
-
-
-    # List of statuses the person is already applying for
-    for st in person.get_allowed_processes():
-        ctx["can_start_%s_process" % st] = True
-
-    ctx["adv_processes"] = person.advocated \
+        processes = person.processes \
                 .annotate(started=Min("log__logdate"), ended=Max("log__logdate")) \
                 .order_by("is_active", "ended")
 
-    if person.bio is not None:
-        ctx["bio_html"] = markdown.markdown(person.bio, safe_mode="escape")
-    else:
-        ctx["bio_html"] = ""
+        can_be_am = False
+        if person.is_am:
+            am = person.am
+            am_processes = am.processed \
+                    .annotate(started=Min("log__logdate"), ended=Max("log__logdate")) \
+                    .order_by("is_active", "ended")
+        else:
+            am = None
+            am_processes = []
+            if person.status in (const.STATUS_DD_U, const.STATUS_DD_NU) and person.status_changed and (now() - person.status_changed > datetime.timedelta(days=6*30)):
+                can_be_am = True
 
-    return render_to_response("public/person.html", ctx,
-                              context_instance=template.RequestContext(request))
+        ctx.update(
+            person=person,
+            am=am,
+            processes=processes,
+            am_processes=am_processes,
+            can_be_am=can_be_am,
+            can_advocate_as_dd=(self.request.person and self.request.person.can_advocate_as_dd(person)),
+        )
+
+
+        # List of statuses the person is already applying for
+        for st in person.get_allowed_processes():
+            ctx["can_start_%s_process" % st] = True
+
+        ctx["adv_processes"] = person.advocated \
+                    .annotate(started=Min("log__logdate"), ended=Max("log__logdate")) \
+                    .order_by("is_active", "ended")
+
+        if person.bio is not None:
+            ctx["bio_html"] = markdown.markdown(person.bio, safe_mode="escape")
+        else:
+            ctx["bio_html"] = ""
+        return ctx
 
 def progress(request, progress):
     from django.db.models import Min, Max
