@@ -30,7 +30,7 @@ urlpatterns = patterns('public.views',
     url(r'^newnm/resend_challenge/(?P<key>[^/]+)$', 'newnm_resend_challenge', name="public_newnm_resend_challenge"),
     url(r'^newnm/confirm/(?P<nonce>[^/]+)$', 'newnm_confirm', name="public_newnm_confirm"),
     url(r'^processes$', views.Processes.as_view(), name="processes"),
-    url(r'^managers$', 'managers', name="managers"),
+    url(r'^managers$', views.Managers.as_view(), name="managers"),
     url(r'^people(?:/(?P<status>\w+))?$', 'people', name="people"),
     url(r'^person/(?P<key>[^/]+)$', 'person', name="person"),
     url(r'^process/(?P<key>[^/]+)$', 'process', name="public_process"),
@@ -40,7 +40,7 @@ urlpatterns = patterns('public.views',
     url(r'^findperson/$', 'findperson', name="public_findperson"),
 
     # Compatibility
-    url(r'^whoisam$', 'managers', name="public_whoisam"),
+    url(r'^whoisam$', views.Managers.as_view(), name="public_whoisam"),
     url(r'^nmstatus/(?P<key>[^/]+)$', 'process', name="public_nmstatus"),
     url(r'^nmlist$', views.Processes.as_view(), name="public_nmlist"),
 )

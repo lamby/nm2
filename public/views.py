@@ -53,40 +53,41 @@ class NMVisitorMixin(object):
         return ctx
 
 
-def managers(request):
-    from django.db import connection
+class Managers(NMVisitorMixin, TemplateView):
+    template_name = "public/managers.html"
 
-    # Compute statistics indexed by AM id
-    cursor = connection.cursor()
-    cursor.execute("""
-    SELECT am.id,
-           count(*) as total,
-           sum(case when process.is_active then 1 else 0 end) as active,
-           sum(case when process.progress=%s then 1 else 0 end) as held
-      FROM am
-      JOIN process ON process.manager_id=am.id
-     GROUP BY am.id
-    """, (const.PROGRESS_AM_HOLD,))
-    stats = dict()
-    for amid, total, active, held in cursor:
-        stats[amid] = (total, active, held)
+    def get_context_data(self, **kw):
+        ctx = super(Managers, self).get_context_data(**kw)
+        from django.db import connection
 
-    # Read the list of AMs, with default sorting, and annotate with the
-    # statistics
-    ams = []
-    for a in bmodels.AM.objects.all().order_by("-is_am", "person__uid"):
-        total, active, held = stats.get(a.id, (0, 0, 0))
-        a.stats_total = total
-        a.stats_active = active
-        a.stats_done = total-active
-        a.stats_held = held
-        ams.append(a)
+        # Compute statistics indexed by AM id
+        cursor = connection.cursor()
+        cursor.execute("""
+        SELECT am.id,
+            count(*) as total,
+            sum(case when process.is_active then 1 else 0 end) as active,
+            sum(case when process.progress=%s then 1 else 0 end) as held
+        FROM am
+        JOIN process ON process.manager_id=am.id
+        GROUP BY am.id
+        """, (const.PROGRESS_AM_HOLD,))
+        stats = {}
+        for amid, total, active, held in cursor:
+            stats[amid] = (total, active, held)
 
-    return render_to_response("public/managers.html",
-                              dict(
-                                  ams=ams,
-                              ),
-                              context_instance=template.RequestContext(request))
+        # Read the list of AMs, with default sorting, and annotate with the
+        # statistics
+        ams = []
+        for a in bmodels.AM.objects.all().order_by("-is_am", "person__uid"):
+            total, active, held = stats.get(a.id, (0, 0, 0))
+            a.stats_total = total
+            a.stats_active = active
+            a.stats_done = total-active
+            a.stats_held = held
+            ams.append(a)
+
+        ctx["ams"] = ams
+        return ctx
 
 class Processes(NMVisitorMixin, TemplateView):
     template_name = "public/processes.html"

@@ -40,7 +40,7 @@ $(function() {
             <th>Since</th>
             <th>Uid</th>
             <th>Name</th>
-            {% if request.am %}
+            {% if visitor.is_am %}
             <th>Cur</th>
             <th>Max</th>
             <th>Hold</th>
@@ -58,7 +58,7 @@ $(function() {
             <td>{{am.created|date:"Y-m-d"}}</td>
             <td>{{am.person.uid}}</td>
             <td><a href="{{ am.person.get_absolute_url }}">{{am.person.fullname}}</a></td>
-            {% if request.am %}
+            {% if visitor.is_am %}
             <td>{{am.stats_active}}</td>
             <td>{{am.slots}}</td>
             <td>{{am.stats_held}}</td>
