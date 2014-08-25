@@ -437,93 +437,97 @@ def findperson(request):
                               ),
                               context_instance=template.RequestContext(request))
 
-def stats_latest(request):
-    from django.db.models import Count, Min, Max
+class StatsLatest(NMVisitorMixin, TemplateView):
+    template_name = "public/stats_latest.html"
 
-    days = int(request.GET.get("days", "7"))
-    threshold = datetime.date.today() - datetime.timedelta(days=days)
+    def get_context_data(self, **kw):
+        ctx = super(StatsLatest, self).get_context_data(**kw)
+        from django.db.models import Count, Min, Max
 
-    raw_counts = dict((x.tag, 0) for x in const.ALL_PROGRESS)
-    for p in bmodels.Process.objects.values("progress").annotate(count=Count("id")).filter(is_active=True):
-        raw_counts[p["progress"]] = p["count"]
+        days = int(self.request.GET.get("days", "7"))
+        threshold = datetime.date.today() - datetime.timedelta(days=days)
 
-    counts = dict(
-        new=raw_counts[const.PROGRESS_APP_NEW] + raw_counts[const.PROGRESS_APP_RCVD] + raw_counts[const.PROGRESS_ADV_RCVD],
-        new_hold=raw_counts[const.PROGRESS_APP_HOLD],
-        new_ok=raw_counts[const.PROGRESS_APP_OK],
-        am=raw_counts[const.PROGRESS_AM_RCVD] + raw_counts[const.PROGRESS_AM],
-        am_hold=raw_counts[const.PROGRESS_AM_HOLD],
-        fd=raw_counts[const.PROGRESS_AM_OK],
-        fd_hold=raw_counts[const.PROGRESS_FD_HOLD],
-        dam=raw_counts[const.PROGRESS_FD_OK],
-        dam_hold=raw_counts[const.PROGRESS_DAM_HOLD],
-        dam_ok=raw_counts[const.PROGRESS_DAM_OK],
-    )
+        raw_counts = dict((x.tag, 0) for x in const.ALL_PROGRESS)
+        for p in bmodels.Process.objects.values("progress").annotate(count=Count("id")).filter(is_active=True):
+            raw_counts[p["progress"]] = p["count"]
 
-    irc_topic = "New %(new)d+%(new_hold)d ok %(new_ok)d | AM: %(am)d+%(am_hold)d | FD: %(fd)d+%(fd_hold)d | DAM: %(dam)d+%(dam_hold)d ok %(dam_ok)d" % counts
+        counts = dict(
+            new=raw_counts[const.PROGRESS_APP_NEW] + raw_counts[const.PROGRESS_APP_RCVD] + raw_counts[const.PROGRESS_ADV_RCVD],
+            new_hold=raw_counts[const.PROGRESS_APP_HOLD],
+            new_ok=raw_counts[const.PROGRESS_APP_OK],
+            am=raw_counts[const.PROGRESS_AM_RCVD] + raw_counts[const.PROGRESS_AM],
+            am_hold=raw_counts[const.PROGRESS_AM_HOLD],
+            fd=raw_counts[const.PROGRESS_AM_OK],
+            fd_hold=raw_counts[const.PROGRESS_FD_HOLD],
+            dam=raw_counts[const.PROGRESS_FD_OK],
+            dam_hold=raw_counts[const.PROGRESS_DAM_HOLD],
+            dam_ok=raw_counts[const.PROGRESS_DAM_OK],
+        )
 
-    events = []
+        irc_topic = "New %(new)d+%(new_hold)d ok %(new_ok)d | AM: %(am)d+%(am_hold)d | FD: %(fd)d+%(fd_hold)d | DAM: %(dam)d+%(dam_hold)d ok %(dam_ok)d" % counts
 
-    # Collect status change events
-    for p in bmodels.Person.objects.filter(status_changed__gte=threshold).order_by("-status_changed"):
-        events.append(dict(
-            type="status",
-            time=p.status_changed,
-            person=p,
-        ))
+        events = []
 
-    # Collect progress change events
-    for pr in bmodels.Process.objects.filter(is_active=True):
-        old_progress = None
-        for l in pr.log.order_by("logdate"):
-            if l.progress != old_progress:
-                if l.logdate.date() >= threshold:
-                    events.append(dict(
-                        type="progress",
-                        time=l.logdate,
-                        person=pr.person,
-                        log=l,
-                    ))
-                old_progress = l.progress
+        # Collect status change events
+        for p in bmodels.Person.objects.filter(status_changed__gte=threshold).order_by("-status_changed"):
+            events.append(dict(
+                type="status",
+                time=p.status_changed,
+                person=p,
+            ))
 
-    events.sort(key=lambda x:x["time"])
+        # Collect progress change events
+        for pr in bmodels.Process.objects.filter(is_active=True):
+            old_progress = None
+            for l in pr.log.order_by("logdate"):
+                if l.progress != old_progress:
+                    if l.logdate.date() >= threshold:
+                        events.append(dict(
+                            type="progress",
+                            time=l.logdate,
+                            person=pr.person,
+                            log=l,
+                        ))
+                    old_progress = l.progress
 
-    ctx = dict(
-        counts=counts,
-        raw_counts=raw_counts,
-        irc_topic=irc_topic,
-        events=events,
-    )
+        events.sort(key=lambda x:x["time"])
 
-    # If JSON is requested, dump them right away
-    if 'json' in request.GET:
-        json_evs = []
-        for e in ctx["events"]:
-            ne = dict(
-                status_changed_dt=e["time"].strftime("%Y-%m-%d %H:%M:%S"),
-                status_changed_ts=e["time"].strftime("%s"),
-                uid=e["person"].uid,
-                fn=e["person"].fullname,
-                key=e["person"].lookup_key,
-                type=e["type"],
-            )
-            if e["type"] == "status":
-                ne.update(
-                    status=e["person"].status,
+        ctx = dict(
+            counts=counts,
+            raw_counts=raw_counts,
+            irc_topic=irc_topic,
+            events=events,
+        )
+
+        # If JSON is requested, dump them right away
+        if 'json' in self.request.GET:
+            json_evs = []
+            for e in ctx["events"]:
+                ne = dict(
+                    status_changed_dt=e["time"].strftime("%Y-%m-%d %H:%M:%S"),
+                    status_changed_ts=e["time"].strftime("%s"),
+                    uid=e["person"].uid,
+                    fn=e["person"].fullname,
+                    key=e["person"].lookup_key,
+                    type=e["type"],
                 )
-            elif e["type"] == "progress":
-                ne.update(
-                    process_key=e["log"].process.lookup_key,
-                    progress=e["log"].progress,
-                )
-            json_evs.append(ne)
-        ctx["events"] = json_evs
-        res = http.HttpResponse(mimetype="application/json")
-        res["Content-Disposition"] = "attachment; filename=stats.json"
-        json.dump(ctx, res, indent=1)
-        return res
+                if e["type"] == "status":
+                    ne.update(
+                        status=e["person"].status,
+                    )
+                elif e["type"] == "progress":
+                    ne.update(
+                        process_key=e["log"].process.lookup_key,
+                        progress=e["log"].progress,
+                    )
+                json_evs.append(ne)
+            ctx["events"] = json_evs
+            res = http.HttpResponse(mimetype="application/json")
+            res["Content-Disposition"] = "attachment; filename=stats.json"
+            json.dump(ctx, res, indent=1)
+            return res
 
-    return render(request, "public/stats_latest.html", ctx)
+        return ctx
 
 YESNO = (
         ("yes", "Yes"),
