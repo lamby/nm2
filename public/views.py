@@ -259,39 +259,45 @@ SIMPLIFY_STATUS = {
     const.STATUS_REMOVED_DM: "removed",
 }
 
-def people(request, status=None):
-    objects = bmodels.Person.objects.all().order_by("uid", "sn", "cn")
-    show_status = True
-    status_sdesc = None
-    status_ldesc = None
-    if status:
-        if status == "dm_all":
-            objects = objects.filter(status__in=(const.STATUS_DM, const.STATUS_DM_GA))
-            status_sdesc = _("Debian Maintainer")
-            status_ldesc = _("Debian Maintainer (with or without guest account)")
-        elif status == "dd_all":
-            objects = objects.filter(status__in=(const.STATUS_DD_U, const.STATUS_DD_NU))
-            status_sdesc = _("Debian Developer")
-            status_ldesc = _("Debian Developer (uploading or not)")
-        else:
-            objects = objects.filter(status=status)
-            show_status = False
-            status_sdesc = const.ALL_STATUS_BYTAG[status].sdesc
-            status_ldesc = const.ALL_STATUS_BYTAG[status].sdesc
+class People(NMVisitorMixin, TemplateView):
+    template_name = "public/people.html"
+    def get_context_data(self, **kw):
+        ctx = super(People, self).get_context_data(**kw)
+        status = self.kwargs.get("status", None)
 
-    people = []
-    for p in objects:
-        p.simple_status = SIMPLIFY_STATUS.get(p.status, None)
-        people.append(p)
+        #def people(request, status=None):
+        objects = bmodels.Person.objects.all().order_by("uid", "sn", "cn")
+        show_status = True
+        status_sdesc = None
+        status_ldesc = None
+        if status:
+            if status == "dm_all":
+                objects = objects.filter(status__in=(const.STATUS_DM, const.STATUS_DM_GA))
+                status_sdesc = _("Debian Maintainer")
+                status_ldesc = _("Debian Maintainer (with or without guest account)")
+            elif status == "dd_all":
+                objects = objects.filter(status__in=(const.STATUS_DD_U, const.STATUS_DD_NU))
+                status_sdesc = _("Debian Developer")
+                status_ldesc = _("Debian Developer (uploading or not)")
+            else:
+                objects = objects.filter(status=status)
+                show_status = False
+                status_sdesc = const.ALL_STATUS_BYTAG[status].sdesc
+                status_ldesc = const.ALL_STATUS_BYTAG[status].sdesc
 
-    return render(request, "public/people.html",
-                              dict(
-                                  people=people,
-                                  status=status,
-                                  show_status=show_status,
-                                  status_sdesc=status_sdesc,
-                                  status_ldesc=status_ldesc,
-                              ))
+        people = []
+        for p in objects:
+            p.simple_status = SIMPLIFY_STATUS.get(p.status, None)
+            people.append(p)
+
+        ctx.update(
+            people=people,
+            status=status,
+            show_status=show_status,
+            status_sdesc=status_sdesc,
+            status_ldesc=status_ldesc,
+        )
+        return ctx
 
 def person(request, key):
     from django.db.models import Min, Max
