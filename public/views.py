@@ -346,62 +346,65 @@ def progress(request, progress):
                               ),
                               context_instance=template.RequestContext(request))
 
-def stats(request):
-    from django.db.models import Count, Min, Max
+class Stats(NMVisitorMixin, TemplateView):
+    template_name = "public/stats.html"
 
-    dtnow = now()
-    stats = dict()
+    def get_context_data(self, **kw):
+        ctx = super(Stats, self).get_context_data(**kw)
+        from django.db.models import Count
 
-    # Count of people by status
-    by_status = dict()
-    for row in bmodels.Person.objects.values("status").annotate(Count("status")):
-        by_status[row["status"]] = row["status__count"]
-    stats["by_status"] = by_status
+        dtnow = now()
+        stats = {}
 
-    # Count of applicants by progress
-    by_progress = dict()
-    for row in bmodels.Process.objects.filter(is_active=True).values("progress").annotate(Count("progress")):
-        by_progress[row["progress"]] = row["progress__count"]
-    stats["by_progress"] = by_progress
+        # Count of people by status
+        by_status = dict()
+        for row in bmodels.Person.objects.values("status").annotate(Count("status")):
+            by_status[row["status"]] = row["status__count"]
+        stats["by_status"] = by_status
 
-    # If JSON is requested, dump them right away
-    if 'json' in request.GET:
-        res = http.HttpResponse(mimetype="application/json")
-        res["Content-Disposition"] = "attachment; filename=stats.json"
-        json.dump(stats, res, indent=1)
-        return res
+        # Count of applicants by progress
+        by_progress = dict()
+        for row in bmodels.Process.objects.filter(is_active=True).values("progress").annotate(Count("progress")):
+            by_progress[row["progress"]] = row["progress__count"]
+        stats["by_progress"] = by_progress
 
-    # Cook up more useful bits for the templates
+        # If JSON is requested, dump them right away
+        if 'json' in self.request.GET:
+            res = http.HttpResponse(mimetype="application/json")
+            res["Content-Disposition"] = "attachment; filename=stats.json"
+            json.dump(stats, res, indent=1)
+            return res
 
-    ctx = dict(stats=stats)
+        # Cook up more useful bits for the templates
 
-    status_table = []
-    for status in (s.tag for s in const.ALL_STATUS):
-        status_table.append((status, by_status.get(status, 0)))
-    ctx["status_table"] = status_table
-    ctx["status_table_json"] = json.dumps([(s.sdesc, by_status.get(s.tag, 0)) for s in const.ALL_STATUS])
+        ctx = dict(stats=stats)
 
-    progress_table = []
-    for progress in (s.tag for s in const.ALL_PROGRESS):
-        progress_table.append((progress, by_progress.get(progress, 0)))
-    ctx["progress_table"] = progress_table
-    ctx["progress_table_json"] = json.dumps([(p.sdesc, by_progress.get(p.tag, 0)) for p in const.ALL_PROGRESS])
+        status_table = []
+        for status in (s.tag for s in const.ALL_STATUS):
+            status_table.append((status, by_status.get(status, 0)))
+        ctx["status_table"] = status_table
+        ctx["status_table_json"] = json.dumps([(s.sdesc, by_status.get(s.tag, 0)) for s in const.ALL_STATUS])
 
-    # List of active processes with statistics
-    active_processes = []
-    for p in bmodels.Process.objects.filter(is_active=True):
-        p.annotate_with_duration_stats()
-        mbox_mtime = p.mailbox_mtime
-        if mbox_mtime is None:
-            p.mbox_age = None
-        else:
-            p.mbox_age = (dtnow - mbox_mtime).days
-        active_processes.append(p)
-    active_processes.sort(key=lambda x:x.log_first.logdate)
-    ctx["active_processes"] = active_processes
+        progress_table = []
+        for progress in (s.tag for s in const.ALL_PROGRESS):
+            progress_table.append((progress, by_progress.get(progress, 0)))
+        ctx["progress_table"] = progress_table
+        ctx["progress_table_json"] = json.dumps([(p.sdesc, by_progress.get(p.tag, 0)) for p in const.ALL_PROGRESS])
 
-    return render_to_response("public/stats.html", ctx,
-                              context_instance=template.RequestContext(request))
+        # List of active processes with statistics
+        active_processes = []
+        for p in bmodels.Process.objects.filter(is_active=True):
+            p.annotate_with_duration_stats()
+            mbox_mtime = p.mailbox_mtime
+            if mbox_mtime is None:
+                p.mbox_age = None
+            else:
+                p.mbox_age = (dtnow - mbox_mtime).days
+            active_processes.append(p)
+        active_processes.sort(key=lambda x:x.log_first.logdate)
+        ctx["active_processes"] = active_processes
+
+        return ctx
 
 def make_findperson_form(request):
     excludes = ["user", "created", "status_changed", "expires", "pending"]

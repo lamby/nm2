@@ -73,9 +73,21 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
         """
         class WhenView(NMTestUtilsWhen):
             url = reverse("public_stats")
-        self.assertVisit(WhenView(), ThenSuccess())
-        for u in self.users.itervalues():
-            self.assertVisit(WhenView(user=u), ThenSuccess())
+        class ThenSeesDetails(ThenSuccess):
+            def __call__(self, fixture, response, when, test_client):
+                super(ThenSeesDetails, self).__call__(fixture, response, when, test_client)
+                if b"<th>Last log</th>" not in response.content:
+                    fixture.fail("details not visible by {} when {}".format(when.user, when))
+        class ThenDoesNotSeeDetails(ThenSuccess):
+            def __call__(self, fixture, response, when, test_client):
+                super(ThenDoesNotSeeDetails, self).__call__(fixture, response, when, test_client)
+                if b"<th>Last log</th>" in response.content:
+                    fixture.fail("details are visible by {} when {}".format(when.user, when))
+        self.assertVisit(WhenView(), ThenDoesNotSeeDetails())
+        for u in self.users.viewkeys() - frozenset(("fd", "dam")):
+            self.assertVisit(WhenView(user=self.users[u]), ThenDoesNotSeeDetails())
+        for u in ("fd", "dam"):
+            self.assertVisit(WhenView(user=self.users[u]), ThenSeesDetails())
 
     def test_stats_latest(self):
         """
