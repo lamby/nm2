@@ -1,3 +1,25 @@
+# coding: utf-8
+# nm.debian.org website authentication
+#
+# Copyright (C) 2012--2014  Enrico Zini <enrico@debian.org>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
 from django.contrib.auth.models import User
 from django import http
 from django.shortcuts import redirect
@@ -8,14 +30,6 @@ class NMUserBackend(DACSUserBackend):
     """
     RemoteUserBackend customised to create User objects from Person
     """
-
-    def clean_username(self, username):
-        """
-        Map usernames from DACS to usernames in our auth database
-        """
-        uid = super(NMUserBackend, self).clean_username(username)
-        # TODO: pick domain according to DACS info
-        return "%s@debian.org" % uid
 
     # Copied from RemoteUserBackend and tweaked to validate against Person
     def authenticate(self, remote_user):
@@ -35,6 +49,14 @@ class NMUserBackend(DACSUserBackend):
         # Get the Person for this username: Person is authoritative over User
         if username.endswith("@debian.org"):
             debname = username[:-11]
+            try:
+                person = bmodels.Person.objects.get(uid=debname)
+            except bmodels.Person.DoesNotExist:
+                return None
+        elif username.endswith("@users.alioth.debian.org"):
+            debname = username[:-24]
+            if not debname.endswith("-guest"):
+                return None
             try:
                 person = bmodels.Person.objects.get(uid=debname)
             except bmodels.Person.DoesNotExist:
