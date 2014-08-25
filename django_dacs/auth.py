@@ -29,7 +29,7 @@ class DACSRemoteUserMiddleware(django.contrib.auth.middleware.RemoteUserMiddlewa
             request.META[self.header] = TEST_REMOTE_USER
 
         try:
-            username = request.META[self.header]
+            dacs_user = request.META[self.header]
         except KeyError:
             # If specified header doesn't exist then return (leaving
             # request.user set to AnonymousUser by the
@@ -45,11 +45,12 @@ class DACSRemoteUserMiddleware(django.contrib.auth.middleware.RemoteUserMiddlewa
         # getting passed in the headers, then the correct user is already
         # persisted in the session and we don't need to continue.
         if request.user.is_authenticated():
-            if request.user.username == self.clean_username(username, request):
+            if request.user.username == self.clean_username(dacs_user, request):
                 return
+
         # We are seeing this user for the first time in this session, attempt
         # to authenticate the user.
-        user = auth.authenticate(remote_user=username)
+        user = auth.authenticate(remote_user=dacs_user)
         if user:
             # User is valid.  Set request.user and persist user in the session
             # by logging the user in.
@@ -64,15 +65,13 @@ class DACSUserBackend(django.contrib.auth.backends.RemoteUserBackend):
     def split_dacs_user(self, username):
         return DACSInfo(*username.split(":"))
 
-
     def clean_username(self, username):
         """
         Map usernames from DACS to usernames in our auth database
         """
         # Take the username out of DACS parts
         info = self.split_dacs_user(username)
-        # FIXME: enable it as soon as we're ready
-        if info.jurisdiction != "DEBIAN":
-            from django.core.exceptions import ImproperlyConfigured
-            raise ImproperlyConfigured("Non-DEBIAN jurisdiction not supported")
-        return info.username
+        if '@' in info.username:
+            return info.username
+        else:
+            return info.username + "@debian.org"
