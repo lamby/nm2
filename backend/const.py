@@ -1,3 +1,4 @@
+# coding: utf8
 # nm.debian.org website backend
 #
 # Copyright (C) 2012  Enrico Zini <enrico@debian.org>

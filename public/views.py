@@ -1,3 +1,4 @@
+# coding: utf8
 # nm.debian.org website reports
 #
 # Copyright (C) 2012--2014  Enrico Zini <enrico@debian.org>
@@ -15,6 +16,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
 from django import http, template, forms
 from django.shortcuts import render_to_response, redirect, render, get_object_or_404
 from django.core.urlresolvers import reverse
@@ -379,7 +384,7 @@ class Stats(NMVisitorMixin, TemplateView):
 
         # Cook up more useful bits for the templates
 
-        ctx = dict(stats=stats)
+        ctx["stats"] = stats
 
         status_table = []
         for status in (s.tag for s in const.ALL_STATUS):
@@ -403,7 +408,7 @@ class Stats(NMVisitorMixin, TemplateView):
             else:
                 p.mbox_age = (dtnow - mbox_mtime).days
             active_processes.append(p)
-        active_processes.sort(key=lambda x:x.log_first.logdate)
+        active_processes.sort(key=lambda x:(x.log_first.logdate if x.log_first else None))
         ctx["active_processes"] = active_processes
 
         return ctx

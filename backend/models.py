@@ -889,6 +889,10 @@ class Process(models.Model):
             # Process pending AM history items: happens when the last log has
             # AM_STATUSES status
             self.process_last_am_history()
+            if self.last is not None and self.first is not None:
+                total_duration = (self.last.logdate-self.first.logdate).days
+            else:
+                total_duration = None
 
             return dict(
                 # Date the process started
@@ -896,7 +900,7 @@ class Process(models.Model):
                 # Date of the last log entry
                 log_last=self.last,
                 # Total duration in days
-                total_duration=(self.last.logdate-self.first.logdate).days,
+                total_duration=total_duration,
                 # Days spent in AM
                 total_am_time=self.total_am_time,
                 # Days spent in AM_HOLD

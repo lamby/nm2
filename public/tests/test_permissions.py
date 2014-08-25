@@ -76,12 +76,12 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
         class ThenSeesDetails(ThenSuccess):
             def __call__(self, fixture, response, when, test_client):
                 super(ThenSeesDetails, self).__call__(fixture, response, when, test_client)
-                if b"<th>Last log</th>" not in response.content:
+                if b"<th>Last log entry</th>" not in response.content:
                     fixture.fail("details not visible by {} when {}".format(when.user, when))
         class ThenDoesNotSeeDetails(ThenSuccess):
             def __call__(self, fixture, response, when, test_client):
                 super(ThenDoesNotSeeDetails, self).__call__(fixture, response, when, test_client)
-                if b"<th>Last log</th>" in response.content:
+                if b"<th>Last log entry</th>" in response.content:
                     fixture.fail("details are visible by {} when {}".format(when.user, when))
         self.assertVisit(WhenView(), ThenDoesNotSeeDetails())
         for u in self.users.viewkeys() - frozenset(("fd", "dam")):
