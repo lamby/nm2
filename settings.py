@@ -26,7 +26,7 @@ TIME_ZONE = 'UTC'
 
 # Language code for this installation. All choices can be found here:
 # http://www.i18nguy.com/unicode/language-identifiers.html
-LANGUAGE_CODE = 'en'
+LANGUAGE_CODE = 'en_GB'
 
 LOCALE_PATHS = (os.path.join(PROJECT_DIR, "locale"), )
 SECRET_KEY = 'non-empty secret for ugettext'

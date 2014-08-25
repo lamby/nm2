@@ -125,12 +125,23 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
         class WhenPost(NMTestUtilsWhen):
             method = "post"
             url = reverse("public_findperson")
-            data = {}
+            data = {
+                "cn": "Test",
+                "email": "test@example.org",
+                "status": const.STATUS_MM,
+            }
+            def setUp(self, fixture):
+                super(WhenPost, self).setUp(fixture)
+                bmodels.Person.objects.filter(email="test@example.org").delete()
+            def tearDown(self, fixture):
+                super(WhenPost, self).tearDown(fixture)
+                bmodels.Person.objects.filter(email="test@example.org").delete()
         class ThenCreatesUser(ThenRedirect):
             target = "/public/person/"
             def __call__(self, fixture, response, when, test_client):
                 super(ThenCreatesUser, self).__call__(fixture, response, when, test_client)
-                # TODO: check database
+                if not bmodels.Person.objects.filter(email="test@example.org").exists():
+                    fixture.fail("the user has notbeen created by {} when {}".format(when.user, when))
 
         self.assertVisit(WhenPost(), ThenForbidden())
         for u in self.users.viewkeys() - frozenset(("fd", "dam")):

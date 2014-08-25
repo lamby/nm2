@@ -21,6 +21,7 @@ from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
+from django.utils.translation import ugettext_lazy as _
 from django.db import models
 from django.contrib.auth.models import User
 from django.conf import settings
@@ -102,38 +103,34 @@ class TextNullField(models.TextField):
 class FingerprintField(models.CharField):
     description = "CharField that stores NULL but returns '', also strip spaces and upper storing"
 
-    ## not really useful, because in Person this is blank=True which not cleaned / validate
-    def to_python(self, value):
-        from django.core.exceptions import ValidationError
-        if value is None:
-            # if the db has a NULL, convert it into the Django-friendly '' string
-            return ""
-        elif not isinstance(value, basestring):
-            raise ValidationError("Fingerprint must be a string")
-        else:
-            value = value.strip()
-            if value.startswith("FIXME"):
-                return re.sub("[^a-zA-Z0-9_-]+", "-", value)[:40]
-            value = value.replace(' ', '').upper()
-            if not re.match(r"^[0-9A-F]{32,40}$", value):
-                raise ValidationError("Fingerprint must be 32 or 40 hex digits")
-            return value
-
-    def get_db_prep_value(self, value, connection, prepared=False):
-        if value == "" or not isinstance(value, basestring):
-            # if Django tries to save '' string, send the db None (NULL)
-            return None
-        # Strip
+    def _clean_fingerprint(self, value):
+        # if the db has a NULL, convert it into the Django-friendly '' string
+        if not value: return None
+        if not isinstance(value, basestring): return None
         value = value.strip()
-        # Deal with fixme* fingerprints
-        if value.startswith("FIXME"):
-            return re.sub("[^a-zA-Z0-9_-]+", "-", value)[:40]
-        # Strip spaces and uppercase
+        if not value: return None
+        if value.startswith("FIXME"): return re.sub("[^a-zA-Z0-9_-]+", "-", value)[:40]
         value = value.replace(' ', '').upper()
-        # Validate as a proper fingerprint
-        if not re.match(r"^[0-9A-F]{32,40}$", value):
-            return None
+        if not re.match(r"^[0-9A-F]{32,40}$", value): return None
         return value
+
+    ## not really useful, because in Person this is blank=True which not cleaned / validated
+    def to_python(self, value):
+        """
+        Converts a value from the database to a python object
+        """
+        value = super(FingerprintField, self).to_python(value)
+        value = self._clean_fingerprint(value)
+        if not value: return ""
+        return value
+
+    def get_prep_value(self, value):
+        """
+        Converts a value from python to the DB
+        """
+        value = super(FingerprintField, self).get_prep_value(value)
+        value = self._clean_fingerprint(value)
+        if not value: return None
 
     def formfield(self, **kwargs):
         # we want bypass our parent to fix "maxlength" attribute in widget

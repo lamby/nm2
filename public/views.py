@@ -437,7 +437,7 @@ class Findperson(NMVisitorMixin, TemplateView):
 
     def post(self, request, *args, **kw):
         visitor = self.get_visitor(request)
-        if not visitor.is_admin:
+        if not visitor or not visitor.is_admin:
             raise PermissionDenied()
 
         FindpersonForm = make_findperson_form(request)
