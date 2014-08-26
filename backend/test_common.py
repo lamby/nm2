@@ -17,64 +17,101 @@ class NMBasicFixtureMixin(object):
 
         self.users = {}
 
-        def _make_user(tag, status, alioth=False, **kw):
-            if alioth:
-                remote_user = "NM::DEBIAN:{}-guest@users.alioth.debian.org".format(tag)
-                uid = tag + "-guest"
-            else:
-                remote_user = "NM::DEBIAN:{}".format(tag)
-                uid = tag
-            res = bmodels.Person.objects.create(cn=tag.capitalize(),
-                                        uid=uid,
-                                        email=tag + "@example.org",
-                                        status=status,
-                                        **kw)
-            res.remote_user = remote_user
-            self.users[tag] = res
-            return res
-
         # anonymous
         # pending account
-        _make_user("pending", const.STATUS_MM, expires=now() + datetime.timedelta(days=1), pending="12345", alioth=True)
-        # non-dd non-applicant
-        _make_user("bystander", const.STATUS_MM, alioth=True)
-        # non-dd applicant
-        applicant = _make_user("applicant", const.STATUS_MM_GA, alioth=True, fd_comment="FD_COMMENTS")
-        # dd
-        _make_user("dd", const.STATUS_DD_NU)
-        # dd advocate,
-        adv = _make_user("adv", const.STATUS_DD_NU)
-        # dd advocate of a past process,
-        adv_past = _make_user("adv_past", const.STATUS_DD_NU)
-        # am of applicant
-        am =_make_user("am", const.STATUS_DD_NU)
-        am_am = bmodels.AM.objects.create(person=am, slots=1)
-        proc = bmodels.Process.objects.create(person=applicant,
-                                       applying_as=const.STATUS_MM_GA,
-                                       applying_for=const.STATUS_DD_NU,
-                                       progress=const.PROGRESS_AM,
-                                       manager=am_am,
-                                       is_active=True)
-        proc.advocates.add(adv)
-        # am not of applicant
-        am_other = _make_user("am_other", const.STATUS_DD_NU)
-        bmodels.AM.objects.create(person=am_other, slots=1)
-        # am of a past process
-        am_past = _make_user("am_past", const.STATUS_DD_NU)
-        am_am_past = bmodels.AM.objects.create(person=am_past, slots=1)
-        proc = bmodels.Process.objects.create(person=applicant,
-                                       applying_as=const.STATUS_MM,
-                                       applying_for=const.STATUS_MM_GA,
-                                       progress=const.PROGRESS_DONE,
-                                       manager=am_am_past,
-                                       is_active=False)
-        proc.advocates.add(adv_past)
+        self.make_user("pending", const.STATUS_MM, expires=now() + datetime.timedelta(days=1), pending="12345", alioth=True)
+        # debian contributor
+        self.make_user("dc", const.STATUS_MM, alioth=True)
+        # debian contributor with guest account
+        self.make_user("dc_ga", const.STATUS_MM_GA, alioth=True)
+        # dm
+        self.make_user("dm", const.STATUS_DM, alioth=True)
+        # dm with guest account
+        self.make_user("dm_ga", const.STATUS_DM_GA, alioth=True)
+        # dd, nonuploading
+        self.make_user("dd_nu", const.STATUS_DD_NU)
+        # dd, uploading
+        self.make_user("dd_u", const.STATUS_DD_U)
+#        # non-dd applicant
+#        app_dc = self.make_user("app_dc", const.STATUS_MM, alioth=True, fd_comment="FD_COMMENTS")
+#        # non-dd applicant
+#        app_dc_ga = self.make_user("app_dc_ga", const.STATUS_MM_GA, alioth=True, fd_comment="FD_COMMENTS")
+#        # non-dd applicant
+#        app_dm = self.make_user("app_dm", const.STATUS_DM, alioth=True, fd_comment="FD_COMMENTS")
+#        # non-dd applicant
+#        app_dm_ga = self.make_user("app_dm_ga", const.STATUS_DM_GA, alioth=True, fd_comment="FD_COMMENTS")
+#        # dd advocate
+#        adv = self.make_user("adv", const.STATUS_DD_NU)
+#        # dd advocate of a past process
+#        adv_past = self.make_user("adv_past", const.STATUS_DD_NU)
+#        # am of applicant
+#        am =self.make_user("am", const.STATUS_DD_NU)
+#        am_am = bmodels.AM.objects.create(person=am, slots=1)
+#        proc = bmodels.Process.objects.create(person=applicant,
+#                                       applying_as=const.STATUS_MM_GA,
+#                                       applying_for=const.STATUS_DD_NU,
+#                                       progress=const.PROGRESS_AM,
+#                                       manager=am_am,
+#                                       is_active=True)
+#        proc.advocates.add(adv)
+#        # am not of applicant
+#        am_other = self.make_user("am_other", const.STATUS_DD_NU)
+#        bmodels.AM.objects.create(person=am_other, slots=1)
+#        # am of a past process
+#        am_past = self.make_user("am_past", const.STATUS_DD_NU)
+#        am_am_past = bmodels.AM.objects.create(person=am_past, slots=1)
+#        proc = bmodels.Process.objects.create(person=applicant,
+#                                       applying_as=const.STATUS_MM,
+#                                       applying_for=const.STATUS_MM_GA,
+#                                       progress=const.PROGRESS_DONE,
+#                                       manager=am_am_past,
+#                                       is_active=False)
+#        proc.advocates.add(adv_past)
         # fd
-        fd = _make_user("fd", const.STATUS_DD_NU)
+        fd = self.make_user("fd", const.STATUS_DD_NU)
         bmodels.AM.objects.create(person=fd, is_fd=True)
         # dam
-        dam = _make_user("dam", const.STATUS_DD_NU)
+        dam = self.make_user("dam", const.STATUS_DD_NU)
         bmodels.AM.objects.create(person=dam, is_fd=True, is_dam=True)
+
+    def make_user(self, tag, status, alioth=False, **kw):
+        if alioth:
+            remote_user = "NM::DEBIAN:{}-guest@users.alioth.debian.org".format(tag)
+            uid = tag + "-guest"
+        else:
+            remote_user = "NM::DEBIAN:{}".format(tag)
+            uid = tag
+        res = bmodels.Person.objects.create(cn=tag.capitalize(),
+                                    uid=uid,
+                                    email=tag + "@example.org",
+                                    status=status,
+                                    **kw)
+        res.remote_user = remote_user
+        self.users[tag] = res
+        return res
+
+    def make_process(self, applicant, applying_for, progress, applying_as=None, advocates=[], manager=None):
+        """
+        Create a process for the given applicant
+        """
+        if applying_as is None: applying_as = applicant.status
+        proc = bmodels.Process(person=applicant,
+                               applying_as=applying_as,
+                               applying_for=applying_for,
+                               progress=progress,
+                               is_active=progress in (const.PROGRESS_DONE, const.PROGRESS_CANCELLED))
+        if manager:
+            try:
+                am = manager.am
+            except bmodels.AM.DoesNotExist:
+                am = bmodels.AM.objects.create(person=manager)
+            proc.manager = am
+
+        proc.save()
+
+        for a in advocates:
+            proc.advocates.add(a)
+
 
 
 # Inspired from http://blog.liw.fi/posts/yarn/

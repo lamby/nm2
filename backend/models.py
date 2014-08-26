@@ -27,6 +27,7 @@ from django.contrib.auth.models import User
 from django.conf import settings
 from django.utils.timezone import now
 from . import const
+from .utils import cached_property
 from backend.notifications import maybe_notify_applicant_on_progress
 import datetime
 import urllib
@@ -147,59 +148,20 @@ add_introspection_rules(
          "^backend\.models\.TextNullField",
          "^backend\.models\.FingerprintField"])
 
-# Taken from werkzeug
-class cached_property(object):
-    """A decorator that converts a function into a lazy property.  The
-    function wrapped is called the first time to retrieve the result
-    and then that calculated result is used the next time you access
-    the value::
-
-        class Foo(object):
-
-            @cached_property
-            def foo(self):
-                # calculate something important here
-                return 42
-
-    The class has to have a `__dict__` in order for this property to
-    work.
-    """
-
-    # implementation detail: this property is implemented as non-data
-    # descriptor.  non-data descriptors are only invoked if there is
-    # no entry with the same name in the instance's __dict__.
-    # this allows us to completely get rid of the access function call
-    # overhead.  If one choses to invoke __get__ by hand the property
-    # will still work as expected because the lookup logic is replicated
-    # in __get__ for manual invocation.
-
-    def __init__(self, func, name=None, doc=None):
-        self.__name__ = name or func.__name__
-        self.__module__ = func.__module__
-        self.__doc__ = doc or func.__doc__
-        self.func = func
-
-    def __get__(self, obj, type=None):
-        if obj is None:
-            return self
-        # For our needs, we can use None instead of werkzeug's _missing
-        value = obj.__dict__.get(self.__name__, None)
-        if value is None:
-            value = self.func(obj)
-            obj.__dict__[self.__name__] = value
-        return value
-
 class NMPersonPermissions(object):
     """
     Store NM-specific permissions
     """
     def __init__(self, person, visitor):
+        # Person being visited
         self.person = person.person
+        # Person doing the visit
         self.visitor = visitor.person if visitor else None
+        # Processes of self.person
         self.processes = list(self.person.processes.all())
 
     @cached_property
-    def is_current_advocate(self):
+    def _is_current_advocate(self):
         """
         Return True if the visitor is the advocate of any active process
         """
@@ -210,7 +172,7 @@ class NMPersonPermissions(object):
         return False
 
     @cached_property
-    def is_current_am(self):
+    def _is_current_am(self):
         """
         Return True if the visitor is the am of any active process
         """
@@ -226,7 +188,7 @@ class NMPersonPermissions(object):
         return False
 
     @cached_property
-    def can_edit_bio(self):
+    def _can_edit_bio(self):
         """
         Visitor can edit the person's bio
         """
@@ -234,10 +196,10 @@ class NMPersonPermissions(object):
         if self.visitor.is_admin: return True
         if self.person.pending: return False
         if self.visitor.pk == self.person.pk: return True
-        return self.is_current_advocate or self.is_current_am
+        return self._is_current_advocate or self._is_current_am
 
     @cached_property
-    def has_ldap_record(self):
+    def _has_ldap_record(self):
         """
         The person already has an LDAP record
         """
@@ -246,7 +208,7 @@ class NMPersonPermissions(object):
         return self.person.status not in (const.STATUS_MM, const.STATUS_DM)
 
     @cached_property
-    def can_edit_ldap_fields(self):
+    def _can_edit_ldap_fields(self):
         """
         The visitor can edit the person's LDAP fields
         """
@@ -254,14 +216,14 @@ class NMPersonPermissions(object):
 
         # LDAP fields are immutable in nm.debian.org when there is already an
         # LDAP record
-        if self.has_ldap_record: return False
+        if self._has_ldap_record: return False
 
         # FD and DAM can do everything except mess with LDAP
         if self.visitor.is_admin: return True
 
         # Only the person themselves, an advocate or an am can potentially edit
         # LDAP fields
-        if self.person.pk != self.visitor.pk and not self.is_current_advocate and not self.is_current_am: return False
+        if self.person.pk != self.visitor.pk and not self._is_current_advocate and not self._is_current_am: return False
 
         # Check if there is some process in a state for which nobody should
         # interfere
@@ -286,9 +248,21 @@ class NMPersonPermissions(object):
 
         return True
 
+    def _compute_perms(self):
+        """
+        Compute the set of permission tags
+        """
+        res = set()
+        if self._can_edit_bio: res.add("edit_bio")
+        if self._can_edit_ldap_fields: res.add("edit_ldap")
+        return res
+
     @cached_property
-    def can_edit_anything(self):
-        return self.can_edit_bio or self.can_edit_ldap_fields
+    def perms(self):
+        """
+        Compute the set of permission tags
+        """
+        return frozenset(self._compute_perms)
 
     @cached_property
     def advocate_targets(self):
@@ -316,6 +290,7 @@ class NMPersonPermissions(object):
         res = []
         if (self.person.status == const.STATUS_MM
             and const.STATUS_MM_GA not in already_applying
+            and self.visitor.pk != self.person.pk
             and self.visitor.status in dm_or_dd):
             res.append(const.STATUS_MM_GA)
 
@@ -326,20 +301,23 @@ class NMPersonPermissions(object):
 
         if (self.person.status == const.STATUS_MM
             and const.STATUS_DM not in already_applying
+            and self.visitor.pk != self.person.pk
             and self.visitor.status in dd):
             res.append(const.STATUS_DM)
 
         if (self.person.status == const.STATUS_MM_GA
             and const.STATUS_DM_GA not in already_applying
+            and self.visitor.pk != self.person.pk
             and self.visitor.status in dd):
             res.append(const.STATUS_DM_GA)
 
         if (self.person.status in pre_dd_statuses
             and not const.STATUS_DD_U in already_applying
             and not const.STATUS_DD_NU in already_applying
+            and self.visitor.pk != self.person.pk
             and self.visitor.status in dd):
-            res.append(const.STATUS_DD_U)
             res.append(const.STATUS_DD_NU)
+            res.append(const.STATUS_DD_U)
 
         return res
 
@@ -358,7 +336,7 @@ class NMProcessPermissions(NMPersonPermissions):
         self.process = process
 
     @cached_property
-    def can_view_email(self):
+    def _can_view_email(self):
         """
         The visitor can view the process's email archive
         """
@@ -372,6 +350,11 @@ class NMProcessPermissions(NMPersonPermissions):
         if am is not None and self.process.manager == am: return True
         # The advocates
         return self.process.advocates.filter(pk=self.person.pk).exists()
+
+    def _compute_perms(self):
+        res = super(NMProcessPermissions, self)._compute_perms()
+        if self._can_view_email: res.add("view_mbox")
+        return res
 
 
 class Person(models.Model):
@@ -425,23 +408,42 @@ class Person(models.Model):
         """
         return self
 
+    @cached_property
+    def perms(self):
+        """
+        Get permission tags for this user
+        """
+        res = set()
+        is_dd = self.status in (const.STATUS_DD_U, const.STATUS_DD_NU)
+
+        if is_dd:
+            res.add("dd")
+            am = self.am_or_none
+            if am:
+                res.add("am")
+                if am.is_admin: res.add("admin")
+            else:
+                res.add("am_candidate")
+
+        return frozenset(res)
+
     @property
     def is_dd(self):
-        return self.status in (const.STATUS_DD_U, const.STATUS_DD_NU)
+        return "dd" in self.perms
 
     @property
     def is_am(self):
-        try:
-            return self.am is not None
-        except AM.DoesNotExist:
-            return False
+        return "am" in self.perms
 
     @property
     def is_admin(self):
-        try:
-            return self.am.is_admin
-        except AM.DoesNotExist:
-            return False
+        return "admin" in self.perms
+
+    def can_become_am(self):
+        """
+        Check if the person can become an AM
+        """
+        return "am_candidate" in self.perms
 
     @property
     def am_or_none(self):
@@ -459,39 +461,6 @@ class Person(models.Model):
         Compute which NMPermissions the given person has over this person
         """
         return NMPersonPermissions(self, visitor)
-
-    def can_advocate_as_dd(self, person):
-        """
-        Check if this person can advocate that person as DD
-        """
-        dd_statuses = (const.STATUS_DD_U, const.STATUS_DD_NU)
-        # Advocate must be DD
-        if self.status not in dd_statuses:
-            return False
-
-        # Applicant must not be a pending record
-        if person.pending:
-            return False
-
-        # Applicant must not be DD
-        if person.status in dd_statuses:
-            return False
-
-        # One must not be advocate already
-        for p in person.processes.filter(is_active=True, applying_for__in=dd_statuses):
-            if self in p.advocates.all():
-                return False
-
-        return True
-
-    def can_become_am(self):
-        """
-        Check if the person can become an AM
-        """
-        # Not if they already are
-        if self.am_or_none is not None: return False
-        # Ok if they are DDs
-        return self.status in (const.STATUS_DD_U, const.STATUS_DD_NU)
 
     @property
     def fullname(self):
@@ -547,33 +516,6 @@ class Person(models.Model):
         if self.uid:
             parms["username"] = self.uid
         return u"http://portfolio.debian.net/result?".format(urllib.urlencode(parms))
-
-    def get_allowed_processes(self):
-        "Return a lits of processes that this person can begin"
-        if self.pending: return []
-
-        already_applying = frozenset(x["applying_for"] for x in self.processes.filter(is_active=True).values("applying_for"))
-
-        pre_dd_statuses = frozenset((const.STATUS_MM, const.STATUS_MM_GA,
-                                     const.STATUS_DM, const.STATUS_DM_GA,
-                                     const.STATUS_EMERITUS_DD, const.STATUS_EMERITUS_DM,
-                                     const.STATUS_REMOVED_DD, const.STATUS_REMOVED_DM))
-
-        already_applying_for_dd = const.STATUS_DD_U in already_applying or const.STATUS_DD_NU in already_applying
-
-        res = []
-        if self.status == const.STATUS_MM and const.STATUS_MM_GA not in already_applying:
-            res.append(const.STATUS_MM_GA)
-        if self.status == const.STATUS_DM and const.STATUS_DM_GA not in already_applying:
-            res.append(const.STATUS_DM_GA)
-        if self.status == const.STATUS_MM and const.STATUS_DM not in already_applying:
-            res.append(const.STATUS_DM)
-        if self.status == const.STATUS_MM_GA and const.STATUS_DM_GA not in already_applying:
-            res.append(const.STATUS_DM_GA)
-        if self.status in pre_dd_statuses and not already_applying_for_dd:
-            res.append(const.STATUS_DD_U)
-            res.append(const.STATUS_DD_NU)
-        return res
 
     @property
     def active_processes(self):
