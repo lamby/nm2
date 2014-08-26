@@ -1,10 +1,24 @@
-"""
-This file demonstrates writing tests using the unittest module. These will pass
-when you run "manage.py test".
-
-Replace this with more appropriate tests for your application.
-"""
-
+# coding: utf-8
+# nm.debian.org website backend
+#
+# Copyright (C) 2012--2014  Enrico Zini <enrico@debian.org>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
 from django.test import TransactionTestCase
 import backend.models as bmodels
 import backend.const as bconst
@@ -12,12 +26,12 @@ import datetime
 
 def dump_message(msg):
     import sys
-    print >>sys.stderr, "FROM", msg.from_email
-    print >>sys.stderr, "TO", msg.to
-    print >>sys.stderr, "CC", msg.cc
-    print >>sys.stderr, "BCC", msg.bcc
-    print >>sys.stderr, "SUBJ", msg.subject
-    print >>sys.stderr, "BODY", msg.body
+    print("FROM", msg.from_email, file=sys.stderr)
+    print("TO", msg.to, file=sys.stderr)
+    print("CC", msg.cc, file=sys.stderr)
+    print("BCC", msg.bcc, file=sys.stderr)
+    print("SUBJ", msg.subject, file=sys.stderr)
+    print("BODY", msg.body, file=sys.stderr)
 
 class SimpleFixture(object):
     def __init__(self):
@@ -209,116 +223,6 @@ class NotificationTest(TransactionTestCase):
         self.assertEqual(mail.outbox[0].to, ['John Smith <doctor@example.com>'])
         self.assertEqual(mail.outbox[0].cc, ['nm@debian.org', 'archive-doctor=example.com@nm.debian.org'])
 
-class PermissionTest(TransactionTestCase):
-    def setUp(self):
-        self.p = SimpleFixture()
-
-    def test_permissions(self):
-        ## A DC without a process open
-
-        # Permissions of anonymous
-        self.assertEquals(str(self.p.nm.permissions_of(None)), "-------")
-        # Permissions of self
-        self.assertEquals(str(self.p.nm.permissions_of(self.p.nm)), "ble----")
-        # Permissions of an unrelated DD
-        self.assertEquals(str(self.p.nm.permissions_of(self.p.am)), "-------")
-        self.assertEquals(str(self.p.nm.permissions_of(self.p.am_am)), "-------")
-        # Permissions of FD
-        self.assertEquals(str(self.p.nm.permissions_of(self.p.fd)), "ble--fd")
-        self.assertEquals(str(self.p.nm.permissions_of(self.p.fd_am)), "ble--fd")
-
-        ## Create a process
-        proc = self.p.make_process_dd(progress=bconst.PROGRESS_APP_OK, advocate=self.p.adv)
-
-        # Permissions of anonymous
-        self.assertEquals(str(self.p.nm.permissions_of(None)), "-------")
-        # Permissions of self
-        self.assertEquals(str(self.p.nm.permissions_of(self.p.nm)), "ble----")
-        # Permissions of an unrelated DD
-        self.assertEquals(str(self.p.nm.permissions_of(self.p.dd)), "-------")
-        # Permissions of the advocate
-        self.assertEquals(str(self.p.nm.permissions_of(self.p.adv)), "blea---")
-        # Permissions of the AM
-        self.assertEquals(str(self.p.nm.permissions_of(self.p.am)), "ble-m--")
-        # Permissions of FD
-        self.assertEquals(str(self.p.nm.permissions_of(self.p.fd)), "ble--fd")
-
-        # Permissions of anonymous
-        self.assertEquals(str(self.p.nm.permissions_of(None)), "-------")
-        # Permissions of self
-        self.assertEquals(str(proc.permissions_of(self.p.nm)), "ble----")
-        # Permissions of an unrelated DD
-        self.assertEquals(str(proc.permissions_of(self.p.dd)), "-------")
-        # Permissions of the advocate
-        self.assertEquals(str(proc.permissions_of(self.p.adv)), "blea---")
-        # Permissions of the AM
-        self.assertEquals(str(proc.permissions_of(self.p.am)), "ble-m--")
-        # Permissions of FD
-        self.assertEquals(str(proc.permissions_of(self.p.fd)), "ble--fd")
-
-        ## Put the process in FD's hands
-        proc.progress = bconst.PROGRESS_FD_OK
-        proc.save()
-
-        # Permissions of anonymous
-        self.assertEquals(str(self.p.nm.permissions_of(None)), "-------")
-        # Permissions of self
-        self.assertEquals(str(self.p.nm.permissions_of(self.p.nm)), "b-e----")
-        # Permissions of an unrelated DD
-        self.assertEquals(str(self.p.nm.permissions_of(self.p.dd)), "-------")
-        # Permissions of the advocate
-        self.assertEquals(str(self.p.nm.permissions_of(self.p.adv)), "b-ea---")
-        # Permissions of the AM
-        self.assertEquals(str(self.p.nm.permissions_of(self.p.am)), "b-e-m--")
-        # Permissions of FD
-        self.assertEquals(str(self.p.nm.permissions_of(self.p.fd)), "ble--fd")
-
-        # Permissions of anonymous
-        self.assertEquals(str(self.p.nm.permissions_of(None)), "-------")
-        # Permissions of self
-        self.assertEquals(str(proc.permissions_of(self.p.nm)), "b-e----")
-        # Permissions of an unrelated DD
-        self.assertEquals(str(proc.permissions_of(self.p.dd)), "-------")
-        # Permissions of the advocate
-        self.assertEquals(str(proc.permissions_of(self.p.adv)), "b-ea---")
-        # Permissions of the AM
-        self.assertEquals(str(proc.permissions_of(self.p.am)), "b-e-m--")
-        # Permissions of FD
-        self.assertEquals(str(proc.permissions_of(self.p.fd)), "ble--fd")
-
-        # Process done, person is DD
-        proc.progress = bconst.PROGRESS_DONE
-        proc.is_active = False
-        proc.save()
-        self.p.nm.status = bconst.STATUS_DD_U
-        self.p.nm.save()
-
-        # Permissions of anonymous
-        self.assertEquals(str(self.p.nm.permissions_of(None)), "-------")
-        # Permissions of self
-        self.assertEquals(str(self.p.nm.permissions_of(self.p.nm)), "b-e----")
-        # Permissions of an unrelated DD
-        self.assertEquals(str(self.p.nm.permissions_of(self.p.dd)), "-------")
-        # Permissions of the advocate
-        self.assertEquals(str(self.p.nm.permissions_of(self.p.adv)), "--ea---")
-        # Permissions of the AM
-        self.assertEquals(str(self.p.nm.permissions_of(self.p.am)), "--e-m--")
-        # Permissions of FD
-        self.assertEquals(str(self.p.nm.permissions_of(self.p.fd)), "b-e--fd")
-
-        # Permissions of anonymous
-        self.assertEquals(str(self.p.nm.permissions_of(None)), "-------")
-        # Permissions of self
-        self.assertEquals(str(proc.permissions_of(self.p.nm)), "b-e----")
-        # Permissions of an unrelated DD
-        self.assertEquals(str(proc.permissions_of(self.p.dd)), "-------")
-        # Permissions of the advocate
-        self.assertEquals(str(proc.permissions_of(self.p.adv)), "--ea---")
-        # Permissions of the AM
-        self.assertEquals(str(proc.permissions_of(self.p.am)), "--e-m--")
-        # Permissions of FD
-        self.assertEquals(str(proc.permissions_of(self.p.fd)), "b-e--fd")
-
 class SimpleFixtureFingerprintField(object):
     def __init__(self):
         bmodels.Person(cn="Marco", sn="Bardelli", email="safanaj@debian.org", uid="safanaj",
@@ -362,11 +266,13 @@ class PersonExpires(TransactionTestCase):
         self.person.save()
 
     def test_expires(self):
-        from django_maintenance.maintenance import Maintenance
+        from django_housekeeping import Housekeeping
         def run_maint():
-            from .maintenance import BackupDB
-            maint = Maintenance(task_filter=lambda x:x.IDENTIFIER.endswith(".PersonExpires"), test_mock=BackupDB)
-            maint.run()
+            from backend.housekeeping import BackupDB
+            hk = Housekeeping(test_mock=BackupDB)
+            hk.autodiscover()
+            hk.init()
+            hk.run(run_filter=lambda name:"PersonExpires" in name)
             res = Person.objects.filter(pk=self.person.id)
             if res.exists():
                 return res[0]

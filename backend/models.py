@@ -132,6 +132,7 @@ class FingerprintField(models.CharField):
         value = super(FingerprintField, self).get_prep_value(value)
         value = self._clean_fingerprint(value)
         if not value: return None
+        return value
 
     def formfield(self, **kwargs):
         # we want bypass our parent to fix "maxlength" attribute in widget
@@ -148,7 +149,7 @@ add_introspection_rules(
          "^backend\.models\.TextNullField",
          "^backend\.models\.FingerprintField"])
 
-class NMPersonPermissions(object):
+class PersonVisitorPermissions(object):
     """
     Store NM-specific permissions
     """
@@ -330,9 +331,9 @@ class NMPersonPermissions(object):
     #        'm' if self.is_am else '-',
     #    ))
 
-class NMProcessPermissions(NMPersonPermissions):
+class ProcessVisitorPermissions(PersonVisitorPermissions):
     def __init__(self, process, visitor):
-        super(NMProcessPermissions, self).__init__(process.person, visitor)
+        super(ProcessVisitorPermissions, self).__init__(process.person, visitor)
         self.process = process
 
     @cached_property
@@ -352,7 +353,7 @@ class NMProcessPermissions(NMPersonPermissions):
         return self.process.advocates.filter(pk=self.person.pk).exists()
 
     def _compute_perms(self):
-        res = super(NMProcessPermissions, self)._compute_perms()
+        res = super(ProcessVisitorPermissions, self)._compute_perms()
         if self._can_view_email: res.add("view_mbox")
         return res
 
@@ -458,9 +459,9 @@ class Person(models.Model):
 
     def permissions_of(self, visitor):
         """
-        Compute which NMPermissions the given person has over this person
+        Compute which PersonVisitorPermissions the given person has over this person
         """
-        return NMPersonPermissions(self, visitor)
+        return PersonVisitorPermissions(self, visitor)
 
     @property
     def fullname(self):
@@ -835,9 +836,9 @@ class Process(models.Model):
 
     def permissions_of(self, visitor):
         """
-        Compute which NMPermissions \a person has over this process
+        Compute which ProcessVisitorPermissions \a visitor has over this process
         """
-        return NMProcessPermissions(self, visitor)
+        return ProcessVisitorPermissions(self, visitor)
 
     class DurationStats(object):
         AM_STATUSES = frozenset((const.PROGRESS_AM_HOLD, const.PROGRESS_AM))
