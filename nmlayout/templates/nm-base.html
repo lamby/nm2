@@ -5,7 +5,6 @@
 
 {% block head_meta %}
 <link rev="made" href="mailto:nm@debian.org">
-<meta name="Language" content="{{request.LANGUAGE_CODE|language_name}}">
 <meta name="Author"   content="Enrico Zini, enrico@debian.org">
 {% endblock %}
 
@@ -38,7 +37,6 @@
 {% if request.person.is_am %}
 <a href="{% url 'restricted_ammain' %}">{{request.person.lookup_key}}</a>
 {% else %}
-<a href="{% url 'person' key=request.person.lookup_key %}">{{request.person.lookup_key}}</a>
 {% endif %}
 <a href="https://sso.debian.org/sso/logout?url={{request.build_absolute_uri}}">logout</a>
 {% endif %}

@@ -307,6 +307,7 @@ class Person(NMVisitorMixin, TemplateView):
         ctx = super(Person, self).get_context_data(**kw)
         key = self.kwargs["key"]
         person = bmodels.Person.lookup_or_404(key)
+        perms = person.permissions_of(ctx["visitor"])
 
         processes = person.processes \
                 .annotate(started=Min("log__logdate"), ended=Max("log__logdate")) \
@@ -321,7 +322,7 @@ class Person(NMVisitorMixin, TemplateView):
         else:
             am = None
             am_processes = []
-            if person.status in (const.STATUS_DD_U, const.STATUS_DD_NU) and person.status_changed and (now() - person.status_changed > datetime.timedelta(days=6*30)):
+            if person.status in (const.STATUS_DD_U, const.STATUS_DD_NU):
                 can_be_am = True
 
         ctx.update(
