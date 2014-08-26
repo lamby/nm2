@@ -313,7 +313,6 @@ class Person(NMVisitorMixin, TemplateView):
                 .annotate(started=Min("log__logdate"), ended=Max("log__logdate")) \
                 .order_by("is_active", "ended")
 
-        can_be_am = False
         if person.is_am:
             am = person.am
             am_processes = am.processed \
@@ -322,26 +321,22 @@ class Person(NMVisitorMixin, TemplateView):
         else:
             am = None
             am_processes = []
-            if person.status in (const.STATUS_DD_U, const.STATUS_DD_NU):
-                can_be_am = True
 
         ctx.update(
             person=person,
             am=am,
             processes=processes,
             am_processes=am_processes,
-            can_be_am=can_be_am,
-            can_advocate_as_dd=(self.request.person and self.request.person.can_advocate_as_dd(person)),
+            vperms=perms,
+            adv_processes=person.advocated \
+                    .annotate(started=Min("log__logdate"), ended=Max("log__logdate")) \
+                    .order_by("is_active", "ended")
         )
 
 
         # List of statuses the person is already applying for
         for st in person.get_allowed_processes():
             ctx["can_start_%s_process" % st] = True
-
-        ctx["adv_processes"] = person.advocated \
-                    .annotate(started=Min("log__logdate"), ended=Max("log__logdate")) \
-                    .order_by("is_active", "ended")
 
         if person.bio is not None:
             ctx["bio_html"] = markdown.markdown(person.bio, safe_mode="escape")

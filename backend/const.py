@@ -31,9 +31,9 @@ g = globals()
 ALL_STATUS = (
     # TODO: could become DC
     Status("STATUS_MM",          "mm",     "DC",            "Debian Contributor"),
-    Status("STATUS_MM_GA",       "mm_ga",  "DC, account",   "Debian Contributor, with guest account"),
+    Status("STATUS_MM_GA",       "mm_ga",  "DC+account",    "Debian Contributor, with guest account"),
     Status("STATUS_DM",          "dm",     "DM",            "Debian Maintainer"),
-    Status("STATUS_DM_GA",       "dm_ga",  "DM, account",   "Debian Maintainer, with guest account"),
+    Status("STATUS_DM_GA",       "dm_ga",  "DM+account",    "Debian Maintainer, with guest account"),
     Status("STATUS_DD_U",        "dd_u",   "DD, upl.",      "Debian Developer, uploading"),
     Status("STATUS_DD_NU",       "dd_nu",  "DD, non-upl.",  "Debian Developer, non-uploading"),
     Status("STATUS_EMERITUS_DD", "dd_e",   "DD, emeritus",  "Debian Developer, emeritus"),

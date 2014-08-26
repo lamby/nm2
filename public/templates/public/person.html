@@ -62,16 +62,13 @@
 {% endif %}
 {% if request.am.is_admin %}
 <a href="{% url 'admin:backend_person_change' person.id  %}">admin</a>
-{% if can_be_am %}
+{% if vperms.can_become_am %}
 <a href="{% url 'admin:backend_am_add' %}?person={{person.id}}">make am</a>
 {% endif %}
-{% if can_start_mm_ga_process %}<a href="{% url 'restricted_newprocess' key=person.lookup_key applying_for=STATUS_MM_GA %}">request guest account</a>{% endif %}
-{% if can_start_dm_ga_process %}<a href="{% url 'restricted_newprocess' key=person.lookup_key applying_for=STATUS_DM_GA %}">request guest account</a>{% endif %}
-{% if can_start_dm_process %}<a href="{% url 'restricted_newprocess' key=person.lookup_key applying_for=STATUS_DM %}">request DM</a>{% endif %}
-{% if can_start_dd_u_process %}<a href="{% url 'restricted_newprocess' key=person.lookup_key applying_for=STATUS_DD_U %}">join NM (upl.)</a>{% endif %}
-{% if can_start_dd_nu_process %}<a href="{% url 'restricted_newprocess' key=person.lookup_key applying_for=STATUS_DD_NU %}">join NM (nonupl.)</a>{% endif %}
 {% endif %}
-{% if can_advocate_as_dd %}<a href="{% url 'advocate_as_dd' key=person.lookup_key %}">advocate for DD</a>{% endif %}
+{% for s in vperms.advocate_targets %}
+<a href="{% url 'restricted_newprocess' key=person.lookup_key applying_for=s %}">advocate for {{s|sdesc_status}}</a>
+{% endfor %}
 {% if request.am.is_admin and request.person != person %}<a href="{% url 'impersonate' key=person.lookup_key %}?url={{request.build_absolute_uri}}">impersonate</a>{% endif %}
 {{block.super}}
 {% endblock %}

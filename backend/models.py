@@ -232,6 +232,7 @@ class NMPersonPermissions(object):
         """
         if self.visitor is None: return False
         if self.visitor.is_admin: return True
+        if self.person.pending: return False
         if self.visitor.pk == self.person.pk: return True
         return self.is_current_advocate or self.is_current_am
 
@@ -245,14 +246,33 @@ class NMPersonPermissions(object):
         return self.person.status not in (const.STATUS_MM, const.STATUS_DM)
 
     @cached_property
-    def has_validated_processes(self):
+    def can_edit_ldap_fields(self):
         """
-        The person has at least a process that is in the hands of FD, DAM,
-        keyring-maint or DSA on its way to account creation.
+        The visitor can edit the person's LDAP fields
         """
+        if self.visitor is None: return False
+
+        # LDAP fields are immutable in nm.debian.org when there is already an
+        # LDAP record
+        if self.has_ldap_record: return False
+
+        # FD and DAM can do everything except mess with LDAP
+        if self.visitor.is_admin: return True
+
+        # Only the person themselves, an advocate or an am can potentially edit
+        # LDAP fields
+        if self.person.pk != self.visitor.pk and not self.is_current_advocate and not self.is_current_am: return False
+
+        # Check if there is some process in a state for which nobody should
+        # interfere
+
+        # Pending person records cannot be changed
+        if self.person.pending: return False
+
+        # If there are active processes in FD or DAM's hand, only them can
+        # change them
         for p in self.processes:
             if not p.is_active: continue
-            # Take note of active processes not in FD or DAM's hands
             if p.progress in (
                     const.PROGRESS_AM_OK,
                     const.PROGRESS_FD_HOLD,
@@ -262,43 +282,66 @@ class NMPersonPermissions(object):
                     const.PROGRESS_DONE,
                     const.PROGRESS_CANCELLED,
                 ):
-                return True
-        return False
+                return False
 
-    @cached_property
-    def can_edit_ldap_fields(self):
-        """
-        The visitor can edit the person's LDAP fields
-        """
-        if self.visitor is None: return False
-
-        # FD and DAM can do everything except mess with LDAP
-        if self.visitor.is_admin: return not self.has_ldap_record
-
-        # A person can do almost everything to themselves
-        if self.person.pk == self.visitor.pk:
-            return (
-                # Except editing frozen LDAP entries
-                not self.has_ldap_record
-                # Or editing LDAP info when it is in FD or DAM's hands
-                and not self.has_validated_processes
-            )
-
-        # Current advocates or current AMs can tweak the LDAP fields
-        if self.is_current_advocate or self.is_current_am:
-            return (
-                # Except editing frozen LDAP entries
-                not self.has_ldap_record
-                # Or editing LDAP info when it is in FD
-                # or DAM's hands
-                and not self.has_validated_processes
-            )
-
-        return False
+        return True
 
     @cached_property
     def can_edit_anything(self):
         return self.can_edit_bio or self.can_edit_ldap_fields
+
+    @cached_property
+    def advocate_targets(self):
+        """
+        Return a list of statuses for which the current visitor can become an
+        advocate
+        """
+        # Nothing can happen while the person is pending confirmation
+        if self.person.pending: return []
+        # Anonymous visitors cannot advocate
+        if not self.visitor: return []
+        # Mere mortals cannot currently advocate
+        if self.visitor.status in (const.STATUS_MM, const.STATUS_MM_GA): return []
+
+        already_applying = frozenset(x.applying_for for x in self.processes if x.is_active)
+
+        pre_dd_statuses = frozenset((const.STATUS_MM, const.STATUS_MM_GA,
+                                     const.STATUS_DM, const.STATUS_DM_GA,
+                                     const.STATUS_EMERITUS_DD, const.STATUS_EMERITUS_DM,
+                                     const.STATUS_REMOVED_DD, const.STATUS_REMOVED_DM))
+
+        dm_or_dd = frozenset((const.STATUS_DM, const.STATUS_DM_GA, const.STATUS_DD_U, const.STATUS_DD_NU))
+        dd = frozenset((const.STATUS_DD_U, const.STATUS_DD_NU))
+
+        res = []
+        if (self.person.status == const.STATUS_MM
+            and const.STATUS_MM_GA not in already_applying
+            and self.visitor.status in dm_or_dd):
+            res.append(const.STATUS_MM_GA)
+
+        if (self.person.status == const.STATUS_DM
+            and const.STATUS_DM_GA not in already_applying
+            and self.visitor.status in dm_or_dd):
+            res.append(const.STATUS_DM_GA)
+
+        if (self.person.status == const.STATUS_MM
+            and const.STATUS_DM not in already_applying
+            and self.visitor.status in dd):
+            res.append(const.STATUS_DM)
+
+        if (self.person.status == const.STATUS_MM_GA
+            and const.STATUS_DM_GA not in already_applying
+            and self.visitor.status in dd):
+            res.append(const.STATUS_DM_GA)
+
+        if (self.person.status in pre_dd_statuses
+            and not const.STATUS_DD_U in already_applying
+            and not const.STATUS_DD_NU in already_applying
+            and self.visitor.status in dd):
+            res.append(const.STATUS_DD_U)
+            res.append(const.STATUS_DD_NU)
+
+        return res
 
     #def __str__(self):
     #    return "".join((
@@ -440,6 +483,15 @@ class Person(models.Model):
                 return False
 
         return True
+
+    def can_become_am(self):
+        """
+        Check if the person can become an AM
+        """
+        # Not if they already are
+        if self.am_or_none is not None: return False
+        # Ok if they are DDs
+        return self.status in (const.STATUS_DD_U, const.STATUS_DD_NU)
 
     @property
     def fullname(self):
