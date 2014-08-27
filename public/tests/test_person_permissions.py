@@ -215,11 +215,18 @@ class ProcTestMixin(PersonTestMixin, TestCase):
             with visit_advs(self, "app"):
                 self.assertAdvsDone()
 
-    def assertPermsInitial(self): self.fail("Not implemented")
-    def assertPermsAdv(self): self.fail("Not implemented")
-    def assertPermsAdvAM(self): self.fail("Not implemented")
-    def assertPermsFDDAM(self): self.fail("Not implemented")
-    def assertPermsDone(self): self.fail("Not implemented")
+    # Standard behaviour
+    def assertPermsInitial(self):
+        self.assertPerms("fd dam app", "edit_bio edit_ldap")
+    def assertPermsAdv(self):
+        self.assertPerms("fd dam adv app", "edit_bio edit_ldap")
+    def assertPermsAdvAM(self):
+        self.assertPerms("fd dam adv am app", "edit_bio edit_ldap")
+    def assertPermsFDDAM(self):
+        self.assertPerms("fd dam", "edit_bio edit_ldap")
+        self.assertPerms("app", "edit_bio")
+    def assertPermsDone(self):
+        self.assertPerms("fd dam app", "edit_bio")
 
     def test_perms(self):
         self.proc.advocates.clear()
@@ -292,18 +299,6 @@ class ProcDcgaAdvDMTestCase(ProcTestMixin, TestCase):
     def assertAdvsDone(self):
         self.assertAdvs("fd dam am dd_nu dd_u", "dm_ga dd_u dd_nu")
 
-    def assertPermsInitial(self):
-        self.assertPerms("fd dam app", "edit_bio edit_ldap")
-    def assertPermsAdv(self):
-        self.assertPerms("fd dam adv app", "edit_bio edit_ldap")
-    def assertPermsAdvAM(self):
-        self.assertPerms("fd dam adv am app", "edit_bio edit_ldap")
-    def assertPermsFDDAM(self):
-        self.assertPerms("fd dam", "edit_bio edit_ldap")
-        self.assertPerms("app", "edit_bio")
-    def assertPermsDone(self):
-        self.assertPerms("fd dam app", "edit_bio")
-
 class ProcDcgaAdvDDTestCase(ProcTestMixin, TestCase):
     """
     Test all visit combinations for an applicant from dc to dc_ga, with a dd advocate
@@ -313,17 +308,20 @@ class ProcDcgaAdvDDTestCase(ProcTestMixin, TestCase):
     advocate_status = const.STATUS_DD_NU
 
     def assertAdvsInitial(self):
-        self.assertAdvs("fd dam adv am dd_nu dd_u", "dm dd_u dd_nu")
+        self.assertAdvs("fd dam adv am dd_nu dd_u", "mm_ga dm dd_u dd_nu")
+        self.assertAdvs("dm dm_ga", "mm_ga")
     def assertAdvsAdv(self):
-        self.assertAdvs("fd dam am dd_nu dd_u", "dm dd_u dd_nu")
-        self.assertAdvs("adv", "dd_u dd_nu")
+        self.assertAdvs("fd dam am dd_nu dd_u", "mm_ga dm dd_u dd_nu")
+        self.assertAdvs("adv", "dm dd_u dd_nu")
+        self.assertAdvs("dm dm_ga", "mm_ga")
     def assertAdvsAdvAM(self):
-        self.assertAdvs("fd dam dd_nu dd_u", "dm dd_u dd_nu")
-        self.assertAdvs("adv am", "dd_u dd_nu")
+        self.assertAdvs("fd dam dd_nu dd_u", "mm_ga dm dd_u dd_nu")
+        self.assertAdvs("dm dm_ga", "mm_ga")
+        self.assertAdvs("adv am", "dm dd_u dd_nu")
     def assertAdvsFDDAM(self):
-        self.assertAdvs("fd dam adv am dd_nu dd_u", "dd_u dd_nu")
+        self.assertAdvs("fd dam adv am dd_nu dd_u", "dm dd_u dd_nu")
     def assertAdvsDone(self):
-        self.assertAdvs("fd dam adv am dd_nu dd_u", "dd_u dd_nu")
+        self.assertAdvs("fd dam adv am dd_nu dd_u", "dm_ga dd_u dd_nu")
 
 class ProcDmgaAdvDMTestCase(ProcTestMixin, TestCase):
     """
