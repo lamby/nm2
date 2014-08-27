@@ -21,29 +21,6 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
         for u in self.users.itervalues():
             self.assertVisit(WhenView(user=u), ThenSuccess())
 
-    def test_managers(self):
-        """
-        managers works for all users
-        """
-        class WhenView(NMTestUtilsWhen):
-            url = reverse("managers")
-        class ThenSeesDetails(ThenSuccess):
-            def __call__(self, fixture, response, when, test_client):
-                super(ThenSeesDetails, self).__call__(fixture, response, when, test_client)
-                if b"<th>Hold</th>" not in response.content:
-                    fixture.fail("details not visible by {} when {}".format(when.user, when))
-        class ThenDoesNotSeeDetails(ThenSuccess):
-            def __call__(self, fixture, response, when, test_client):
-                super(ThenDoesNotSeeDetails, self).__call__(fixture, response, when, test_client)
-                if b"<th>Hold</th>" in response.content:
-                    fixture.fail("details are visible by {} when {}".format(when.user, when))
-        self.assertVisit(WhenView(), ThenDoesNotSeeDetails())
-        ams = ("am", "am_other", "am_past", "fd", "dam")
-        for u in self.users.viewkeys() - frozenset(ams):
-            self.assertVisit(WhenView(user=self.users[u]), ThenDoesNotSeeDetails())
-        for u in ams:
-            self.assertVisit(WhenView(user=self.users[u]), ThenSeesDetails())
-
     def test_stats(self):
         """
         stats works for all users
@@ -214,3 +191,35 @@ class ProcessesTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
         for u in ("fd", "dam"):
             self.assertVisit(WhenView(user=self.users[u]), ThenSeesFDComments())
 
+
+class ManagersTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
+    def setUp(self):
+        super(ManagersTestCase, self).setUp()
+        self.app = self.make_user("app", const.STATUS_MM, alioth=True, fd_comment="FD_COMMENTS")
+        self.adv = self.make_user("adv", const.STATUS_DD_NU)
+        self.am = self.make_user("am", const.STATUS_DD_NU)
+        self.am_am = bmodels.AM.objects.create(person=self.am)
+        self.proc = self.make_process(self.app, const.STATUS_DD_NU, const.PROGRESS_APP_RCVD)
+
+    def test_managers(self):
+        """
+        managers works for all users
+        """
+        class WhenView(NMTestUtilsWhen):
+            url = reverse("managers")
+        class ThenSeesDetails(ThenSuccess):
+            def __call__(self, fixture, response, when, test_client):
+                super(ThenSeesDetails, self).__call__(fixture, response, when, test_client)
+                if b"<th>Hold</th>" not in response.content:
+                    fixture.fail("details not visible by {} when {}".format(when.user, when))
+        class ThenDoesNotSeeDetails(ThenSuccess):
+            def __call__(self, fixture, response, when, test_client):
+                super(ThenDoesNotSeeDetails, self).__call__(fixture, response, when, test_client)
+                if b"<th>Hold</th>" in response.content:
+                    fixture.fail("details are visible by {} when {}".format(when.user, when))
+        self.assertVisit(WhenView(), ThenDoesNotSeeDetails())
+        ams = ("am", "fd", "dam")
+        for u in self.users.viewkeys() - frozenset(ams):
+            self.assertVisit(WhenView(user=self.users[u]), ThenDoesNotSeeDetails())
+        for u in ams:
+            self.assertVisit(WhenView(user=self.users[u]), ThenSeesDetails())
