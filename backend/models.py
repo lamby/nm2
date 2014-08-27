@@ -153,6 +153,15 @@ class PersonVisitorPermissions(object):
     """
     Store NM-specific permissions
     """
+    fddam_states = frozenset((const.PROGRESS_AM_OK, const.PROGRESS_FD_HOLD,
+        const.PROGRESS_FD_OK, const.PROGRESS_DAM_HOLD, const.PROGRESS_DAM_OK))
+    pre_dd_statuses = frozenset((const.STATUS_MM, const.STATUS_MM_GA,
+                                    const.STATUS_DM, const.STATUS_DM_GA,
+                                    const.STATUS_EMERITUS_DD, const.STATUS_EMERITUS_DM,
+                                    const.STATUS_REMOVED_DD, const.STATUS_REMOVED_DM))
+    dm_or_dd = frozenset((const.STATUS_DM, const.STATUS_DM_GA, const.STATUS_DD_U, const.STATUS_DD_NU))
+    dd = frozenset((const.STATUS_DD_U, const.STATUS_DD_NU))
+
     def __init__(self, person, visitor):
         # Person being visited
         self.person = person.person
@@ -278,45 +287,48 @@ class PersonVisitorPermissions(object):
         # Mere mortals cannot currently advocate
         if self.visitor.status in (const.STATUS_MM, const.STATUS_MM_GA): return []
 
-        already_applying = frozenset(x.applying_for for x in self.processes if x.is_active)
+        def involved_pks(proc):
+            pks = {a.pk for a in proc.advocates.all()}
+            am = proc.manager
+            if am is not None: pks.add(am.person.pk)
+            return pks
 
-        pre_dd_statuses = frozenset((const.STATUS_MM, const.STATUS_MM_GA,
-                                     const.STATUS_DM, const.STATUS_DM_GA,
-                                     const.STATUS_EMERITUS_DD, const.STATUS_EMERITUS_DM,
-                                     const.STATUS_REMOVED_DD, const.STATUS_REMOVED_DM))
-
-        dm_or_dd = frozenset((const.STATUS_DM, const.STATUS_DM_GA, const.STATUS_DD_U, const.STATUS_DD_NU))
-        dd = frozenset((const.STATUS_DD_U, const.STATUS_DD_NU))
+        def can_add_advocate(*applying_for):
+            for p in self.processes:
+                if not p.is_active: continue
+                if p.applying_for not in applying_for: continue
+                if p.progress in self.fddam_states: return False
+                if self.visitor.pk in involved_pks(p): return False
+            return True
 
         res = []
         if (self.person.status == const.STATUS_MM
-            and const.STATUS_MM_GA not in already_applying
             and self.visitor.pk != self.person.pk
-            and self.visitor.status in dm_or_dd):
+            and self.visitor.status in self.dm_or_dd
+            and can_add_advocate(const.STATUS_MM_GA)):
             res.append(const.STATUS_MM_GA)
 
         if (self.person.status == const.STATUS_DM
-            and const.STATUS_DM_GA not in already_applying
-            and self.visitor.status in dm_or_dd):
-            res.append(const.STATUS_DM_GA)
+            and self.visitor.status in self.dm_or_dd
+            and can_add_advocate(const.STATUS_DM_GA)):
+                res.append(const.STATUS_DM_GA)
 
         if (self.person.status == const.STATUS_MM
-            and const.STATUS_DM not in already_applying
             and self.visitor.pk != self.person.pk
-            and self.visitor.status in dd):
+            and self.visitor.status in self.dd
+            and can_add_advocate(const.STATUS_DM)):
             res.append(const.STATUS_DM)
 
         if (self.person.status == const.STATUS_MM_GA
-            and const.STATUS_DM_GA not in already_applying
             and self.visitor.pk != self.person.pk
-            and self.visitor.status in dd):
+            and self.visitor.status in self.dd
+            and can_add_advocate(const.STATUS_DM_GA)):
             res.append(const.STATUS_DM_GA)
 
-        if (self.person.status in pre_dd_statuses
-            and not const.STATUS_DD_U in already_applying
-            and not const.STATUS_DD_NU in already_applying
+        if (self.person.status in self.pre_dd_statuses
             and self.visitor.pk != self.person.pk
-            and self.visitor.status in dd):
+            and self.visitor.status in self.dd
+            and can_add_advocate(const.STATUS_DD_NU, const.STATUS_DD_U)):
             res.append(const.STATUS_DD_NU)
             res.append(const.STATUS_DD_U)
 

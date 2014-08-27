@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import unicode_literals
 from . import models as bmodels
 from . import const
+from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.test import Client
 from django.utils.timezone import now
@@ -78,10 +79,14 @@ class NMBasicFixtureMixin(object):
         if alioth:
             remote_user = "NM::DEBIAN:{}-guest@users.alioth.debian.org".format(tag)
             uid = tag + "-guest"
+            username = uid + "@users.alioth.debian.org"
         else:
             remote_user = "NM::DEBIAN:{}".format(tag)
             uid = tag
-        res = bmodels.Person.objects.create(cn=tag.capitalize(),
+            username = uid + "@debian.org"
+        u = User.objects.create(username=username, email=tag + "@example.org")
+        res = bmodels.Person.objects.create(user=u,
+                                    cn=tag.capitalize(),
                                     uid=uid,
                                     email=tag + "@example.org",
                                     status=status,
