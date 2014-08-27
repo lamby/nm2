@@ -46,7 +46,7 @@ class NMVisitorMixin(object):
         visitor = request.user.get_profile()
 
         # Implement impersonation if requested in session
-        if request.person.is_admin:
+        if visitor.is_admin:
             key = request.session.get("impersonate", None)
             if key is not None:
                 p = bmodels.Person.lookup(key)
