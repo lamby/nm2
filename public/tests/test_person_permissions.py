@@ -149,7 +149,7 @@ class NoProcessTestCase(PersonTestMixin, TestCase):
         with visit(self, "dam"):
             self.assertPerms("fd dam", "edit_bio")
 
-class ProcTestMixin(PersonTestMixin, TestCase):
+class ProcTestMixin(PersonTestMixin):
     applying_as = None
     applying_for = None
     advocate_status = const.STATUS_DD_NU
@@ -396,6 +396,9 @@ class ProcDMTestCase(ProcTestMixin, TestCase):
         self.assertAdvs("fd dam adv am dd_nu dd_u", "dm_ga dd_u dd_nu")
         self.assertAdvs("app dm dm_ga", "dm_ga")
 
+    def assertPermsDone(self):
+        self.assertPerms("fd dam app", "edit_bio edit_ldap")
+
 class ProcDcDdnuTestCase(ProcTestMixin, TestCase):
     """
     Test all visit combinations for an applicant from dc to dc_ga, with a dm advocate
@@ -441,6 +444,18 @@ class ProcDcgaDdnuTestCase(ProcTestMixin, TestCase):
         self.assertAdvs("fd dam adv am dd_nu dd_u", "dm_ga")
     def assertAdvsDone(self):
         pass
+
+    def assertPermsInitial(self):
+        self.assertPerms("fd dam app", "edit_bio")
+    def assertPermsAdv(self):
+        self.assertPerms("fd dam adv app", "edit_bio")
+    def assertPermsAdvAM(self):
+        self.assertPerms("fd dam adv am app", "edit_bio")
+    def assertPermsFDDAM(self):
+        self.assertPerms("fd dam", "edit_bio")
+        self.assertPerms("app", "edit_bio")
+    def assertPermsDone(self):
+        self.assertPerms("fd dam app", "edit_bio")
 
 class ProcDcDduTestCase(ProcTestMixin, TestCase):
     """
@@ -488,6 +503,18 @@ class ProcDcgaDduTestCase(ProcTestMixin, TestCase):
     def assertAdvsDone(self):
         pass
 
+    def assertPermsInitial(self):
+        self.assertPerms("fd dam app", "edit_bio")
+    def assertPermsAdv(self):
+        self.assertPerms("fd dam adv app", "edit_bio")
+    def assertPermsAdvAM(self):
+        self.assertPerms("fd dam adv am app", "edit_bio")
+    def assertPermsFDDAM(self):
+        self.assertPerms("fd dam", "edit_bio")
+        self.assertPerms("app", "edit_bio")
+    def assertPermsDone(self):
+        self.assertPerms("fd dam app", "edit_bio")
+
 class ProcDmDduTestCase(ProcTestMixin, TestCase):
     """
     Test all visit combinations for an applicant from dc to dc_ga, with a dm advocate
@@ -529,3 +556,14 @@ class ProcDmgaDduTestCase(ProcTestMixin, TestCase):
     def assertAdvsDone(self):
         pass
 
+    def assertPermsInitial(self):
+        self.assertPerms("fd dam app", "edit_bio")
+    def assertPermsAdv(self):
+        self.assertPerms("fd dam adv app", "edit_bio")
+    def assertPermsAdvAM(self):
+        self.assertPerms("fd dam adv am app", "edit_bio")
+    def assertPermsFDDAM(self):
+        self.assertPerms("fd dam", "edit_bio")
+        self.assertPerms("app", "edit_bio")
+    def assertPermsDone(self):
+        self.assertPerms("fd dam app", "edit_bio")
