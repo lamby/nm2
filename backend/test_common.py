@@ -99,7 +99,7 @@ class NMBasicFixtureMixin(object):
                                applying_as=applying_as,
                                applying_for=applying_for,
                                progress=progress,
-                               is_active=progress in (const.PROGRESS_DONE, const.PROGRESS_CANCELLED))
+                               is_active=progress not in (const.PROGRESS_DONE, const.PROGRESS_CANCELLED))
         if manager:
             try:
                 am = manager.am
@@ -112,6 +112,7 @@ class NMBasicFixtureMixin(object):
         for a in advocates:
             proc.advocates.add(a)
 
+        return proc
 
 
 # Inspired from http://blog.liw.fi/posts/yarn/

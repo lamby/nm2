@@ -334,10 +334,6 @@ class Person(NMVisitorMixin, TemplateView):
         )
 
 
-        # List of statuses the person is already applying for
-        for st in person.get_allowed_processes():
-            ctx["can_start_%s_process" % st] = True
-
         if person.bio is not None:
             ctx["bio_html"] = markdown.markdown(person.bio, safe_mode="escape")
         else:

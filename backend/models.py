@@ -263,7 +263,7 @@ class PersonVisitorPermissions(object):
         """
         Compute the set of permission tags
         """
-        return frozenset(self._compute_perms)
+        return frozenset(self._compute_perms())
 
     @cached_property
     def advocate_targets(self):

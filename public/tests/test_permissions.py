@@ -159,20 +159,6 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
         for u in self.users.itervalues():
             self.assertVisit(WhenView(user=u), ThenSuccess())
 
-    def test_person(self):
-        """
-        person works for all users
-        """
-        class WhenViewSelf(NMTestUtilsWhen):
-            def setUp(self, fixture):
-                super(WhenViewSelf, self).setUp(fixture)
-                self.url = reverse("person", kwargs={ "key": self.user.lookup_key })
-        #self.assertVisit(WhenViewSelf(), ThenSuccess())
-        for u in self.users.itervalues():
-            self.assertVisit(WhenViewSelf(user=u), ThenSuccess())
-
-        # TODO: test visiting other people's pages, and what is their content
-
     def test_process(self):
         """
         process works for all users

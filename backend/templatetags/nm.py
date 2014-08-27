@@ -52,7 +52,8 @@ def seq_status(value):
 
 @register.filter
 def editable_by(value, arg):
-    return value.permissions_of(arg).can_edit_anything
+    perms = value.permissions_of(arg).perms
+    return "edit_bio" in perms or "edit_ldap" in perms
 
 def _splitfp(val):
     for i in range(10):
