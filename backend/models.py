@@ -173,18 +173,21 @@ class PersonVisitorPermissions(object):
     @cached_property
     def _is_current_advocate(self):
         """
-        Return True if the visitor is the advocate of any active process
+        Return True if the visitor is the advocate of any active process not in
+        FD/DAM hands
         """
         if self.visitor is None: return False
         for p in self.processes:
             if not p.is_active: continue
+            if p.progress in self.fddam_states: continue
             if p.advocates.filter(pk=self.visitor.pk).exists(): return True
         return False
 
     @cached_property
     def _is_current_am(self):
         """
-        Return True if the visitor is the am of any active process
+        Return True if the visitor is the am of any active process not in
+        FD/DAM hands
         """
         if self.visitor is None: return False
         try:
@@ -194,6 +197,7 @@ class PersonVisitorPermissions(object):
 
         for p in self.processes:
             if not p.is_active: continue
+            if p.progress in self.fddam_states: continue
             if p.manager == am: return True
         return False
 
