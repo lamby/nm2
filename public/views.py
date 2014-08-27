@@ -143,108 +143,125 @@ def make_statusupdateform(editor):
         )
     return StatusUpdateForm
 
-def process(request, key):
-    process = bmodels.Process.lookup_or_404(key)
-    perms = process.permissions_of(request.person)
+class Process(NMVisitorMixin, TemplateView):
+    template_name = "public/process.html"
 
-    ctx = dict(
-        process=process,
-        person=process.person,
-        perms=perms,
-    )
+    def get_context_data(self, **kw):
+        ctx = super(Process, self).get_context_data(**kw)
+        key = self.kwargs["key"]
+        process = bmodels.Process.lookup_or_404(key)
+        visitor = ctx["visitor"]
+        perms = process.permissions_of(visitor)
 
-    # Process form ASAP, so we compute the rest with updated values
-    am = request.am
-    if am and (process.manager == am or am.is_admin) and perms.can_edit_anything:
-        StatusUpdateForm = make_statusupdateform(am)
-        if request.method == 'POST':
-            form = StatusUpdateForm(request.POST)
-            if form.is_valid():
-                if form.cleaned_data["progress"] == const.PROGRESS_APP_OK \
-                    and process.progress in [const.PROGRESS_AM_HOLD, const.PROGRESS_AM, const.PROGRESS_AM_RCVD]:
-                    # Unassign from AM
-                    process.manager = None
-                process.progress = form.cleaned_data["progress"]
-                process.save()
-                text = form.cleaned_data["logtext"]
-                if 'impersonate' in request.session:
-                    text = "[%s as %s] %s" % (request.user,
-                                                request.person.lookup_key,
-                                                text)
-                log = bmodels.Log(
-                    changed_by=request.person,
-                    process=process,
-                    progress=process.progress,
-                    logtext=text,
-                    is_public=form.cleaned_data["log_is_public"]
-                )
-                log.save()
-                form = StatusUpdateForm(initial=dict(progress=process.progress))
-        else:
+        ctx.update(
+            process=process,
+            person=process.person,
+            perms=perms,
+        )
+
+        # Process form ASAP, so we compute the rest with updated values
+        am = visitor.am_or_none if visitor else None
+        if am and (process.manager == am or am.is_admin) and (
+            "edit_bio" in perms.perms or "edit_ldap" in perms.perms):
+            StatusUpdateForm = make_statusupdateform(am)
             form = StatusUpdateForm(initial=dict(progress=process.progress))
-    else:
-        form = None
+        else:
+            form = None
 
-    ctx["form"] = form
+        ctx["form"] = form
 
-    log = list(process.log.order_by("logdate", "progress"))
-    if log:
-        ctx["started"] = log[0].logdate
-        ctx["last_change"] = log[-1].logdate
-    else:
-        ctx["started"] = datetime.datetime(1970, 1, 1, 0, 0, 0)
-        ctx["last_change"] = datetime.datetime(1970, 1, 1, 0, 0, 0)
+        log = list(process.log.order_by("logdate", "progress"))
+        if log:
+            ctx["started"] = log[0].logdate
+            ctx["last_change"] = log[-1].logdate
+        else:
+            ctx["started"] = datetime.datetime(1970, 1, 1, 0, 0, 0)
+            ctx["last_change"] = datetime.datetime(1970, 1, 1, 0, 0, 0)
 
-    if am:
-        ctx["log"] = log
-    else:
-        # Summarise log for privacy
-        distilled_log = []
-        last_progress = None
-        for l in log:
-            if last_progress != l.progress:
-                distilled_log.append(dict(
-                    progress=l.progress,
-                    changed_by=l.changed_by,
-                    logdate=l.logdate,
-                ))
-                last_progress = l.progress
-        ctx["log"] = distilled_log
+        if am:
+            ctx["log"] = log
+        else:
+            # Summarise log for privacy
+            distilled_log = []
+            last_progress = None
+            for l in log:
+                if last_progress != l.progress:
+                    distilled_log.append(dict(
+                        progress=l.progress,
+                        changed_by=l.changed_by,
+                        logdate=l.logdate,
+                    ))
+                    last_progress = l.progress
+            ctx["log"] = distilled_log
 
-    # Map unusual steps to their previous usual ones
-    unusual_step_map = {
-        const.PROGRESS_APP_HOLD: const.PROGRESS_APP_RCVD,
-        const.PROGRESS_AM_HOLD: const.PROGRESS_AM,
-        const.PROGRESS_FD_HOLD: const.PROGRESS_AM_OK,
-        const.PROGRESS_DAM_HOLD: const.PROGRESS_FD_OK,
-        const.PROGRESS_CANCELLED: const.PROGRESS_DONE,
-    }
+        # Map unusual steps to their previous usual ones
+        unusual_step_map = {
+            const.PROGRESS_APP_HOLD: const.PROGRESS_APP_RCVD,
+            const.PROGRESS_AM_HOLD: const.PROGRESS_AM,
+            const.PROGRESS_FD_HOLD: const.PROGRESS_AM_OK,
+            const.PROGRESS_DAM_HOLD: const.PROGRESS_FD_OK,
+            const.PROGRESS_CANCELLED: const.PROGRESS_DONE,
+        }
 
-    # Get the 'simplified' current step
-    curstep = unusual_step_map.get(process.progress, process.progress)
+        # Get the 'simplified' current step
+        curstep = unusual_step_map.get(process.progress, process.progress)
 
-    # List of usual steps in order
-    steps = (
-        const.PROGRESS_APP_NEW,
-        const.PROGRESS_APP_RCVD,
-        const.PROGRESS_ADV_RCVD,
-        const.PROGRESS_POLL_SENT,
-        const.PROGRESS_APP_OK,
-        const.PROGRESS_AM_RCVD,
-        const.PROGRESS_AM,
-        const.PROGRESS_AM_OK,
-        const.PROGRESS_FD_OK,
-        const.PROGRESS_DAM_OK,
-        const.PROGRESS_DONE,
-    )
+        # List of usual steps in order
+        steps = (
+            const.PROGRESS_APP_NEW,
+            const.PROGRESS_APP_RCVD,
+            const.PROGRESS_ADV_RCVD,
+            const.PROGRESS_POLL_SENT,
+            const.PROGRESS_APP_OK,
+            const.PROGRESS_AM_RCVD,
+            const.PROGRESS_AM,
+            const.PROGRESS_AM_OK,
+            const.PROGRESS_FD_OK,
+            const.PROGRESS_DAM_OK,
+            const.PROGRESS_DONE,
+        )
 
-    # Add past/current/future timeline
-    curstep_idx = steps.index(curstep)
-    ctx["steps"] = steps
-    ctx["curstep_idx"] = curstep_idx
+        # Add past/current/future timeline
+        curstep_idx = steps.index(curstep)
+        ctx["steps"] = steps
+        ctx["curstep_idx"] = curstep_idx
 
-    return render_to_response("public/process.html", ctx,
-                              context_instance=template.RequestContext(request))
+        return ctx
+
+    def post(self, request, key, *args, **kw):
+        process = bmodels.Process.lookup_or_404(key)
+        visitor = self.get_visitor(request)
+        if not visitor: raise PermissionDenied()
+        am = visitor.am_or_none
+        if not am: raise PermissionDenied
+
+        StatusUpdateForm = make_statusupdateform(am)
+        form = StatusUpdateForm(request.POST)
+        if form.is_valid():
+            if form.cleaned_data["progress"] == const.PROGRESS_APP_OK \
+                and process.progress in [const.PROGRESS_AM_HOLD, const.PROGRESS_AM, const.PROGRESS_AM_RCVD]:
+                # Unassign from AM
+                process.manager = None
+            process.progress = form.cleaned_data["progress"]
+            process.save()
+            text = form.cleaned_data["logtext"]
+            if 'impersonate' in request.session:
+                text = "[%s as %s] %s" % (request.user,
+                                            request.person.lookup_key,
+                                            text)
+            log = bmodels.Log(
+                changed_by=request.person,
+                process=process,
+                progress=process.progress,
+                logtext=text,
+                is_public=form.cleaned_data["log_is_public"]
+            )
+            log.save()
+            form = StatusUpdateForm(initial=dict(progress=process.progress))
+
+        context = self.get_context_data(**kw)
+        return self.render_to_response(context)
+
 
 SIMPLIFY_STATUS = {
     const.STATUS_MM: "new",
@@ -414,10 +431,10 @@ class Stats(NMVisitorMixin, TemplateView):
 
         return ctx
 
-def make_findperson_form(request):
+def make_findperson_form(request, visitor):
     excludes = ["user", "created", "status_changed", "expires", "pending"]
 
-    if not request.am or not request.am.is_admin:
+    if not visitor or not visitor.is_admin:
         excludes.append("fd_comment")
 
     class FindpersonForm(forms.ModelForm):
@@ -431,7 +448,7 @@ class Findperson(NMVisitorMixin, TemplateView):
 
     def get_context_data(self, **kw):
         ctx = super(Findperson, self).get_context_data(**kw)
-        FindpersonForm = make_findperson_form(self.request)
+        FindpersonForm = make_findperson_form(self.request, ctx["visitor"])
         form = FindpersonForm()
         ctx["form"] = form
         return ctx
@@ -441,7 +458,7 @@ class Findperson(NMVisitorMixin, TemplateView):
         if not visitor or not visitor.is_admin:
             raise PermissionDenied()
 
-        FindpersonForm = make_findperson_form(request)
+        FindpersonForm = make_findperson_form(request, visitor)
         form = FindpersonForm(request.POST)
         if form.is_valid():
             person = form.save()

@@ -185,6 +185,7 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
 
         # TODO: test visiting various combinations (applicant, dd, advocate and
         #       so on) and check what info are present in the page
+        # TODO: test submission of info changes
 
     def test_progress(self):
         """

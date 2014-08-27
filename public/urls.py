@@ -33,7 +33,7 @@ urlpatterns = patterns('public.views',
     url(r'^managers$', views.Managers.as_view(), name="managers"),
     url(r'^people(?:/(?P<status>\w+))?$', views.People.as_view(), name="people"),
     url(r'^person/(?P<key>[^/]+)$', views.Person.as_view(), name="person"),
-    url(r'^process/(?P<key>[^/]+)$', 'process', name="public_process"),
+    url(r'^process/(?P<key>[^/]+)$', views.Process.as_view(), name="public_process"),
     url(r'^progress/(?P<progress>\w+)$', 'progress', name="public_progress"),
     url(r'^stats/$', views.Stats.as_view(), name="public_stats"),
     url(r'^stats/latest$', views.StatsLatest.as_view(), name="public_stats_latest"),
@@ -41,6 +41,6 @@ urlpatterns = patterns('public.views',
 
     # Compatibility
     url(r'^whoisam$', views.Managers.as_view(), name="public_whoisam"),
-    url(r'^nmstatus/(?P<key>[^/]+)$', 'process', name="public_nmstatus"),
+    url(r'^nmstatus/(?P<key>[^/]+)$', views.Process.as_view(), name="public_nmstatus"),
     url(r'^nmlist$', views.Processes.as_view(), name="public_nmlist"),
 )
