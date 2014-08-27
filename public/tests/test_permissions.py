@@ -21,29 +21,6 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
         for u in self.users.itervalues():
             self.assertVisit(WhenView(user=u), ThenSuccess())
 
-    def test_processes(self):
-        """
-        processes works for all users
-        """
-        class WhenView(NMTestUtilsWhen):
-            url = reverse("processes")
-        class ThenSeesFDComments(ThenSuccess):
-            def __call__(self, fixture, response, when, test_client):
-                super(ThenSeesFDComments, self).__call__(fixture, response, when, test_client)
-                if b"FD_COMMENTS" not in response.content:
-                    fixture.fail("FD comments not visible by {} when {}".format(when.user, when))
-        class ThenDoesNotSeeFDComments(ThenSuccess):
-            def __call__(self, fixture, response, when, test_client):
-                super(ThenDoesNotSeeFDComments, self).__call__(fixture, response, when, test_client)
-                if b"FD_COMMENTS" in response.content:
-                    fixture.fail("FD comments are visible by {} when {}".format(when.user, when))
-
-        self.assertVisit(WhenView(), ThenDoesNotSeeFDComments())
-        for u in self.users.viewkeys() - frozenset(("fd", "dam")):
-            self.assertVisit(WhenView(user=self.users[u]), ThenDoesNotSeeFDComments())
-        for u in ("fd", "dam"):
-            self.assertVisit(WhenView(user=self.users[u]), ThenSeesFDComments())
-
     def test_managers(self):
         """
         managers works for all users
@@ -204,3 +181,36 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
 #    url(r'^whoisam$', 'managers', name="public_whoisam"),
 #    url(r'^nmstatus/(?P<key>[^/]+)$', 'process', name="public_nmstatus"),
 #    url(r'^nmlist$', 'processes', name="public_nmlist"),
+
+class ProcessesTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
+    def setUp(self):
+        super(ProcessesTestCase, self).setUp()
+        self.app = self.make_user("app", const.STATUS_MM, alioth=True, fd_comment="FD_COMMENTS")
+        self.adv = self.make_user("adv", const.STATUS_DD_NU)
+        self.am = self.make_user("am", const.STATUS_DD_NU)
+        self.am_am = bmodels.AM.objects.create(person=self.am)
+        self.proc = self.make_process(self.app, const.STATUS_DD_NU, const.PROGRESS_APP_RCVD)
+
+    def test_processes(self):
+        """
+        processes works for all users
+        """
+        class WhenView(NMTestUtilsWhen):
+            url = reverse("processes")
+        class ThenSeesFDComments(ThenSuccess):
+            def __call__(self, fixture, response, when, test_client):
+                super(ThenSeesFDComments, self).__call__(fixture, response, when, test_client)
+                if b"FD_COMMENTS" not in response.content:
+                    fixture.fail("FD comments not visible by {} when {}".format(when.user, when))
+        class ThenDoesNotSeeFDComments(ThenSuccess):
+            def __call__(self, fixture, response, when, test_client):
+                super(ThenDoesNotSeeFDComments, self).__call__(fixture, response, when, test_client)
+                if b"FD_COMMENTS" in response.content:
+                    fixture.fail("FD comments are visible by {} when {}".format(when.user, when))
+
+        self.assertVisit(WhenView(), ThenDoesNotSeeFDComments())
+        for u in self.users.viewkeys() - frozenset(("fd", "dam")):
+            self.assertVisit(WhenView(user=self.users[u]), ThenDoesNotSeeFDComments())
+        for u in ("fd", "dam"):
+            self.assertVisit(WhenView(user=self.users[u]), ThenSeesFDComments())
+
