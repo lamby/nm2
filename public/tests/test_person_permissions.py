@@ -355,12 +355,15 @@ class ProcDmgaAdvDDTestCase(ProcTestMixin, TestCase):
     advocate_status = const.STATUS_DD_NU
 
     def assertAdvsInitial(self):
-        self.assertAdvs("fd dam adv am dd_nu dd_u", "dm dd_u dd_nu")
+        self.assertAdvs("fd dam adv am dd_nu dd_u", "dm_ga dd_u dd_nu")
+        self.assertAdvs("app dm dm_ga", "dm_ga")
     def assertAdvsAdv(self):
-        self.assertAdvs("fd dam am dd_nu dd_u", "dm dd_u dd_nu")
+        self.assertAdvs("fd dam am dd_nu dd_u", "dm_ga dd_u dd_nu")
         self.assertAdvs("adv", "dd_u dd_nu")
+        self.assertAdvs("app dm dm_ga", "dm_ga")
     def assertAdvsAdvAM(self):
-        self.assertAdvs("fd dam dd_nu dd_u", "dm dd_u dd_nu")
+        self.assertAdvs("fd dam dd_nu dd_u", "dm_ga dd_u dd_nu")
+        self.assertAdvs("app dm dm_ga", "dm_ga")
         self.assertAdvs("adv am", "dd_u dd_nu")
     def assertAdvsFDDAM(self):
         self.assertAdvs("fd dam adv am dd_nu dd_u", "dd_u dd_nu")
