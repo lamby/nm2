@@ -357,19 +357,24 @@ class Person(NMVisitorMixin, TemplateView):
             ctx["bio_html"] = ""
         return ctx
 
-def progress(request, progress):
-    from django.db.models import Min, Max
+class Progress(NMVisitorMixin, TemplateView):
+    template_name = "public/progress.html"
 
-    processes = bmodels.Process.objects.filter(progress=progress, is_active=True) \
-            .annotate(started=Min("log__logdate"), ended=Max("log__logdate")) \
-            .order_by("started")
+    def get_context_data(self, **kw):
+        ctx = super(Progress, self).get_context_data(**kw)
+        progress = self.kwargs["progress"]
 
-    return render_to_response("public/progress.html",
-                              dict(
-                                  progress=progress,
-                                  processes=processes,
-                              ),
-                              context_instance=template.RequestContext(request))
+        from django.db.models import Min, Max
+
+        processes = bmodels.Process.objects.filter(progress=progress, is_active=True) \
+                .annotate(started=Min("log__logdate"), ended=Max("log__logdate")) \
+                .order_by("started")
+
+        ctx.update(
+            progress=progress,
+            processes=processes,
+        )
+        return ctx
 
 class Stats(NMVisitorMixin, TemplateView):
     template_name = "public/stats.html"
