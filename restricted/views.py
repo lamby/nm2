@@ -233,22 +233,6 @@ class Person(VisitPersonTemplateView):
         return self.render_to_response(context)
 
 
-def make_newprocessform(person):
-    choices = [(x.tag, x.ldesc) for x in const.ALL_STATUS if x[1] != person.status]
-
-    class NewProcessForm(forms.Form):
-        applying_for = forms.ChoiceField(
-            required=True,
-            label=_("Applying for"),
-            choices=choices
-        )
-        logtext = forms.CharField(
-            required=True,
-            label=_("Log text"),
-            widget=forms.Textarea(attrs=dict(rows=5, cols=80))
-        )
-    return NewProcessForm
-
 class NewProcess(VisitorMixin, View):
     """
     Create a new process
