@@ -20,8 +20,8 @@ from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
-from django import http, template, forms
-from django.shortcuts import render_to_response, redirect, render, get_object_or_404
+from django import http, forms
+from django.shortcuts import redirect, render, get_object_or_404
 from django.core.urlresolvers import reverse
 from django.core.exceptions import PermissionDenied
 from django.utils.translation import ugettext as _
@@ -30,37 +30,12 @@ from django.views.generic import TemplateView
 import backend.models as bmodels
 import backend.email as bemail
 from backend import const
+from backend.mixins import VisitorMixin, VisitorTemplateView
 import markdown
 import datetime
 import json
 
-class NMVisitorMixin(object):
-    """
-    Add a 'visitor' entry to the context with the Person object for the person
-    visiting the site
-    """
-    def get_visitor(self, request):
-        if not request.user.is_authenticated():
-            return None
-
-        visitor = request.user.get_profile()
-
-        # Implement impersonation if requested in session
-        if visitor.is_admin:
-            key = request.session.get("impersonate", None)
-            if key is not None:
-                p = bmodels.Person.lookup(key)
-                if p is not None:
-                    visitor = p
-        return visitor
-
-    def get_context_data(self, **kw):
-        ctx = super(NMVisitorMixin, self).get_context_data(**kw)
-        ctx["visitor"] = self.get_visitor(self.request)
-        return ctx
-
-
-class Managers(NMVisitorMixin, TemplateView):
+class Managers(VisitorTemplateView):
     template_name = "public/managers.html"
 
     def get_context_data(self, **kw):
@@ -96,7 +71,7 @@ class Managers(NMVisitorMixin, TemplateView):
         ctx["ams"] = ams
         return ctx
 
-class Processes(NMVisitorMixin, TemplateView):
+class Processes(VisitorTemplateView):
     template_name = "public/processes.html"
 
     def get_context_data(self, **kw):
@@ -143,7 +118,7 @@ def make_statusupdateform(editor):
         )
     return StatusUpdateForm
 
-class Process(NMVisitorMixin, TemplateView):
+class Process(VisitorTemplateView):
     template_name = "public/process.html"
 
     def get_context_data(self, **kw):
@@ -276,7 +251,7 @@ SIMPLIFY_STATUS = {
     const.STATUS_REMOVED_DM: "removed",
 }
 
-class People(NMVisitorMixin, TemplateView):
+class People(VisitorTemplateView):
     template_name = "public/people.html"
     def get_context_data(self, **kw):
         ctx = super(People, self).get_context_data(**kw)
@@ -316,7 +291,7 @@ class People(NMVisitorMixin, TemplateView):
         )
         return ctx
 
-class Person(NMVisitorMixin, TemplateView):
+class Person(VisitorTemplateView):
     template_name = "public/person.html"
 
     def get_context_data(self, **kw):
@@ -357,7 +332,7 @@ class Person(NMVisitorMixin, TemplateView):
             ctx["bio_html"] = ""
         return ctx
 
-class Progress(NMVisitorMixin, TemplateView):
+class Progress(VisitorTemplateView):
     template_name = "public/progress.html"
 
     def get_context_data(self, **kw):
@@ -376,7 +351,7 @@ class Progress(NMVisitorMixin, TemplateView):
         )
         return ctx
 
-class Stats(NMVisitorMixin, TemplateView):
+class Stats(VisitorTemplateView):
     template_name = "public/stats.html"
 
     def get_context_data(self, **kw):
@@ -448,7 +423,7 @@ def make_findperson_form(request, visitor):
             exclude = excludes
     return FindpersonForm
 
-class Findperson(NMVisitorMixin, TemplateView):
+class Findperson(VisitorTemplateView):
     template_name = "public/findperson.html"
 
     def get_context_data(self, **kw):
@@ -473,7 +448,7 @@ class Findperson(NMVisitorMixin, TemplateView):
         return self.render_to_response(context)
 
 
-class StatsLatest(NMVisitorMixin, TemplateView):
+class StatsLatest(VisitorTemplateView):
     template_name = "public/stats_latest.html"
 
     def get_context_data(self, **kw):
