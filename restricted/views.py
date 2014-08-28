@@ -363,7 +363,7 @@ def minechangelogs(request, key=None):
                               context_instance=template.RequestContext(request))
 
 class Impersonate(View):
-    def post(self, request, key=None, *args, **kw):
+    def get(self, request, key=None, *args, **kw):
         visitor = request.user.get_profile()
         if not visitor or not visitor.is_admin: raise PermissionDenied
         if key is None:
