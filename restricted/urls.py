@@ -1,6 +1,7 @@
+# coding: utf8
 # nm.debian.org website restricted pages
 #
-# Copyright (C) 2012--2013  Enrico Zini <enrico@debian.org>
+# Copyright (C) 2012--2014  Enrico Zini <enrico@debian.org>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -14,34 +15,35 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
 from django.conf.urls import *
-from django.core.urlresolvers import reverse
-from django.views.generic import TemplateView, RedirectView
+from . import views
+from backend.mixins import VisitorTemplateView
 
 urlpatterns = patterns('restricted.views',
-    url(r'^$', TemplateView.as_view(template_name='restricted/index.html'), name="restricted_index"),
+    url(r'^$', VisitorTemplateView.as_view(template_name='restricted/index.html'), name="restricted_index"),
     # AM Personal page
-    url(r'^ammain$', 'ammain', name="restricted_ammain"),
+    url(r'^ammain$', views.AMMain.as_view(), name="restricted_ammain"),
     # AM preferences editor
-    url(r'^amprofile(?:/(?P<uid>\w+))?$', 'amprofile', name="restricted_amprofile"),
+    url(r'^amprofile(?:/(?P<uid>\w+))?$', views.AMProfile.as_view(), name="restricted_amprofile"),
     # Edit personal info
     url(r'^person/(?P<key>[^/]+)$', 'person', name="restricted_person"),
     # Create new process for a person
-    url(r'^newprocess_(?P<applying_for>[^/]+)/(?P<key>[^/]+)$', 'newprocess', name="restricted_newprocess"),
+    url(r'^newprocess_(?P<applying_for>[^/]+)/(?P<key>[^/]+)$', views.NewProcess.as_view(), name="restricted_newprocess"),
     # Show changelogs (minechangelogs)
     url(r'^minechangelogs/(?P<key>[^/]+)?$', 'minechangelogs', name="restricted_minechangelogs"),
     # Impersonate a user
-    url(r'^impersonate/(?P<key>[^/]+)?$', 'impersonate', name="impersonate"),
-    # Advocate a person to become DD
-    url(r'^advocate-dd/(?P<key>[^/]+)$', 'advocate_as_dd', name="advocate_as_dd"),
+    url(r'^impersonate/(?P<key>[^/]+)?$', views.Impersonate.as_view(), name="impersonate"),
     # Export database
     url(r'^db-export$', 'db_export', name="restricted_db_export"),
     # Help matching NMs and AMs
-    url(r'^nm-am-match/$', 'nm_am_match', name="restricted_nm_am_match"),
+    url(r'^nm-am-match/$', views.NMAMMatch.as_view(), name="restricted_nm_am_match"),
     # Advocate a person to become DD
     url(r'^mail-archive/(?P<key>[^/]+)$', 'mail_archive', name="download_mail_archive"),
     url(r'^display-mail-archive/(?P<key>[^/]+)$', 'display_mail_archive', name="display_mail_archive"),
     # Advocate a person to become DD
-    url(r'^assign-am/(?P<key>[^/]+)$', 'assign_am', name="assign_am"),
+    url(r'^assign-am/(?P<key>[^/]+)$', views.AssignAM.as_view(), name="assign_am"),
 )

@@ -99,7 +99,6 @@ MIDDLEWARE_CLASSES = (
     # Authenticate via REMOTE_USER provided by Apache and DACS
     'django_dacs.auth.DACSRemoteUserMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'backend.auth.NMInfoMiddleware',
 )
 
 AUTHENTICATION_BACKENDS = (

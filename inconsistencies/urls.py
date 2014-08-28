@@ -21,11 +21,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 from django.conf.urls import *
+from . import views
 
 urlpatterns = patterns('inconsistencies.views',
-    url(r'^$', "inconsistencies_list", name="inconsistencies_list"),
-    url(r'person/(?P<key>[^/]+)$', "fix_person", name="inconsistencies_fix_person"),
-    url(r'fpr/(?P<fpr>[A-F0-9]+)$', "fix_fpr", name="inconsistencies_fix_fpr"),
-    url(r'fix$', "fix", name="inconsistencies_fix"),
+    url(r'^$', views.InconsistenciesList.as_view(), name="inconsistencies_list"),
+    url(r'person/(?P<key>[^/]+)$', views.FixPerson.as_view(), name="inconsistencies_fix_person"),
+    url(r'fpr/(?P<fpr>[A-F0-9]+)$', views.FixFpr.as_view(), name="inconsistencies_fix_fpr"),
+    url(r'fix$', views.Fix.as_view(), name="inconsistencies_fix"),
 )
 

@@ -21,6 +21,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 from django.views.generic import TemplateView
+from django.core.exceptions import PermissionDenied
 from . import models as bmodels
 
 class VisitorMixin(object):
@@ -28,24 +29,36 @@ class VisitorMixin(object):
     Add a 'visitor' entry to the context with the Person object for the person
     visiting the site
     """
-    def get_visitor(self, request):
+    # Define to "is_dd" "is_am" or "is_admin" to raise PermissionDenied if the
+    # given test on the visitor fails
+    require_visitor = None
+
+    def dispatch(self, request, *args, **kwargs):
+        self.impersonator = None
+
         if not request.user.is_authenticated():
-            return None
+            self.visitor = None
+        else:
+            self.visitor = request.user.get_profile()
 
-        visitor = request.user.get_profile()
+            # Implement impersonation if requested in session
+            if self.visitor.is_admin:
+                key = request.session.get("impersonate", None)
+                if key is not None:
+                    p = bmodels.Person.lookup(key)
+                    if p is not None:
+                        self.impersonator = self.visitor
+                        self.visitor = p
 
-        # Implement impersonation if requested in session
-        if visitor.is_admin:
-            key = request.session.get("impersonate", None)
-            if key is not None:
-                p = bmodels.Person.lookup(key)
-                if p is not None:
-                    visitor = p
-        return visitor
+        if self.require_visitor and (self.visitor is None or self.require_visitor not in self.visitor.perms):
+            raise PermissionDenied
+
+        return super(VisitorMixin, self).dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kw):
         ctx = super(VisitorMixin, self).get_context_data(**kw)
-        ctx["visitor"] = self.get_visitor(self.request)
+        ctx["visitor"] = self.visitor
+        ctx["impersonator"] = self.impersonator
         return ctx
 
 class VisitorTemplateView(VisitorMixin, TemplateView):

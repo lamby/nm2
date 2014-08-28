@@ -125,8 +125,7 @@ class Process(VisitorTemplateView):
         ctx = super(Process, self).get_context_data(**kw)
         key = self.kwargs["key"]
         process = bmodels.Process.lookup_or_404(key)
-        visitor = ctx["visitor"]
-        perms = process.permissions_of(visitor)
+        perms = process.permissions_of(self.visitor)
 
         ctx.update(
             process=process,
@@ -135,7 +134,7 @@ class Process(VisitorTemplateView):
         )
 
         # Process form ASAP, so we compute the rest with updated values
-        am = visitor.am_or_none if visitor else None
+        am = self.visitor.am_or_none if self.visitor else None
         if am and (process.manager == am or am.is_admin) and (
             "edit_bio" in perms.perms or "edit_ldap" in perms.perms):
             StatusUpdateForm = make_statusupdateform(am)
@@ -205,9 +204,8 @@ class Process(VisitorTemplateView):
 
     def post(self, request, key, *args, **kw):
         process = bmodels.Process.lookup_or_404(key)
-        visitor = self.get_visitor(request)
-        if not visitor: raise PermissionDenied()
-        am = visitor.am_or_none
+        if not self.visitor: raise PermissionDenied()
+        am = self.visitor.am_or_none
         if not am: raise PermissionDenied
 
         StatusUpdateForm = make_statusupdateform(am)
@@ -220,12 +218,12 @@ class Process(VisitorTemplateView):
             process.progress = form.cleaned_data["progress"]
             process.save()
             text = form.cleaned_data["logtext"]
-            if 'impersonate' in request.session:
-                text = "[%s as %s] %s" % (request.user,
-                                            request.person.lookup_key,
+            if self.impersonator:
+                text = "[%s as %s] %s" % (self.impersonator,
+                                            self.visitor.lookup_key,
                                             text)
             log = bmodels.Log(
-                changed_by=request.person,
+                changed_by=self.visitor,
                 process=process,
                 progress=process.progress,
                 logtext=text,
@@ -299,7 +297,7 @@ class Person(VisitorTemplateView):
         ctx = super(Person, self).get_context_data(**kw)
         key = self.kwargs["key"]
         person = bmodels.Person.lookup_or_404(key)
-        perms = person.permissions_of(ctx["visitor"])
+        perms = person.permissions_of(self.visitor)
 
         processes = person.processes \
                 .annotate(started=Min("log__logdate"), ended=Max("log__logdate")) \
@@ -428,17 +426,16 @@ class Findperson(VisitorTemplateView):
 
     def get_context_data(self, **kw):
         ctx = super(Findperson, self).get_context_data(**kw)
-        FindpersonForm = make_findperson_form(self.request, ctx["visitor"])
+        FindpersonForm = make_findperson_form(self.request, self.visitor)
         form = FindpersonForm()
         ctx["form"] = form
         return ctx
 
     def post(self, request, *args, **kw):
-        visitor = self.get_visitor(request)
-        if not visitor or not visitor.is_admin:
+        if not self.visitor or not self.visitor.is_admin:
             raise PermissionDenied()
 
-        FindpersonForm = make_findperson_form(request, visitor)
+        FindpersonForm = make_findperson_form(request, self.visitor)
         form = FindpersonForm(request.POST)
         if form.is_valid():
             person = form.save()

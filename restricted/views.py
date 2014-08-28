@@ -1,6 +1,7 @@
-# nm.debian.org website reports
+# coding: utf8
+# nm.debian.org AM interaction
 #
-# Copyright (C) 2013  Enrico Zini <enrico@debian.org>
+# Copyright (C) 2013--2014  Enrico Zini <enrico@debian.org>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -14,42 +15,101 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
 from django import http, template, forms
 from django.shortcuts import render, render_to_response, redirect
 from django.contrib.auth.decorators import login_required
 from django.utils.translation import ugettext as _
 from django.core.urlresolvers import reverse
 from django.core.exceptions import PermissionDenied
+from django.views.generic import View
 import backend.models as bmodels
 import minechangelogs.models as mmodels
 from backend import const
-import backend.auth
+from backend.mixins import VisitorMixin, VisitorTemplateView
 import backend.email
 import json
 import datetime
 
+class AMMain(VisitorTemplateView):
+    require_visitor = "am"
+    template_name = "restricted/ammain.html"
 
-@backend.auth.is_am
-def ammain(request):
-    from django.db.models import Min, Max
-    ctx = dict()
+    def get_context_data(self, **kw):
+        from django.db.models import Min, Max
+        ctx = super(AMMain, self).get_context_data(**kw)
 
-    ctx["am_available"] = bmodels.AM.list_free()
+        ctx["am_available"] = bmodels.AM.list_free()
 
-    if request.am.is_fd or request.am.is_dam:
+        if self.visitor.am.is_fd or self.visitor.am.is_dam:
+            DISPATCH = {
+                const.PROGRESS_APP_NEW: "prog_app_new",
+                const.PROGRESS_APP_RCVD: "prog_app_new",
+                const.PROGRESS_ADV_RCVD: "prog_app_new",
+                const.PROGRESS_POLL_SENT: "prog_poll_sent",
+                const.PROGRESS_APP_OK: "prog_app_ok",
+                const.PROGRESS_AM_RCVD: "prog_am_rcvd",
+                const.PROGRESS_AM_OK: "prog_am_ok",
+                const.PROGRESS_FD_OK: "prog_fd_ok",
+                const.PROGRESS_DAM_OK: "prog_dam_ok",
+            }
+            for p in bmodels.Process.objects.filter(is_active=True, progress__in=DISPATCH.keys()) \
+                            .annotate(
+                                started=Min("log__logdate"),
+                                last_change=Max("log__logdate")) \
+                            .order_by("started"):
+                tgt = DISPATCH.get(p.progress, None)
+                if tgt is not None:
+                    p.annotate_with_duration_stats()
+                    ctx.setdefault(tgt, []).append(p)
+
+            DISPATCH = {
+                const.PROGRESS_APP_HOLD: "prog_app_hold",
+                const.PROGRESS_FD_HOLD: "prog_app_hold",
+                const.PROGRESS_DAM_HOLD: "prog_app_hold",
+            }
+            for p in bmodels.Process.objects.filter(is_active=True, manager=None, progress__in=DISPATCH.keys()) \
+                            .annotate(
+                                started=Min("log__logdate"),
+                                last_change=Max("log__logdate")) \
+                            .order_by("started"):
+                tgt = DISPATCH.get(p.progress, None)
+                if tgt is not None:
+                    p.annotate_with_duration_stats()
+                    ctx.setdefault(tgt, []).append(p)
+
+            DISPATCH = {
+                const.PROGRESS_FD_HOLD: "prog_fd_hold",
+                const.PROGRESS_DAM_HOLD: "prog_dam_hold",
+            }
+            for p in bmodels.Process.objects.filter(is_active=True, progress__in=DISPATCH.keys()) \
+                            .exclude(manager=None) \
+                            .annotate(
+                                started=Min("log__logdate"),
+                                last_change=Max("log__logdate")) \
+                            .order_by("started"):
+                tgt = DISPATCH.get(p.progress, None)
+                if tgt is not None:
+                    p.annotate_with_duration_stats()
+                    ctx.setdefault(tgt, []).append(p)
+
+
         DISPATCH = {
-            const.PROGRESS_APP_NEW: "prog_app_new",
-            const.PROGRESS_APP_RCVD: "prog_app_new",
-            const.PROGRESS_ADV_RCVD: "prog_app_new",
-            const.PROGRESS_POLL_SENT: "prog_poll_sent",
-            const.PROGRESS_APP_OK: "prog_app_ok",
-            const.PROGRESS_AM_RCVD: "prog_am_rcvd",
-            const.PROGRESS_AM_OK: "prog_am_ok",
-            const.PROGRESS_FD_OK: "prog_fd_ok",
-            const.PROGRESS_DAM_OK: "prog_dam_ok",
+            const.PROGRESS_AM_RCVD: "am_prog_rcvd",
+            const.PROGRESS_AM: "am_prog_am",
+            const.PROGRESS_AM_HOLD: "am_prog_hold",
+            const.PROGRESS_AM_OK: "am_prog_done",
+            const.PROGRESS_FD_HOLD: "am_prog_done",
+            const.PROGRESS_FD_OK: "am_prog_done",
+            const.PROGRESS_DAM_HOLD: "am_prog_done",
+            const.PROGRESS_DAM_OK: "am_prog_done",
+            const.PROGRESS_DONE: "am_prog_done",
+            const.PROGRESS_CANCELLED: "am_prog_done",
         }
-        for p in bmodels.Process.objects.filter(is_active=True, progress__in=DISPATCH.keys()) \
+        for p in bmodels.Process.objects.filter(manager=self.visitor.am, progress__in=DISPATCH.keys()) \
                         .annotate(
                             started=Min("log__logdate"),
                             last_change=Max("log__logdate")) \
@@ -59,61 +119,7 @@ def ammain(request):
                 p.annotate_with_duration_stats()
                 ctx.setdefault(tgt, []).append(p)
 
-        DISPATCH = {
-            const.PROGRESS_APP_HOLD: "prog_app_hold",
-            const.PROGRESS_FD_HOLD: "prog_app_hold",
-            const.PROGRESS_DAM_HOLD: "prog_app_hold",
-        }
-        for p in bmodels.Process.objects.filter(is_active=True, manager=None, progress__in=DISPATCH.keys()) \
-                        .annotate(
-                            started=Min("log__logdate"),
-                            last_change=Max("log__logdate")) \
-                        .order_by("started"):
-            tgt = DISPATCH.get(p.progress, None)
-            if tgt is not None:
-                p.annotate_with_duration_stats()
-                ctx.setdefault(tgt, []).append(p)
-
-        DISPATCH = {
-            const.PROGRESS_FD_HOLD: "prog_fd_hold",
-            const.PROGRESS_DAM_HOLD: "prog_dam_hold",
-        }
-        for p in bmodels.Process.objects.filter(is_active=True, progress__in=DISPATCH.keys()) \
-                        .exclude(manager=None) \
-                        .annotate(
-                            started=Min("log__logdate"),
-                            last_change=Max("log__logdate")) \
-                        .order_by("started"):
-            tgt = DISPATCH.get(p.progress, None)
-            if tgt is not None:
-                p.annotate_with_duration_stats()
-                ctx.setdefault(tgt, []).append(p)
-
-
-    DISPATCH = {
-        const.PROGRESS_AM_RCVD: "am_prog_rcvd",
-        const.PROGRESS_AM: "am_prog_am",
-        const.PROGRESS_AM_HOLD: "am_prog_hold",
-        const.PROGRESS_AM_OK: "am_prog_done",
-        const.PROGRESS_FD_HOLD: "am_prog_done",
-        const.PROGRESS_FD_OK: "am_prog_done",
-        const.PROGRESS_DAM_HOLD: "am_prog_done",
-        const.PROGRESS_DAM_OK: "am_prog_done",
-        const.PROGRESS_DONE: "am_prog_done",
-        const.PROGRESS_CANCELLED: "am_prog_done",
-    }
-    for p in bmodels.Process.objects.filter(manager=request.am, progress__in=DISPATCH.keys()) \
-                    .annotate(
-                        started=Min("log__logdate"),
-                        last_change=Max("log__logdate")) \
-                    .order_by("started"):
-        tgt = DISPATCH.get(p.progress, None)
-        if tgt is not None:
-            p.annotate_with_duration_stats()
-            ctx.setdefault(tgt, []).append(p)
-
-    return render_to_response("restricted/ammain.html", ctx,
-                              context_instance=template.RequestContext(request))
+        return ctx
 
 def make_am_form(editor):
     excludes = ["person", "is_am_ctte", "created"]
@@ -132,45 +138,52 @@ def make_am_form(editor):
             exclude = excludes
     return AMForm
 
+class AMProfile(VisitorTemplateView):
+    require_visitor = "am"
+    template_name = "restricted/amprofile.html"
 
-@backend.auth.is_am
-def amprofile(request, uid=None):
-    from django.db.models import Min
+    def get_context_data(self, **kw):
+        ctx = super(AMProfile, self).get_context_data(**kw)
+        uid = self.kwargs.get("uid", None)
 
-    if uid is None:
-        person = request.person
+        from django.db.models import Min
+
+        if uid is None:
+            person = self.visitor
+        else:
+            person = bmodels.Person.lookup_or_404(uid)
         am = person.am
-    else:
-        am = bmodels.AM.lookup_or_404(uid)
-        person = am.person
 
-    AMForm = make_am_form(am)
+        AMForm = make_am_form(am)
 
-    form = None
-    if request.method == 'POST':
-        form = AMForm(request.POST, instance=am)
-        if form.is_valid():
-            cur_am = request.am
-            if cur_am == am or cur_am.is_fd or cur_am.is_dam:
-                form.save()
-            else:
-                raise PermissionDenied
-            # TODO: message that it has been saved
-    else:
         form = AMForm(instance=am)
 
-    processes = bmodels.Process.objects.filter(manager=am).annotate(started=Min("log__logdate")).order_by("-started")
+        processes = bmodels.Process.objects.filter(manager=am).annotate(started=Min("log__logdate")).order_by("-started")
 
-    am_available = bmodels.AM.list_free()
+        ctx.update(
+            person=person,
+            am=am,
+            processes=processes,
+            form=form,
+        )
 
-    return render_to_response("restricted/amprofile.html",
-                              dict(
-                                  person=person,
-                                  am=am,
-                                  processes=processes,
-                                  form=form,
-                              ),
-                              context_instance=template.RequestContext(request))
+    def post(self, request, uid=None, *args, **kw):
+        if uid is None:
+            person = self.visitor
+        else:
+            person = bmodels.Person.lookup_or_404(uid)
+            if person.pk != self.visitor.pk and not self.visitor.is_admin:
+                raise PermissionDenied
+
+        am = person.am
+        AMForm = make_am_form(am)
+        form = AMForm(request.POST, instance=am)
+        if form.is_valid():
+            form.save()
+            # TODO: message that it has been saved
+
+        context = self.get_context_data(**kw)
+        return self.render_to_response(context)
 
 
 @login_required
@@ -237,37 +250,39 @@ def make_newprocessform(person):
         )
     return NewProcessForm
 
-@backend.auth.is_admin
-def newprocess(request, applying_for, key):
+class NewProcess(VisitorMixin, View):
     """
     Create a new process
     """
-    person = bmodels.Person.lookup_or_404(key)
+    def post(self, request, applying_for, key, *args, **kw):
+        person = bmodels.Person.lookup_or_404(key)
+        perms = person.permissions_of(self.visitor)
 
-    if applying_for not in person.get_allowed_processes():
-        raise PermissionDenied
+        if applying_for not in perms.advocate_targets:
+            raise PermissionDenied
 
-    process = bmodels.Process(
-        person=person,
-        progress=const.PROGRESS_APP_NEW,
-        is_active=True,
-        applying_as=person.status,
-        applying_for=applying_for,
-    )
-    process.save()
+        process = bmodels.Process(
+            person=person,
+            progress=const.PROGRESS_ADV_RCVD,
+            is_active=True,
+            applying_as=person.status,
+            applying_for=applying_for,
+        )
+        process.save()
+        process.advocates.add(self.visitor)
 
-    text=""
-    if 'impersonate' in request.session:
-        text = "[%s as %s]" % (request.user, request.person.lookup_key)
-    log = bmodels.Log(
-        changed_by=request.person,
-        process=process,
-        progress=process.progress,
-        logtext=text,
-    )
-    log.save()
+        text=""
+        if 'impersonate' in request.session:
+            text = "[%s as %s]" % (request.user, self.visitor.lookup_key)
+        log = bmodels.Log(
+            changed_by=self.visitor,
+            process=process,
+            progress=process.progress,
+            logtext=text,
+        )
+        log.save()
 
-    return redirect('public_process', key=process.lookup_key)
+        return redirect('public_process', key=process.lookup_key)
 
 def db_export(request):
     # In theory, this isn't needed as it's enforced by DACS
@@ -364,133 +379,31 @@ def minechangelogs(request, key=None):
                               ),
                               context_instance=template.RequestContext(request))
 
-def impersonate(request, key=None):
-    if key is None:
-        del request.session["impersonate"]
-    elif request.person.is_admin:
-        person = bmodels.Person.lookup_or_404(key)
-        request.session["impersonate"] = person.lookup_key
-
-    url = request.GET.get("url", None)
-    if url is None:
-        return redirect('home')
-    else:
-        return redirect(url)
-
-
-class AdvocateDDForm(forms.Form):
-    uploading = forms.BooleanField(required=False, label=_("Upload rights"))
-    logtext = forms.CharField(required=True, label=_("Advocacy message"), widget=forms.Textarea(attrs={'cols': 80, 'rows': 30}))
-
-def advocate_as_dd(request, key):
-    from django.db.models import Min, Max
-
-    person = bmodels.Person.lookup_or_404(key)
-
-    if not request.person.can_advocate_as_dd(person):
-        raise PermissionDenied
-
-    dd_statuses = (const.STATUS_DD_U, const.STATUS_DD_NU)
-    dm_statuses = (const.STATUS_DM, const.STATUS_DM_GA)
-
-    # Get the existing process, if any
-    procs = list(person.processes.filter(is_active=True, applying_for__in=dd_statuses))
-    if len(procs) > 1:
-        return http.HttpResponseServerError("There is more than one active process applying for DD. Please ask Front Desk people to fix that before proceeding")
-    if not procs:
-        proc = None
-    else:
-        proc = procs[0]
-
-    if person.status in dm_statuses:
-        is_dm = True
-        # Have they been DM for more than 6 months?
-        now = datetime.datetime.utcnow()
-
-        if now - person.status_changed >= datetime.timedelta(days=6*30):
-            # Yes
-            is_early = False
+class Impersonate(View):
+    def post(self, request, key=None, *args, **kw):
+        visitor = request.user.get_profile()
+        if not visitor or not visitor.is_admin: raise PermissionDenied
+        if key is None:
+            del request.session["impersonate"]
         else:
-            # Maybe: one can have become a DM a year ago and DM_GA just
-            # yesterday
-            last_change = None
-            for p in person.processes.filter(is_active=False, applying_for__in=dm_statuses) \
-                                     .annotate(last_change=Max("log__logdate")) \
-                                     .order_by("-last_change"):
-                last_change = p.last_change
-            if last_change:
-                is_early = now - last_change < datetime.timedelta(days=6*30)
-            else:
-                is_early = True
-    else:
-        is_dm = False
-        is_early = True
+            person = bmodels.Person.lookup_or_404(key)
+            request.session["impersonate"] = person.lookup_key
 
-    if request.method == "POST":
-        form = AdvocateDDForm(request.POST)
-        if form.is_valid():
-            # Create process if missing
-            if proc is None:
-                proc = bmodels.Process(
-                    person=person,
-                    applying_as=person.status,
-                    applying_for=const.STATUS_DD_U if form.cleaned_data["uploading"] else const.STATUS_DD_NU,
-                    progress=const.PROGRESS_ADV_RCVD,
-                    is_active=True)
-                proc.save()
-                # Log the change
-                text = "Process created by %s advocating %s" % (request.person.lookup_key, person.fullname)
-                if 'impersonate' in request.session:
-                    text = "[%s as %s] %s" % (request.user, request.person.lookup_key, text)
-                lt = bmodels.Log(
-                    changed_by=request.person,
-                    process=proc,
-                    progress=const.PROGRESS_APP_NEW,
-                    logtext=text,
-                )
-                lt.save()
-            # Add advocate
-            proc.advocates.add(request.person)
-            # Log the change
-            text = form.cleaned_data["logtext"]
-            if 'impersonate' in request.session:
-                text = "[%s as %s] %s" % (request.user, request.person.lookup_key, text)
-            lt = bmodels.Log(
-                changed_by=request.person,
-                process=proc,
-                progress=proc.progress,
-                is_public=True,
-                logtext=text,
-            )
-            lt.save()
-            # Send mail
-            backend.email.send_notification("notification_mails/advocacy_as_dd.txt", lt)
-            return redirect('public_process', key=proc.lookup_key)
-    else:
-        initial = dict(uploading=is_dm)
-        if proc:
-            uploading=(proc.applying_for == const.STATUS_DD_U)
-        form = AdvocateDDForm(initial=initial)
+        url = request.GET.get("url", None)
+        if url is None:
+            return redirect('home')
+        else:
+            return redirect(url)
 
-    return render_to_response("restricted/advocate-dd.html",
-                              dict(
-                                  form=form,
-                                  person=person,
-                                  process=proc,
-                                  is_dm=is_dm,
-                                  is_early=is_early,
-                              ),
-                              context_instance=template.RequestContext(request))
-
-def _assign_am(request, nm, am):
+def _assign_am(request, visitor, nm, am):
     import textwrap
     nm.manager = am
     nm.progress = const.PROGRESS_AM_RCVD
     nm.save()
     # Parameters for the following templates
     parms = dict(
-        fduid=request.person.uid,
-        fdname=request.person.fullname,
+        fduid=visitor.uid,
+        fdname=visitor.fullname,
         amuid=am.person.uid,
         amname=am.person.fullname,
         nmname=nm.person.fullname,
@@ -498,58 +411,63 @@ def _assign_am(request, nm, am):
         nmnewstatus=const.ALL_STATUS_DESCS[nm.applying_for],
         procurl=request.build_absolute_uri(reverse("public_process", kwargs=dict(key=nm.lookup_key))),
     )
-    l = bmodels.Log.for_process(nm, changed_by=request.person)
+    l = bmodels.Log.for_process(nm, changed_by=visitor)
     l.logtext = "Assigned to %(amuid)s" % parms
     if 'impersonate' in request.session:
-        l.logtext = "[%s as %s] %s" % (request.user, request.person.lookup_key, l.logtext)
+        l.logtext = "[%s as %s] %s" % (request.user, visitor.lookup_key, l.logtext)
     l.save()
 
-@backend.auth.is_admin
-def nm_am_match(request):
-    if request.method == "POST":
+class NMAMMatch(VisitorTemplateView):
+    template_name = "restricted/nm-am-match.html"
+    require_visitor = "admin"
+
+    def get_context_data(self, **kw):
+        from django.db.models import Min, Max
+        ctx = super(AMProfile, self).get_context_data(**kw)
+        procs = []
+        for p in bmodels.Process.objects.filter(is_active=True, progress=const.PROGRESS_APP_OK) \
+                        .annotate(
+                            started=Min("log__logdate"),
+                            last_change=Max("log__logdate")) \
+                        .order_by("started"):
+            p.annotate_with_duration_stats()
+            procs.append(p)
+        ams = bmodels.AM.list_free()
+
+        json_ams = dict()
+        for a in ams:
+            json_ams[a.person.lookup_key] = dict(
+                name=a.person.fullname,
+                uid=a.person.uid,
+                email=a.person.email,
+                key=a.person.lookup_key,
+            )
+        json_nms = dict()
+        for p in procs:
+            json_nms[p.lookup_key] = dict(
+                name=p.person.fullname,
+                uid=p.person.uid,
+                email=p.person.email,
+                key=p.lookup_key,
+            )
+
+        ctx.update(
+            procs=procs,
+            ams=ams,
+            json_ams=json.dumps(json_ams),
+            json_nms=json.dumps(json_nms),
+        )
+        return ctx
+
+    def post(self, request, *args, **kw):
         # Perform assignment if requested
         am_key = request.POST.get("am", None)
         am = bmodels.AM.lookup_or_404(am_key)
         nm_key = request.POST.get("nm", None)
         nm = bmodels.Process.lookup_or_404(nm_key)
-        _assign_am(request, nm, am)
-
-    from django.db.models import Min, Max
-    procs = []
-    for p in bmodels.Process.objects.filter(is_active=True, progress=const.PROGRESS_APP_OK) \
-                    .annotate(
-                        started=Min("log__logdate"),
-                        last_change=Max("log__logdate")) \
-                    .order_by("started"):
-        p.annotate_with_duration_stats()
-        procs.append(p)
-    ams = bmodels.AM.list_free()
-
-    json_ams = dict()
-    for a in ams:
-        json_ams[a.person.lookup_key] = dict(
-            name=a.person.fullname,
-            uid=a.person.uid,
-            email=a.person.email,
-            key=a.person.lookup_key,
-        )
-    json_nms = dict()
-    for p in procs:
-        json_nms[p.lookup_key] = dict(
-            name=p.person.fullname,
-            uid=p.person.uid,
-            email=p.person.email,
-            key=p.lookup_key,
-        )
-
-    ctx = dict(
-        procs=procs,
-        ams=ams,
-        json_ams=json.dumps(json_ams),
-        json_nms=json.dumps(json_nms),
-    )
-    return render_to_response("restricted/nm-am-match.html", ctx,
-                              context_instance=template.RequestContext(request))
+        _assign_am(request, self.visitor, nm, am)
+        context = self.get_context_data(**kw)
+        return self.render_to_response(context)
 
 def mail_archive(request, key):
     process = bmodels.Process.lookup_or_404(key)
@@ -599,27 +517,30 @@ def display_mail_archive(request, key):
         "class": "clickable",
     })
 
-def assign_am(request, key):
-    process = bmodels.Process.lookup_or_404(key)
-    perms = process.permissions_of(request.person)
+class AssignAM(VisitorTemplateView):
+    template_name = "restricted/assign-am.html"
+    require_visitor = "admin"
 
-    if not perms.is_fd and not perms.is_dam:
-        raise PermissionDenied
+    def get_context_data(self, **kw):
+        ctx = super(AMProfile, self).get_context_data(**kw)
+        key = self.kwargs["key"]
+        process = bmodels.Process.lookup_or_404(key)
+        if process.manager is not None:
+            raise PermissionDenied
 
-    if process.manager is not None:
-        raise PermissionDenied
+        # List free AMs
+        ams = bmodels.AM.list_free()
 
-    if request.method == "POST":
+        ctx.update(
+            process=process,
+            person=process.person,
+            ams=ams,
+        )
+        return ctx
+
+    def post(self, request, key, *args, **kw):
+        process = bmodels.Process.lookup_or_404(key)
         am_key = request.POST.get("am", None)
         am = bmodels.AM.lookup_or_404(am_key)
-        _assign_am(request, process, am)
+        _assign_am(request, self.visitor, process, am)
         return redirect(process.get_absolute_url())
-
-    # List free AMs
-    ams = bmodels.AM.list_free()
-
-    return render(request, "restricted/assign-am.html", {
-        "process": process,
-        "person": process.person,
-        "ams": ams,
-    })
