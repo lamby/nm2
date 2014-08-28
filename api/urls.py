@@ -16,10 +16,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from django.conf.urls import *
-from django.views.generic import TemplateView
+from backend.mixins import VisitorTemplateView
 
 urlpatterns = patterns('api.views',
-    url(r'^$', TemplateView.as_view(template_name="api/doc.html"), name="api_doc"),
+    url(r'^$', VisitorTemplateView.as_view(template_name="api/doc.html"), name="api_doc"),
     url(r'^people$', 'people', name="api_people"),
 )
 

@@ -12,26 +12,6 @@ log = getLogger(__name__)
 
 EMAIL_PRIVATE_ANNOUNCES = getattr(settings, "EMAIL_PRIVATE_ANNOUNCES", "nm@debian.org")
 
-def get_email_address(request):
-    """
-    If person is DD, returns his/her <login>@debian.org address. Otherwise,
-    returns the personal email address.
-    """
-
-    dd_statuses = (const.STATUS_DD_U, const.STATUS_DD_NU)
-    if request.person.status in dd_statuses:
-        email_address = request.person.uid + "@debian.org"
-    else:
-        email_address = request.person.email
-    return email_address
-
-def personal_email(request, recipients, subject, text):
-    # TODO: Cc EMAIL_PRIVATE_ANNOUNCES?
-    # Details in https://docs.djangoproject.com/en/dev/topics/email/ but needs
-    # 1.3 for the cc parameter
-    fromaddr = email.utils.formataddr((request.person.fullname + " via nm", "nm@debian.org"))
-    send_mail(subject, text, fromaddr, recipients)
-
 def parse_recipient_list(s):
     """
     Parse a string like "Foo <a@b.c>, bar@example.com"

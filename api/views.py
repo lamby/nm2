@@ -20,7 +20,9 @@ from django.shortcuts import render_to_response, redirect
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 from django.forms.models import model_to_dict
+from django.views.generic import View
 import backend.models as bmodels
+from backend.mixins import VisitorMixin
 from backend import const
 import datetime
 import json
@@ -44,51 +46,49 @@ def person_to_json(p, **kw):
     res["url"] = p.get_absolute_url()
     return res
 
-def people(request):
-    if request.method != "GET":
-        return http.HttpResponseForbidden("Only GET request is allowed here")
+class People(VisitorMixin, View):
+    def get(self, request, *args, **kw):
+        # Pick what to include in the result based on auth status
+        fields = ["cn", "mn", "sn", "uid", "fpr", "status", "status_changed", "created"]
+        if self.visitor.is_dd:
+            fields.append("email")
+            if self.visitor.is_admin:
+                fields.append("fd_comment")
 
-    # Pick what to include in the result based on auth status
-    fields = ["cn", "mn", "sn", "uid", "fpr", "status", "status_changed", "created"]
-    if request.person:
-        fields.append("email")
-        if request.person.is_admin:
-            fields.append("fd_comment")
+        try:
+            res = []
 
-    try:
-        res = []
+            # Build query
+            people = bmodels.Person.objects.all()
 
-        # Build query
-        people = bmodels.Person.objects.all()
+            val = request.GET.get("cn", "")
+            if val: people = people.filter(cn__icontains=val)
 
-        val = request.GET.get("cn", "")
-        if val: people = people.filter(cn__icontains=val)
+            val = request.GET.get("mn", "")
+            if val: people = people.filter(mn__icontains=val)
 
-        val = request.GET.get("mn", "")
-        if val: people = people.filter(mn__icontains=val)
+            val = request.GET.get("sn", "")
+            if val: people = people.filter(sn__icontains=val)
 
-        val = request.GET.get("sn", "")
-        if val: people = people.filter(sn__icontains=val)
+            val = request.GET.get("email", "")
+            if val: people = people.filter(email__icontains=val)
 
-        val = request.GET.get("email", "")
-        if val: people = people.filter(email__icontains=val)
+            val = request.GET.get("uid", "")
+            if val: people = people.filter(uid__icontains=val)
 
-        val = request.GET.get("uid", "")
-        if val: people = people.filter(uid__icontains=val)
+            val = request.GET.get("fpr", "")
+            if val: people = people.filter(fpr__icontains=val)
 
-        val = request.GET.get("fpr", "")
-        if val: people = people.filter(fpr__icontains=val)
+            val = request.GET.get("status", "")
+            if val: people = people.filter(status=val)
 
-        val = request.GET.get("status", "")
-        if val: people = people.filter(status=val)
+            if self.visitor and self.visitor.is_admin:
+                val = request.GET.get("fd_comment", "")
+                if val: people = people.filter(fd_comment__icontains=val)
 
-        if request.person and request.person.is_admin:
-            val = request.GET.get("fd_comment", "")
-            if val: people = people.filter(fd_comment__icontains=val)
+            for p in people.order_by("cn", "sn"):
+                res.append(person_to_json(p, fields=fields))
 
-        for p in people.order_by("cn", "sn"):
-            res.append(person_to_json(p, fields=fields))
-
-        return json_response(dict(r=res))
-    except Exception, e:
-        return json_response(dict(e=str(e)), status_code=500)
+            return json_response(dict(r=res))
+        except Exception, e:
+            return json_response(dict(e=str(e)), status_code=500)
