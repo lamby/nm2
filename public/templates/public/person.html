@@ -70,7 +70,7 @@
 <a href="{% url 'restricted_newprocess' key=person.lookup_key applying_for=s %}">advocate for {{s|sdesc_status}}</a>
 {% endfor %}
 {% if visitor != person %}
-  {% if impersonator or visitor.is_admin %}<a href="{% url 'impersonate' key=person.lookup_key %}?url={{request.build_absolute_uri}}">impersonate</a>{% endif %}
+  {% if visitor.is_admin %}<a href="{% url 'impersonate' key=person.lookup_key %}?url={{request.build_absolute_uri}}">impersonate</a>{% endif %}
 {% endif %}
 {{block.super}}
 {% endblock %}
