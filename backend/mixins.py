@@ -26,24 +26,24 @@ from . import models as bmodels
 
 class VisitorMixin(object):
     """
-    Add a 'visitor' entry to the context with the Person object for the person
-    visiting the site
+    Add self.visitor and self.impersonator to the View for the person visiting
+    the site
     """
     # Define to "is_dd" "is_am" or "is_admin" to raise PermissionDenied if the
     # given test on the visitor fails
     require_visitor = None
 
-    def dispatch(self, request, *args, **kwargs):
+    def pre_dispatch(self):
         self.impersonator = None
 
-        if not request.user.is_authenticated():
+        if not self.request.user.is_authenticated():
             self.visitor = None
         else:
-            self.visitor = request.user.get_profile()
+            self.visitor = self.request.user.get_profile()
 
             # Implement impersonation if requested in session
             if self.visitor.is_admin:
-                key = request.session.get("impersonate", None)
+                key = self.request.session.get("impersonate", None)
                 if key is not None:
                     p = bmodels.Person.lookup(key)
                     if p is not None:
@@ -53,6 +53,8 @@ class VisitorMixin(object):
         if self.require_visitor and (self.visitor is None or self.require_visitor not in self.visitor.perms):
             raise PermissionDenied
 
+    def dispatch(self, request, *args, **kwargs):
+        self.pre_dispatch()
         return super(VisitorMixin, self).dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kw):
@@ -64,3 +66,25 @@ class VisitorMixin(object):
 class VisitorTemplateView(VisitorMixin, TemplateView):
     pass
 
+class VisitPersonMixin(VisitorMixin):
+    """
+    Visit a person record. Adds self.person and self.vperms with the
+    permissions the visitor has over the person
+    """
+    def pre_dispatch(self):
+        super(VisitPersonMixin, self).pre_dispatch()
+        key = self.kwargs.get("key", None)
+        if key is None:
+            self.person = self.visitor
+        else:
+            self.person = bmodels.Person.lookup_or_404(key)
+        self.vperms = self.person.permissions_of(self.visitor)
+
+    def get_context_data(self, **kw):
+        ctx = super(VisitPersonMixin, self).get_context_data(**kw)
+        ctx["person"] = self.person
+        ctx["vperms"] = self.vperms
+        return ctx
+
+class VisitPersonTemplateView(VisitPersonMixin, TemplateView):
+    pass

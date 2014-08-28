@@ -22,7 +22,7 @@
     <input type="submit" value="Submit" />
 </form>
 
-{% if perms.has_ldap_record %}
+{% if "edit_ldap" not in vperms.perms %}
 <p>
 {{person.fullname}} already has an LDAP record (<tt>finger
 {{person.uid}}@db.debian.org</tt>), so their name, uid and email cannot be

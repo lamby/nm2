@@ -29,7 +29,7 @@ from django.views.generic import View
 import backend.models as bmodels
 import minechangelogs.models as mmodels
 from backend import const
-from backend.mixins import VisitorMixin, VisitorTemplateView
+from backend.mixins import VisitorMixin, VisitorTemplateView, VisitPersonTemplateView
 import backend.email
 import json
 import datetime
@@ -185,23 +185,24 @@ class AMProfile(VisitorTemplateView):
         context = self.get_context_data(**kw)
         return self.render_to_response(context)
 
-class Person(VisitorTemplateView):
+class Person(VisitPersonTemplateView):
     """
     Edit a person's information
     """
     template_name = "restricted/person.html"
 
-    def get_person_form(self, person):
+    def get_person_form(self):
+        perms = self.vperms.perms
+
         # Check permissions
-        perms = person.permissions_of(self.visitor)
         if "edit_bio" not in perms and "edit_ldap" not in perms:
             raise PermissionDenied
 
         # Build the form to edit the person
         excludes = ["user", "created", "status_changed"]
-        if not perms.can_edit_bio:
+        if "edit_bio" not in perms:
             excludes.append("bio")
-        if not perms.can_edit_ldap_fields:
+        if "edit_ldap" not in perms:
             excludes.extend(("cn", "mn", "sn", "email", "uid", "fpr"))
         if not self.visitor.is_admin:
             excludes.extend(("status", "fd_comment", "expires", "pending"))
@@ -214,27 +215,19 @@ class Person(VisitorTemplateView):
 
     def get_context_data(self, **kw):
         ctx = super(Person, self).get_context_data(**kw)
-        key = self.kwargs["key"]
-        person = bmodels.Person.lookup_or_404(key)
-
         if "form" not in ctx:
-            ctx["form"] = self.get_person_form(person)(instance=person)
+            ctx["form"] = self.get_person_form()(instance=self.person)
+        return ctx
 
-        ctx.update(
-            person=person,
-            perms=perms,
-        )
-
-    def post(self, request, key=None, *args, **kw):
-        person = bmodels.Person.lookup_or_404(key)
-        form = self.get_person_form(person)(request.POST, instance=person)
+    def post(self, request, *args, **kw):
+        form = self.get_person_form()(request.POST, instance=self.person)
         if form.is_valid():
             form.save()
 
             # TODO: message that it has been saved
 
             # Redirect to the person view
-            return redirect(person.get_absolute_url())
+            return redirect(self.person.get_absolute_url())
 
         context = self.get_context_data(form=form, **kw)
         return self.render_to_response(context)

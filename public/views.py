@@ -30,7 +30,7 @@ from django.views.generic import TemplateView
 import backend.models as bmodels
 import backend.email as bemail
 from backend import const
-from backend.mixins import VisitorMixin, VisitorTemplateView
+from backend.mixins import VisitorMixin, VisitorTemplateView, VisitPersonTemplateView
 import markdown
 import datetime
 import json
@@ -289,22 +289,19 @@ class People(VisitorTemplateView):
         )
         return ctx
 
-class Person(VisitorTemplateView):
+class Person(VisitPersonTemplateView):
     template_name = "public/person.html"
 
     def get_context_data(self, **kw):
         from django.db.models import Min, Max
         ctx = super(Person, self).get_context_data(**kw)
-        key = self.kwargs["key"]
-        person = bmodels.Person.lookup_or_404(key)
-        perms = person.permissions_of(self.visitor)
 
-        processes = person.processes \
+        processes = self.person.processes \
                 .annotate(started=Min("log__logdate"), ended=Max("log__logdate")) \
                 .order_by("is_active", "ended")
 
-        if person.is_am:
-            am = person.am
+        if self.person.is_am:
+            am = self.person.am
             am_processes = am.processed \
                     .annotate(started=Min("log__logdate"), ended=Max("log__logdate")) \
                     .order_by("is_active", "ended")
@@ -313,19 +310,19 @@ class Person(VisitorTemplateView):
             am_processes = []
 
         ctx.update(
-            person=person,
+            person=self.person,
             am=am,
             processes=processes,
             am_processes=am_processes,
-            vperms=perms,
-            adv_processes=person.advocated \
+            vperms=self.vperms,
+            adv_processes=self.person.advocated \
                     .annotate(started=Min("log__logdate"), ended=Max("log__logdate")) \
                     .order_by("is_active", "ended")
         )
 
 
-        if person.bio is not None:
-            ctx["bio_html"] = markdown.markdown(person.bio, safe_mode="escape")
+        if self.person.bio is not None:
+            ctx["bio_html"] = markdown.markdown(self.person.bio, safe_mode="escape")
         else:
             ctx["bio_html"] = ""
         return ctx
