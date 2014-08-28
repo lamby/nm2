@@ -283,63 +283,6 @@ class NewProcess(VisitPersonTemplateView):
 
         ctx["existing_process"] = self.get_existing_process(applying_for)
         ctx["applying_for"] = applying_for
-
-#def advocate_as_dd(request, key):
-#    if request.method == "POST":
-#        form = AdvocateDDForm(request.POST)
-#        if form.is_valid():
-#            # Create process if missing
-#            if proc is None:
-#                proc = bmodels.Process(
-#                    person=person,
-#                    applying_as=person.status,
-#                    applying_for=const.STATUS_DD_U if form.cleaned_data["uploading"] else const.STATUS_DD_NU,
-#                    progress=const.PROGRESS_ADV_RCVD,
-#                    is_active=True)
-#                proc.save()
-#                # Log the change
-#                text = "Process created by %s advocating %s" % (request.person.lookup_key, person.fullname)
-#                if 'impersonate' in request.session:
-#                    text = "[%s as %s] %s" % (request.user, request.person.lookup_key, text)
-#                lt = bmodels.Log(
-#                    changed_by=request.person,
-#                    process=proc,
-#                    progress=const.PROGRESS_APP_NEW,
-#                    logtext=text,
-#                )
-#                lt.save()
-#            # Add advocate
-#            proc.advocates.add(request.person)
-#            # Log the change
-#            text = form.cleaned_data["logtext"]
-#            if 'impersonate' in request.session:
-#                text = "[%s as %s] %s" % (request.user, request.person.lookup_key, text)
-#            lt = bmodels.Log(
-#                changed_by=request.person,
-#                process=proc,
-#                progress=proc.progress,
-#                is_public=True,
-#                logtext=text,
-#            )
-#            lt.save()
-#            # Send mail
-#            backend.email.send_notification("notification_mails/advocacy_as_dd.txt", lt)
-#            return redirect('public_process', key=proc.lookup_key)
-#    else:
-#        initial = dict(uploading=is_dm)
-#        if proc:
-#            uploading=(proc.applying_for == const.STATUS_DD_U)
-#        form = AdvocateDDForm(initial=initial)
-#
-#    return render_to_response("restricted/advocate-dd.html",
-#                              dict(
-#                                  form=form,
-#                                  person=person,
-#                                  process=proc,
-#                                  is_dm=is_dm,
-#                                  is_early=is_early,
-#                              ),
-#                              context_instance=template.RequestContext(request))
         return ctx
 
     def post(self, request, applying_for, key, *args, **kw):
@@ -347,29 +290,50 @@ class NewProcess(VisitPersonTemplateView):
         if applying_for not in self.vperms.advocate_targets:
             raise PermissionDenied
 
+        advtext = request.POST["text"].strip()
+        if not advtext:
+            context = self.get_context_data(**kw)
+            return self.render_to_response(context)
+
         process = self.get_existing_process(applying_for)
         if not process:
-            process = bmodels.Process(
+            # Create the process if one does not exist yet
+            process = bmodels.Process.objects.create(
                 person=self.person,
                 progress=const.PROGRESS_ADV_RCVD,
                 is_active=True,
                 applying_as=self.person.status,
                 applying_for=applying_for,
             )
-            process.save()
+
+            # Log the creation
+            text = "Process created by {} advocating {}".format(self.visitor.lookup_key, self.person.lookup_key)
+            if self.impersonator:
+                text = "[{} as {}] {}".format(self.impersonator.lookup_key, self.visitor.lookup_key, text)
+            bmodels.Log.objects.create(
+                changed_by=self.visitor,
+                process=process,
+                progress=process.progress,
+                is_public=True,
+                logtext=text,
+            )
+
+        # Add the advocate
         process.advocates.add(self.visitor)
 
-        text=""
-        if 'impersonate' in request.session:
-            text = "[%s as %s]" % (request.user, self.visitor.lookup_key)
-        log = bmodels.Log(
+        # Log the advocacy
+        if self.impersonator:
+            advtext = "[{} as {}] {}".format(self.impersonator.lookup_key, self.visitor.lookup_key, advtext)
+        lt = bmodels.Log.objects.create(
             changed_by=self.visitor,
             process=process,
             progress=process.progress,
-            logtext=text,
+            is_public=True,
+            logtext=advtext,
         )
-        log.save()
 
+        # Send mail
+        backend.email.send_notification("notification_mails/advocacy.txt", lt)
         return redirect('public_process', key=process.lookup_key)
 
 class DBExport(VisitorMixin, View):

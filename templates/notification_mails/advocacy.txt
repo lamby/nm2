@@ -7,6 +7,9 @@ Subject: Advocacy for {{ log.process.person.fullname|safe }}
 Hello,
 
 I advocate {{ log.process.person.fullname }} to become {{ log.process.applying_for|desc_status }}.
+
+The current status of {{ log.process.person.fullname }} is {{ log.process.person.statis|desc_status }}.
+
 Advocacy text:
 
 {{ log.logtext }}
