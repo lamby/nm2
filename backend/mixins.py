@@ -29,7 +29,7 @@ class VisitorMixin(object):
     Add self.visitor and self.impersonator to the View for the person visiting
     the site
     """
-    # Define to "is_dd" "is_am" or "is_admin" to raise PermissionDenied if the
+    # Define to "dd" "am" or "admin" to raise PermissionDenied if the
     # given test on the visitor fails
     require_visitor = None
 
