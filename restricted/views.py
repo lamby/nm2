@@ -26,6 +26,7 @@ from django.utils.translation import ugettext as _
 from django.core.urlresolvers import reverse
 from django.core.exceptions import PermissionDenied
 from django.views.generic import View
+from django.utils.timezone import now
 import backend.models as bmodels
 import minechangelogs.models as mmodels
 from backend import const
@@ -233,25 +234,129 @@ class Person(VisitPersonTemplateView):
         return self.render_to_response(context)
 
 
-class NewProcess(VisitorMixin, View):
+class NewProcess(VisitPersonTemplateView):
+    template_name = "restricted/advocate.html"
     """
     Create a new process
     """
-    def post(self, request, applying_for, key, *args, **kw):
-        person = bmodels.Person.lookup_or_404(key)
-        perms = person.permissions_of(self.visitor)
 
-        if applying_for not in perms.advocate_targets:
+    dd_statuses = frozenset((const.STATUS_DD_U, const.STATUS_DD_NU))
+    dm_statuses = frozenset((const.STATUS_DM, const.STATUS_DM_GA))
+
+    def get_existing_process(self, applying_for):
+        "Get the existing process, if any"
+        procs = list(self.person.processes.filter(is_active=True, applying_for=applying_for))
+        if len(procs) > 1:
+            return http.HttpResponseServerError(
+                    "There is more than one active process applying for {}."
+                    "Please ask Front Desk people to fix that before proceeding".format(applying_for))
+        return procs[0] if procs else None
+
+    def get_context_data(self, **kw):
+        from django.db.models import Min, Max
+        ctx = super(NewProcess, self).get_context_data(**kw)
+        applying_for = self.kwargs["applying_for"]
+        if applying_for not in self.vperms.advocate_targets:
             raise PermissionDenied
 
-        process = bmodels.Process(
-            person=person,
-            progress=const.PROGRESS_ADV_RCVD,
-            is_active=True,
-            applying_as=person.status,
-            applying_for=applying_for,
-        )
-        process.save()
+        # Checks and warnings
+
+        # When applying for uploading DD
+        if applying_for == const.STATUS_DD_U:
+            if self.person.status not in self.dm_statuses:
+                # Warn about the person not being a DM
+                ctx["warn_no_dm"] = True
+            else:
+                # Check when the person first became DM
+                became_dm = None
+                for p in self.person.processes.filter(is_active=False, applying_for__in=self.dm_statuses) \
+                                            .annotate(last_change=Max("log__logdate")) \
+                                            .order_by("last_change")[0]:
+                    became_dm = p.last_change
+                if not became_dm:
+                    became_dm = self.person.status_changed
+
+                ts_now = now()
+                if became_dm + datetime.timedelta(days=6*30) > ts_now:
+                    # Warn about not having been DM for 6 months
+                    ctx["warn_early_dm"] = became_dm
+
+        ctx["existing_process"] = self.get_existing_process(applying_for)
+        ctx["applying_for"] = applying_for
+
+#def advocate_as_dd(request, key):
+#    if request.method == "POST":
+#        form = AdvocateDDForm(request.POST)
+#        if form.is_valid():
+#            # Create process if missing
+#            if proc is None:
+#                proc = bmodels.Process(
+#                    person=person,
+#                    applying_as=person.status,
+#                    applying_for=const.STATUS_DD_U if form.cleaned_data["uploading"] else const.STATUS_DD_NU,
+#                    progress=const.PROGRESS_ADV_RCVD,
+#                    is_active=True)
+#                proc.save()
+#                # Log the change
+#                text = "Process created by %s advocating %s" % (request.person.lookup_key, person.fullname)
+#                if 'impersonate' in request.session:
+#                    text = "[%s as %s] %s" % (request.user, request.person.lookup_key, text)
+#                lt = bmodels.Log(
+#                    changed_by=request.person,
+#                    process=proc,
+#                    progress=const.PROGRESS_APP_NEW,
+#                    logtext=text,
+#                )
+#                lt.save()
+#            # Add advocate
+#            proc.advocates.add(request.person)
+#            # Log the change
+#            text = form.cleaned_data["logtext"]
+#            if 'impersonate' in request.session:
+#                text = "[%s as %s] %s" % (request.user, request.person.lookup_key, text)
+#            lt = bmodels.Log(
+#                changed_by=request.person,
+#                process=proc,
+#                progress=proc.progress,
+#                is_public=True,
+#                logtext=text,
+#            )
+#            lt.save()
+#            # Send mail
+#            backend.email.send_notification("notification_mails/advocacy_as_dd.txt", lt)
+#            return redirect('public_process', key=proc.lookup_key)
+#    else:
+#        initial = dict(uploading=is_dm)
+#        if proc:
+#            uploading=(proc.applying_for == const.STATUS_DD_U)
+#        form = AdvocateDDForm(initial=initial)
+#
+#    return render_to_response("restricted/advocate-dd.html",
+#                              dict(
+#                                  form=form,
+#                                  person=person,
+#                                  process=proc,
+#                                  is_dm=is_dm,
+#                                  is_early=is_early,
+#                              ),
+#                              context_instance=template.RequestContext(request))
+        return ctx
+
+    def post(self, request, applying_for, key, *args, **kw):
+        applying_for = self.kwargs["applying_for"]
+        if applying_for not in self.vperms.advocate_targets:
+            raise PermissionDenied
+
+        process = self.get_existing_process(applying_for)
+        if not process:
+            process = bmodels.Process(
+                person=self.person,
+                progress=const.PROGRESS_ADV_RCVD,
+                is_active=True,
+                applying_as=self.person.status,
+                applying_for=applying_for,
+            )
+            process.save()
         process.advocates.add(self.visitor)
 
         text=""

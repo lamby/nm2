@@ -67,7 +67,7 @@
 {% endif %}
 {% endif %}
 {% for s in vperms.advocate_targets %}
-<a href="{% url 'restricted_newprocess' key=person.lookup_key applying_for=s %}">advocate for {{s|sdesc_status}}</a>
+<a href="{% url 'restricted_advocate' key=person.lookup_key applying_for=s %}">advocate for {{s|sdesc_status}}</a>
 {% endfor %}
 {% if visitor != person %}
   {% if visitor.is_admin %}<a href="{% url 'impersonate' key=person.lookup_key %}?url={{request.build_absolute_uri}}">impersonate</a>{% endif %}

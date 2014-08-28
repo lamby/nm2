@@ -1,0 +1,82 @@
+{% extends "restricted/base.html" %}
+{% load nm %}
+
+{% block head_resources %}
+{{block.super}}
+<style type="text/css">
+    li.warning {
+        border: 1pt dashed black;
+        background-color: #FDD;
+        padding: 2pt;
+    }
+</style>
+{% endblock %}
+
+
+{% block breadcrumbs %}{{block.super}}
+/ <a href="{{ person.get_absolute_url }}">{{person.lookup_key}}</a>
+{% endblock %}
+
+{% block content %}
+
+<h1>Advocate {{person.fullname}} to become {{applying_for|desc_status}}</h1>
+
+<div id="checklist">
+<h2>Important information</h2>
+<ul>
+    {% if warn_no_dm or warn_early_dm %}
+    <li class="warning">
+    <b>Warning:</b>
+    Upload rights have been requested, and
+    {% if warn_no_dm %}
+    {{person.fullname}} does not seem to be a DM.
+    {% else %}
+    {{person.fullname}} seems to have been a DM for less than 6 months
+    (since {{warn_early_dm|timesince}}).
+    {% endif %}
+    The general rule is that
+    <a href="http://www.debian.org/devel/join/">before applying as DD, you
+        should have been a DM for about six months</a>. You can still advocate
+    {{person.fullname}}, and please take a moment to elaborate on this.
+    </li>
+    {% endif %}
+
+    {% if not existing_process %}
+    {% if person != visitor %}
+    <li>You are advocating {{person.fullname}} for
+    <b>{{applying_for|desc_status}}</b>: please only do so if you are sure that
+    {{person.cn}} wants to apply.</li>
+    {% endif %}
+    {% endif %}
+
+    <li>An email with your advocacy message will be sent to the
+        <a href="http://lists.debian.org/debian-newmaint">debian-newmaint</a>
+        <em>public</em> mailing list</li>
+
+    {% if applying_for == "mm_ga" %}
+    <li>TODO: guest account</li>
+    {% elif applying_for == "dm" %}
+    <li>TODO: DM</li>
+    {% elif applying_for == "dm_ga" %}
+    <li>TODO: guest account</li>
+    {% elif applying_for == "dd_u" or applying_for == "dd_nu" %}
+    <li>See <a href="http://wiki.debian.org/FrontDesk/AdvocacyTips">here</a> for advocacy tips, and
+    <a href="https://lists.debian.org/debian-devel-announce/2010/05/msg00003.html">here</a>
+    for some more rationale.</li>
+    {% endif %}
+
+    <li>Please be verbose if you can. You may want to write the advocacy in a
+    proper text editor and paste it in the form when you are happy with it.</li>
+</ul>
+</div>
+
+<form action="{{request.get_absolute_url}}" method="post">{% csrf_token %}
+  <label for="id_text">Advocacy text:</label>
+  <br>
+  <textarea cols="60" rows="10" name="text" id="id_text">
+  </textarea>
+  <br>
+  <input type="submit" value="Advocate" />
+</form>
+
+{% endblock %}

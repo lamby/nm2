@@ -32,7 +32,7 @@ urlpatterns = patterns('restricted.views',
     # Edit personal info
     url(r'^person/(?P<key>[^/]+)$', views.Person.as_view(), name="restricted_person"),
     # Create new process for a person
-    url(r'^newprocess_(?P<applying_for>[^/]+)/(?P<key>[^/]+)$', views.NewProcess.as_view(), name="restricted_newprocess"),
+    url(r'^advocate/(?P<applying_for>[^/]+)/(?P<key>[^/]+)$', views.NewProcess.as_view(), name="restricted_advocate"),
     # Show changelogs (minechangelogs)
     url(r'^minechangelogs/(?P<key>[^/]+)?$', 'minechangelogs', name="restricted_minechangelogs"),
     # Impersonate a user
