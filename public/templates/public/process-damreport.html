@@ -1,10 +1,10 @@
-From: {{request.person.fullname}} &lt;{{request.person.email}}&gt;
+From: {{visitor.fullname}} &lt;{{visitor.email}}&gt;
 To: Debian Keyring Maintainers &lt;keyring@rt.debian.org&gt;
 Cc: Debian Account Managers &lt;da-manager@debian.org&gt;, {{person.fullname}} &lt;{{person.email}}&gt;
 Reply-To: Debian Account Managers <da-manager@debian.org>
 Subject: [Debian RT] Account for {{person.fullname}}
 {% spaceless %}
-{% if request.person.uid == "joerg" %}
+{% if visitor.uid == "joerg" %}
 Organization: Goliath-BBS
 Gcc: nnimap+gkar:Sentmail.DAM
 --text follows this line--
@@ -50,4 +50,4 @@ Note that {{person.fullname}} already has an account in LDAP.
 -- 
 Thank you,
 
-{{request.person.fullname}} (as DAM)
+{{visitor.fullname}} (as DAM)

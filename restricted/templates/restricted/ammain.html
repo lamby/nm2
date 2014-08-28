@@ -82,7 +82,7 @@ $(function() {
 {% block breadcrumbs %}{{block.super}} / <a href="{% url 'restricted_ammain' %}">ammain</a>{% endblock %}
 
 {% block relatedpages %}
-<a href="{{ request.person.get_absolute_url }}">personal page</a>
+<a href="{{ visitor.get_absolute_url }}">personal page</a>
 {% if am.is_fd or am.is_dam %}
 <a href="{% url 'admin:backend_person_add' %}">new person</a>
 {% endif %}
@@ -95,15 +95,15 @@ $(function() {
 
 <p>Currently the database thinks you have the following functions:</p>
 <ul>
-    {% if request.am.is_am_ctte %}<li>New Member Committee</li>{% endif %}
-    {% if request.am.is_am %}<li>Application Manager with {{ request.am.slots }} slots</li>{% endif %}
-    {% if request.am.is_fd %}<li>Front Desk</li>{% endif %}
-    {% if request.am.is_dam %}<li>Debian Account Manager</li>{% endif %}
+    {% if visitor.am.is_am_ctte %}<li>New Member Committee</li>{% endif %}
+    {% if visitor.am.is_am %}<li>Application Manager with {{ visitor.am.slots }} slots</li>{% endif %}
+    {% if visitor.am.is_fd %}<li>Front Desk</li>{% endif %}
+    {% if visitor.am.is_dam %}<li>Debian Account Manager</li>{% endif %}
 </ul>
 
-{% if request.am.is_fd or request.am.is_dam %}
+{% if visitor.is_admin %}
 
-<h2>Front Desk</h2>
+<h2>Front desk</h2>
 
 {% if am_available %}
 <p>The following managers have free slots (#free/#slots):</p>
@@ -158,10 +158,10 @@ but a DAM has not fully processed them yet (sorted by FD approval):</p>
 
 
 {# only show application manager section if the current user either has AM slots or any existing process assigned #}
-{% if request.am.slots or am_prog_rcvd or am_prog_am or am_prog_hold or am_prog_done %}
+{% if visitor.am.slots or am_prog_rcvd or am_prog_am or am_prog_hold or am_prog_done %}
 <h2>Application Manager</h2>
 
-<p>Hello <b>{{request.person.uid}}</b>, here is a list of New Member applicants that
+<p>Hello <b>{{visitor.uid}}</b>, here is a list of New Member applicants that
 you are the AM for:</p>
 
 <h3>Applicants to Accept</h3>

@@ -13,8 +13,8 @@
 {% nm_js_support %}
 
 $(function() {
-    var is_admin = {{request.am.is_admin|yesno:"true,false"}};
-    var is_dam = {{request.am.is_dam|yesno:"true,false"}};
+    var is_admin = {{visitor.is_admin|yesno:"true,false"}};
+    var is_dam = {{visitor.am.is_dam|yesno:"true,false"}};
     var cur_progress = "{{process.progress}}";
     var dam_mail = $("#dam-mail");
     var am_mail = $("#am-mail");
@@ -86,7 +86,7 @@ $(function() {
         label: "Unassign",
         prog_if: [ PROGRESS_AM_RCVD, PROGRESS_AM, PROGRESS_AM_HOLD ],
         prog_to: PROGRESS_APP_OK,
-{% if request.am.is_fd or request.am.is_dam %}
+{% if visitor.am.is_fd or visitor.am.is_dam %}
         logtext: "Unassigned from {{process.manager.person.uid}} [TODO: please enter a reason]",
 {% else %}
         logtext: "Handing applicant back to Front Desk. [TODO: please enter a reason] [TODO: please send the mailbox with all your conversation so far to nm@debian.org]",
@@ -188,10 +188,10 @@ TODO: assign AM, field with uid and macros to fill it with a list of free ones
 {{block.super}}
 <a href="{{person.get_ddpo_url}}">DDPO</a>
 <a href="{{person.get_portfolio_url}}">Portfolio</a>
-{% if request.person %}
+{% if visitor %}
 <a href="{% url 'restricted_minechangelogs' key=person.lookup_key %}">changelogs</a>
 {% endif %}
-{% if request.person.is_admin %}
+{% if visitor.is_admin %}
 <a href="{% url 'admin:backend_process_change' process.id %}">admin</a>
 {% endif %}
 {% endblock %}
@@ -324,13 +324,13 @@ missing parts and send it.
 <table>
 <thead>
     <tr>
-        {% if request.am.is_admin %}
+        {% if visitor.is_admin %}
         <th>Actions</th>
         {% endif %}
         <th>Date</th>
         <th>Changed by</th>
         <th>Progress</th>
-        {% if request.am %}
+        {% if visitor.am %}
         <th>Text</th>
         {% endif %}
     </tr>
@@ -338,7 +338,7 @@ missing parts and send it.
 <tbody>
     {% for l in log %}
     <tr>
-        {% if request.am.is_admin %}
+        {% if visitor.is_admin %}
         <td><a href="{% url 'admin:backend_log_change' l.id %}">edit</a></td>
         {% endif %}
         <td>{{l.logdate|date:"Y-m-d"}}</td>
@@ -346,7 +346,7 @@ missing parts and send it.
             <a href="{{l.changed_by.get_absolute_url}}">{{l.changed_by.uid}}</a>
         </td>
         <td>{{l.progress|desc_progress}}</td>
-        {% if request.am %}
+        {% if visitor.am %}
         <td>{{l.logtext}}</td>
         {% endif %}
     </tr>

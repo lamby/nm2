@@ -30,7 +30,7 @@ urlpatterns = patterns('restricted.views',
     # AM preferences editor
     url(r'^amprofile(?:/(?P<uid>\w+))?$', views.AMProfile.as_view(), name="restricted_amprofile"),
     # Edit personal info
-    url(r'^person/(?P<key>[^/]+)$', 'person', name="restricted_person"),
+    url(r'^person/(?P<key>[^/]+)$', views.Person.as_view(), name="restricted_person"),
     # Create new process for a person
     url(r'^newprocess_(?P<applying_for>[^/]+)/(?P<key>[^/]+)$', views.NewProcess.as_view(), name="restricted_newprocess"),
     # Show changelogs (minechangelogs)
@@ -38,12 +38,12 @@ urlpatterns = patterns('restricted.views',
     # Impersonate a user
     url(r'^impersonate/(?P<key>[^/]+)?$', views.Impersonate.as_view(), name="impersonate"),
     # Export database
-    url(r'^db-export$', 'db_export', name="restricted_db_export"),
+    url(r'^db-export$', views.DBExport.as_view(), name="restricted_db_export"),
     # Help matching NMs and AMs
     url(r'^nm-am-match/$', views.NMAMMatch.as_view(), name="restricted_nm_am_match"),
     # Advocate a person to become DD
-    url(r'^mail-archive/(?P<key>[^/]+)$', 'mail_archive', name="download_mail_archive"),
-    url(r'^display-mail-archive/(?P<key>[^/]+)$', 'display_mail_archive', name="display_mail_archive"),
+    url(r'^mail-archive/(?P<key>[^/]+)$', views.MailArchive.as_view(), name="download_mail_archive"),
+    url(r'^display-mail-archive/(?P<key>[^/]+)$', views.DisplayMailArchive.as_view(), name="display_mail_archive"),
     # Advocate a person to become DD
     url(r'^assign-am/(?P<key>[^/]+)$', views.AssignAM.as_view(), name="assign_am"),
 )

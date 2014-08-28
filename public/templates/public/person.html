@@ -57,10 +57,10 @@
 {% block relatedpages %}
 <a href="{{person.get_ddpo_url}}">DDPO</a>
 <a href="{{person.get_portfolio_url}}">Portfolio</a>
-{% if request.person %}
+{% if visitor %}
 <a href="{% url 'restricted_minechangelogs' key=person.lookup_key %}">changelogs</a>
 {% endif %}
-{% if request.am.is_admin %}
+{% if visitor.is_admin %}
 <a href="{% url 'admin:backend_person_change' person.id  %}">admin</a>
 {% if vperms.can_become_am %}
 <a href="{% url 'admin:backend_am_add' %}?person={{person.id}}">make am</a>
@@ -69,7 +69,9 @@
 {% for s in vperms.advocate_targets %}
 <a href="{% url 'restricted_newprocess' key=person.lookup_key applying_for=s %}">advocate for {{s|sdesc_status}}</a>
 {% endfor %}
-{% if request.am.is_admin and request.person != person %}<a href="{% url 'impersonate' key=person.lookup_key %}?url={{request.build_absolute_uri}}">impersonate</a>{% endif %}
+{% if visitor != person %}
+  {% if impersonator or visitor.is_admin %}<a href="{% url 'impersonate' key=person.lookup_key %}?url={{request.build_absolute_uri}}">impersonate</a>{% endif %}
+{% endif %}
 {{block.super}}
 {% endblock %}
 
@@ -79,11 +81,11 @@
 
 {% include "public/personinfo.html" with person=person only %}
 
-{% if person|editable_by:request.am %}
+{% if person|editable_by:visitor %}
 <a href="{% url 'restricted_person' key=person.lookup_key %}">edit</a>
 {% endif %}
 
-{% if person.bio or person|editable_by:request.am %}
+{% if person.bio or person|editable_by:visitor %}
 <h2>Short Biography</h2>
 
 <div class="personbio">

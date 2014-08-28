@@ -185,36 +185,49 @@ class AMProfile(VisitorTemplateView):
         context = self.get_context_data(**kw)
         return self.render_to_response(context)
 
-
-@login_required
-def person(request, key):
+class Person(VisitorTemplateView):
     """
     Edit a person's information
     """
-    person = bmodels.Person.lookup_or_404(key)
+    template_name = "restricted/person.html"
 
-    # Check permissions
-    perms = person.permissions_of(request.person)
-    if not perms.can_edit_anything:
-        raise PermissionDenied
+    def get_person_form(self, person):
+        # Check permissions
+        perms = person.permissions_of(self.visitor)
+        if "edit_bio" not in perms and "edit_ldap" not in perms:
+            raise PermissionDenied
 
-    # Build the form to edit the person
-    excludes = ["user", "created", "status_changed"]
-    if not perms.can_edit_bio:
-        excludes.append("bio")
-    if not perms.can_edit_ldap_fields:
-        excludes.extend(("cn", "mn", "sn", "email", "uid", "fpr"))
-    if not request.person.is_admin:
-        excludes.extend(("status", "fd_comment", "expires", "pending"))
+        # Build the form to edit the person
+        excludes = ["user", "created", "status_changed"]
+        if not perms.can_edit_bio:
+            excludes.append("bio")
+        if not perms.can_edit_ldap_fields:
+            excludes.extend(("cn", "mn", "sn", "email", "uid", "fpr"))
+        if not self.visitor.is_admin:
+            excludes.extend(("status", "fd_comment", "expires", "pending"))
 
-    class PersonForm(forms.ModelForm):
-        class Meta:
-            model = bmodels.Person
-            exclude = excludes
+        class PersonForm(forms.ModelForm):
+            class Meta:
+                model = bmodels.Person
+                exclude = excludes
+        return PersonForm
 
-    form = None
-    if request.method == 'POST':
-        form = PersonForm(request.POST, instance=person)
+    def get_context_data(self, **kw):
+        ctx = super(Person, self).get_context_data(**kw)
+        key = self.kwargs["key"]
+        person = bmodels.Person.lookup_or_404(key)
+
+        if "form" not in ctx:
+            ctx["form"] = self.get_person_form(person)(instance=person)
+
+        ctx.update(
+            person=person,
+            perms=perms,
+        )
+
+    def post(self, request, key=None, *args, **kw):
+        person = bmodels.Person.lookup_or_404(key)
+        form = self.get_person_form(person)(request.POST, instance=person)
         if form.is_valid():
             form.save()
 
@@ -223,16 +236,9 @@ def person(request, key):
             # Redirect to the person view
             return redirect(person.get_absolute_url())
 
-    else:
-        form = PersonForm(instance=person)
+        context = self.get_context_data(form=form, **kw)
+        return self.render_to_response(context)
 
-    return render_to_response("restricted/person.html",
-                              dict(
-                                  person=person,
-                                  form=form,
-                                  perms=perms,
-                              ),
-                              context_instance=template.RequestContext(request))
 
 def make_newprocessform(person):
     choices = [(x.tag, x.ldesc) for x in const.ALL_STATUS if x[1] != person.status]
@@ -284,33 +290,33 @@ class NewProcess(VisitorMixin, View):
 
         return redirect('public_process', key=process.lookup_key)
 
-def db_export(request):
-    # In theory, this isn't needed as it's enforced by DACS
-    if request.user.is_anonymous():
-        raise PermissionDenied
-
-    if "full" in request.GET:
-        if not request.am or not request.am.is_admin:
+class DBExport(VisitorMixin, View):
+    def get(self, request, *args, **kw):
+        if request.user.is_anonymous():
             raise PermissionDenied
-        full = True
-    else:
-        full = False
 
-    people = list(bmodels.export_db(full))
+        if "full" in request.GET:
+            if not self.visitor.is_admin:
+                raise PermissionDenied
+            full = True
+        else:
+            full = False
 
-    class Serializer(json.JSONEncoder):
-        def default(self, o):
-            if hasattr(o, "strftime"):
-                return o.strftime("%Y-%m-%d %H:%M:%S")
-            return json.JSONEncoder.default(self, o)
+        people = list(bmodels.export_db(full))
 
-    res = http.HttpResponse(mimetype="application/json")
-    if full:
-        res["Content-Disposition"] = "attachment; filename=nm-full.json"
-    else:
-        res["Content-Disposition"] = "attachment; filename=nm-mock.json"
-    json.dump(people, res, cls=Serializer, indent=1)
-    return res
+        class Serializer(json.JSONEncoder):
+            def default(self, o):
+                if hasattr(o, "strftime"):
+                    return o.strftime("%Y-%m-%d %H:%M:%S")
+                return json.JSONEncoder.default(self, o)
+
+        res = http.HttpResponse(mimetype="application/json")
+        if full:
+            res["Content-Disposition"] = "attachment; filename=nm-full.json"
+        else:
+            res["Content-Disposition"] = "attachment; filename=nm-mock.json"
+        json.dump(people, res, cls=Serializer, indent=1)
+        return res
 
 
 class MinechangelogsForm(forms.Form):
@@ -469,53 +475,57 @@ class NMAMMatch(VisitorTemplateView):
         context = self.get_context_data(**kw)
         return self.render_to_response(context)
 
-def mail_archive(request, key):
-    process = bmodels.Process.lookup_or_404(key)
-    perms = process.permissions_of(request.person)
+class MailArchive(VisitorMixin, View):
+    def get(self, request, key, *args, **kw):
+        process = bmodels.Process.lookup_or_404(key)
+        perms = process.permissions_of(self.visitor)
 
-    if not perms.can_view_email:
-        raise PermissionDenied
+        if not perms.can_view_email:
+            raise PermissionDenied
 
-    fname = process.mailbox_file
-    if fname is None:
-        from django.http import Http404
-        raise Http404
+        fname = process.mailbox_file
+        if fname is None:
+            from django.http import Http404
+            raise Http404
 
-    user_fname = "%s.mbox" % (process.person.uid or process.person.email)
+        user_fname = "%s.mbox" % (process.person.uid or process.person.email)
 
-    res = http.HttpResponse(mimetype="application/octet-stream")
-    res["Content-Disposition"] = "attachment; filename=%s.gz" % user_fname
+        res = http.HttpResponse(mimetype="application/octet-stream")
+        res["Content-Disposition"] = "attachment; filename=%s.gz" % user_fname
 
-    # Compress the mailbox and pass it to the request
-    from gzip import GzipFile
-    import os.path
-    import shutil
-    # The last mtime argument seems to only be supported in python 2.7
-    outfd = GzipFile(user_fname, "wb", 9, res) #, os.path.getmtime(fname))
-    try:
-        with open(fname) as infd:
-            shutil.copyfileobj(infd, outfd)
-    finally:
-        outfd.close()
-    return res
+        # Compress the mailbox and pass it to the request
+        from gzip import GzipFile
+        import os.path
+        import shutil
+        # The last mtime argument seems to only be supported in python 2.7
+        outfd = GzipFile(user_fname, "wb", 9, res) #, os.path.getmtime(fname))
+        try:
+            with open(fname) as infd:
+                shutil.copyfileobj(infd, outfd)
+        finally:
+            outfd.close()
+        return res
 
-def display_mail_archive(request, key):
-    process = bmodels.Process.lookup_or_404(key)
-    perms = process.permissions_of(request.person)
+class DisplayMailArchive(VisitorTemplateView):
+    template_name = "restricted/display-mail-archive.html"
+    def get_context_data(self, **kw):
+        ctx = super(DisplayMailArchive, self).get_context_data(**kw)
+        key = self.kwargs["key"]
+        process = bmodels.Process.lookup_or_404(key)
+        perms = process.permissions_of(self.visitor)
 
-    if not perms.can_view_email:
-        raise PermissionDenied
+        if not perms.can_view_email:
+            raise PermissionDenied
 
-    fname = process.mailbox_file
-    if fname is None:
-        from django.http import Http404
-        raise Http404
+        fname = process.mailbox_file
+        if fname is None:
+            from django.http import Http404
+            raise Http404
 
-    return  render(request, "restricted/display-mail-archive.html", {
-        "mails": backend.email.get_mbox_as_dicts(fname),
-        "process": process,
-        "class": "clickable",
-    })
+        ctx["mails"] = backend.email.get_mbox_as_dicts(fname)
+        ctx["process"] = process
+        ctx["class"] = "clickable"
+        return ctx
 
 class AssignAM(VisitorTemplateView):
     template_name = "restricted/assign-am.html"

@@ -564,8 +564,10 @@ class Person(models.Model):
         """
         if self.uid:
             return self.uid
-        else:
+        elif self.email:
             return self.email
+        else:
+            return self.fpr
 
     @classmethod
     def lookup(cls, key):

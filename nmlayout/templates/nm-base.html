@@ -28,7 +28,7 @@
   <li><a href="{% url 'root_faq' %}">Site FAQ</a></li>
 {% endblock %}
 
-{% block breadcrumbs %}{% if request.session.impersonate %}<a href="{% url 'impersonate' %}?url={{request.build_absolute_uri}}">[{{request.user}} as {{visitor.lookup_key}}]</a> {% endif %}<a href="{% url 'home' %}">nm</a>{% endblock %}
+{% block breadcrumbs %}{% if impersonator %}<a href="{% url 'impersonate' %}?url={{request.build_absolute_uri}}">[{{impersonator}} as {{visitor.lookup_key}}]</a> {% endif %}<a href="{% url 'home' %}">nm</a>{% endblock %}
 
 {% block relatedpages %}
 {% if user.is_anonymous %}
