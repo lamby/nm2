@@ -45,6 +45,7 @@ class Importer(object):
         Import Person and AM objects, caching them in self.people and self.ams
         """
         p = bmodels.Person(
+            username=info["username"],
             cn=info["cn"],
             mn=info["mn"],
             sn=info["sn"],

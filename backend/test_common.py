@@ -185,13 +185,12 @@ class ThenNotFound(NMTestUtilsThen):
 class ThenRedirect(NMTestUtilsThen):
     target = None
     def __init__(self, target=None):
-        if target is not None:
-            self.target = target
+        self.target = target
     def __call__(self, fixture, response, when, test_client):
         if response.status_code != 302:
             fixture.fail("User {} got status code {} instead of a Redirect when {}".format(
                 when.user, response.status_code, when))
-        if not re.search(self.target, response["Location"]):
+        if self.target and not re.search(self.target, response["Location"]):
             fixture.fail("User {} got redirected to {} which does not match {}".format(
                 when.user, response["Location"], self.target))
 

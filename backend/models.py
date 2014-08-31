@@ -367,7 +367,7 @@ class ProcessVisitorPermissions(PersonVisitorPermissions):
         am = self.visitor.am_or_none
         if am is not None and self.process.manager == am: return True
         # The advocates
-        return self.process.advocates.filter(pk=self.person.pk).exists()
+        return self.process.advocates.filter(pk=self.visitor.pk).exists()
 
     def _compute_perms(self):
         res = super(ProcessVisitorPermissions, self)._compute_perms()
@@ -1141,6 +1141,7 @@ def export_db(full=False):
     for idx, p in enumerate(Person.objects.all().order_by("uid", "email")):
         # Person details
         ep = dict(
+            username=p.username,
             key=p.lookup_key,
             cn=p.cn,
             mn=p.mn,

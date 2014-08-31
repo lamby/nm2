@@ -154,16 +154,12 @@ class AMProfile(VisitPersonTemplateView):
         )
         return ctx
 
-    def post(self, request, uid=None, *args, **kw):
-        if uid is None:
-            person = self.visitor
-        else:
-            person = bmodels.Person.lookup_or_404(uid)
-            if person.pk != self.visitor.pk and not self.visitor.is_admin:
-                raise PermissionDenied
+    def post(self, request, *args, **kw):
+        if self.person.pk != self.visitor.pk and not self.visitor.is_admin:
+            raise PermissionDenied
 
-        am = person.am
-        AMForm = make_am_form(am)
+        am = self.person.am
+        AMForm = make_am_form(self.visitor.am)
         form = AMForm(request.POST, instance=am)
         if form.is_valid():
             form.save()
@@ -323,10 +319,9 @@ class NewProcess(VisitPersonTemplateView):
         return redirect('public_process', key=process.lookup_key)
 
 class DBExport(VisitorMixin, View):
-    def get(self, request, *args, **kw):
-        if request.user.is_anonymous():
-            raise PermissionDenied
+    require_visitor = "dd"
 
+    def get(self, request, *args, **kw):
         if "full" in request.GET:
             if not self.visitor.is_admin:
                 raise PermissionDenied
@@ -365,6 +360,8 @@ class MinechangelogsForm(forms.Form):
     )
 
 def minechangelogs(request, key=None):
+    if request.user.is_anonymous():
+        raise PermissionDenied
     entries = None
     info = mmodels.info()
     info["max_ts"] = datetime.datetime.fromtimestamp(info["max_ts"])
@@ -420,7 +417,7 @@ def minechangelogs(request, key=None):
 class Impersonate(View):
     def get(self, request, key=None, *args, **kw):
         visitor = request.user
-        if not visitor or not visitor.is_admin: raise PermissionDenied
+        if not visitor.is_authenticated() or not visitor.is_admin: raise PermissionDenied
         if key is None:
             del request.session["impersonate"]
         else:
@@ -458,9 +455,9 @@ def _assign_am(request, visitor, nm, am):
 class MailArchive(VisitorMixin, View):
     def get(self, request, key, *args, **kw):
         process = bmodels.Process.lookup_or_404(key)
-        perms = process.permissions_of(self.visitor)
+        vperms = process.permissions_of(self.visitor)
 
-        if not perms.can_view_email:
+        if "view_mbox" not in vperms.perms:
             raise PermissionDenied
 
         fname = process.mailbox_file
@@ -492,9 +489,9 @@ class DisplayMailArchive(VisitorTemplateView):
         ctx = super(DisplayMailArchive, self).get_context_data(**kw)
         key = self.kwargs["key"]
         process = bmodels.Process.lookup_or_404(key)
-        perms = process.permissions_of(self.visitor)
+        vperms = process.permissions_of(self.visitor)
 
-        if not perms.can_view_email:
+        if "view_mbox" not in vperms.perms:
             raise PermissionDenied
 
         fname = process.mailbox_file
@@ -512,7 +509,7 @@ class AssignAM(VisitorTemplateView):
     require_visitor = "admin"
 
     def get_context_data(self, **kw):
-        ctx = super(AMProfile, self).get_context_data(**kw)
+        ctx = super(AssignAM, self).get_context_data(**kw)
         key = self.kwargs["key"]
         process = bmodels.Process.lookup_or_404(key)
         if process.manager is not None:
