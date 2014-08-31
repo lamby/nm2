@@ -54,7 +54,7 @@ class People(VisitorMixin, View):
     def get(self, request, *args, **kw):
         # Pick what to include in the result based on auth status
         fields = ["cn", "mn", "sn", "uid", "fpr", "status", "status_changed", "created"]
-        if self.visitor.is_dd:
+        if self.visitor and self.visitor.is_dd:
             fields.append("email")
             if self.visitor.is_admin:
                 fields.append("fd_comment")
