@@ -39,7 +39,7 @@ class VisitorMixin(object):
         if not self.request.user.is_authenticated():
             self.visitor = None
         else:
-            self.visitor = self.request.user.get_profile()
+            self.visitor = self.request.user
 
             # Implement impersonation if requested in session
             if self.visitor.is_admin:

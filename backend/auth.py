@@ -43,40 +43,13 @@ class NMUserBackend(DACSUserBackend):
         """
         if not remote_user:
             return
-        user = None
         username = self.clean_username(remote_user)
 
         # Get the Person for this username: Person is authoritative over User
-        if username.endswith("@debian.org"):
-            debname = username[:-11]
+        if username.endswith("@debian.org") or username.endswith("-guest@users.alioth.debian.org"):
             try:
-                person = bmodels.Person.objects.get(uid=debname)
-            except bmodels.Person.DoesNotExist:
-                return None
-        elif username.endswith("@users.alioth.debian.org"):
-            debname = username[:-24]
-            if not debname.endswith("-guest"):
-                return None
-            try:
-                person = bmodels.Person.objects.get(uid=debname)
+                return bmodels.Person.objects.get(username=username)
             except bmodels.Person.DoesNotExist:
                 return None
         else:
             return None
-
-        # Note that this could be accomplished in one try-except clause, but
-        # instead we use get_or_create when creating unknown users since it has
-        # built-in safeguards for multiple threads.
-        user, created = User.objects.get_or_create(username=username)
-        if created:
-            user.set_unusable_password()
-            if person.is_am:
-                # FIXME: ensure this is kept in sync when is_fd is changed
-                if person.am.is_fd:
-                    user.is_staff = True
-                    user.is_superuser = True
-            user.save()
-            person.user = user
-            person.save()
-
-        return user

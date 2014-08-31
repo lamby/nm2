@@ -218,7 +218,7 @@ See: <a href="http://lists.debian.org/debian-project/2010/09/msg00026.html">hand
 
 <h2>Personal information</h2>
 
-{% if perms.can_edit_anything %}
+{% if "edit_bio" in vperms.perms or "edit_ldap" in vperms.perms %}
 {% if process.progress == PROGRESS_AM_OK %}
 <div id="checklist">{% include "public/checklist-fd-checks.html" %}</div>
 {% endif %}
@@ -241,14 +241,14 @@ See: <a href="http://lists.debian.org/debian-project/2010/09/msg00026.html">hand
     {% if process.manager %}
     <tr><th>Manager</th><td><a href="{{process.manager.get_absolute_url}}">{{process.manager.person.uid}}</a></td></tr>
     {% elif process.progress == PROGRESS_APP_OK %}
-      {% if perms.is_fd or perms.is_dam %}
+      {% if visitor.is_admin %}
       <tr><th>Manager</th><td><a href="{% url 'assign_am' key=process.lookup_key %}">assign AM</a></td></tr>
       {% endif %}
     {% endif %}
     <tr><th>Process</th><td>{{process.applying_as|desc_status}} → {{process.applying_for|desc_status}}</td></tr>
     <tr><th>Progress</th><td>{{process.progress|desc_progress}}</td></tr>
     <tr><th>Account created</th><td>{% if process.progress == PROGRESS_DONE %}yes{% else %}no{% endif %}</td></tr>
-    {% if perms.can_edit_anything %}
+    {% if "edit_bio" in vperms.perms or "edit_ldap" in vperms.perms %}
     <tr><th>FD comments</th><td>{{person.fd_comment}}</td></tr>
     <tr><th>Mail archive</th>
         <td>
@@ -262,7 +262,7 @@ See: <a href="http://lists.debian.org/debian-project/2010/09/msg00026.html">hand
         </td>
     {% endif %}
 </table>
-{% if perms.can_edit_anything %}
+{% if "edit_bio" in vperms.perms or "edit_ldap" in vperms.perms %}
 <a href="{% url 'restricted_person' key=person.lookup_key %}">Edit personal information</a>
 {% endif %}
 

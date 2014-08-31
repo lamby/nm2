@@ -407,15 +407,15 @@ class Stats(VisitorTemplateView):
         return ctx
 
 def make_findperson_form(request, visitor):
-    excludes = ["user", "created", "status_changed", "expires", "pending"]
+    includes = ["cn", "mn", "sn", "email", "uid", "fpr", "status"]
 
-    if not visitor or not visitor.is_admin:
-        excludes.append("fd_comment")
+    if visitor and visitor.is_admin:
+        includes.append("fd_comment")
 
     class FindpersonForm(forms.ModelForm):
         class Meta:
             model = bmodels.Person
-            exclude = excludes
+            fields = includes
     return FindpersonForm
 
 class Findperson(VisitorTemplateView):

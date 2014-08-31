@@ -108,7 +108,7 @@ AUTHENTICATION_BACKENDS = (
     'backend.auth.NMUserBackend',
 )
 
-AUTH_PROFILE_MODULE = 'backend.Person'
+AUTH_USER_MODEL = 'backend.Person'
 
 ROOT_URLCONF = 'urls'
 
@@ -153,7 +153,6 @@ INSTALLED_APPS = (
 TEMPLATE_CONTEXT_PROCESSORS = global_settings.TEMPLATE_CONTEXT_PROCESSORS + (
     "django.core.context_processors.request",
     "backend.context_processors.const",
-    "backend.context_processors.current_user",
 )
 
 # A sample logging configuration. The only tangible logging

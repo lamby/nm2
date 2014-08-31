@@ -123,20 +123,17 @@ class AMMain(VisitorTemplateView):
         return ctx
 
 def make_am_form(editor):
-    excludes = ["person", "is_am_ctte", "created"]
+    includes = ["slots"]
 
+    if editor.is_fd:
+        includes.append("is_fd")
     if editor.is_dam:
-        pass
-    elif editor.is_fd:
-        excludes.append("is_dam")
-    else:
-        excludes.append("is_fd")
-        excludes.append("is_dam")
+        includes.append("is_dam")
 
     class AMForm(forms.ModelForm):
         class Meta:
             model = bmodels.AM
-            exclude = excludes
+            fields = includes
     return AMForm
 
 class AMProfile(VisitorTemplateView):
@@ -200,18 +197,18 @@ class Person(VisitPersonTemplateView):
             raise PermissionDenied
 
         # Build the form to edit the person
-        excludes = ["user", "created", "status_changed"]
-        if "edit_bio" not in perms:
-            excludes.append("bio")
-        if "edit_ldap" not in perms:
-            excludes.extend(("cn", "mn", "sn", "email", "uid", "fpr"))
-        if not self.visitor.is_admin:
-            excludes.extend(("status", "fd_comment", "expires", "pending"))
+        includes = []
+        if "edit_ldap" in perms:
+            includes.extend(("cn", "mn", "sn", "email", "uid", "fpr"))
+        if self.visitor.is_admin:
+            includes.extend(("status", "fd_comment", "expires", "pending"))
+        if "edit_bio" in perms:
+            includes.append("bio")
 
         class PersonForm(forms.ModelForm):
             class Meta:
                 model = bmodels.Person
-                exclude = excludes
+                fields = includes
         return PersonForm
 
     def get_context_data(self, **kw):
@@ -433,7 +430,7 @@ def minechangelogs(request, key=None):
 
 class Impersonate(View):
     def get(self, request, key=None, *args, **kw):
-        visitor = request.user.get_profile()
+        visitor = request.user
         if not visitor or not visitor.is_admin: raise PermissionDenied
         if key is None:
             del request.session["impersonate"]

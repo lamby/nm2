@@ -26,6 +26,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.conf import settings
 from django.utils.timezone import now
+from django.contrib.auth.models import BaseUserManager, PermissionsMixin
 from . import const
 from .utils import cached_property
 from backend.notifications import maybe_notify_applicant_on_progress
@@ -374,6 +375,22 @@ class ProcessVisitorPermissions(PersonVisitorPermissions):
         return res
 
 
+class PersonManager(BaseUserManager):
+    def create_user(self, email, **other_fields):
+        if not email:
+            raise ValueError('Users must have an email address')
+        user = self.model(
+            email=self.normalize_email(email),
+            **other_fields
+        )
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, **other_fields):
+        other_fields["is_superuser"] = True
+        return self.create_user(email, **other_fields)
+
+
 class Person(models.Model):
     """
     A person (DM, DD, AM, applicant, FD member, DAM, anything)
@@ -381,8 +398,14 @@ class Person(models.Model):
     class Meta:
         db_table = "person"
 
+    objects = PersonManager()
+
     # Link to Django web user information
-    user = models.OneToOneField(User, null=True)
+    username = models.CharField(max_length=255, unique=True)
+    last_login = models.DateTimeField(_('last login'), default=now)
+    date_joined = models.DateTimeField(_('date joined'), default=now)
+    is_staff = models.BooleanField(default=False)
+    #is_active = True
 
     #  enrico> For people like Wookey, do you prefer we use only cn or only sn?
     #          "sn" is used currently, and "cn" has a dash, but rather than
@@ -417,6 +440,36 @@ class Person(models.Model):
             help_text="This person will be deleted after this date if the status is still {} and"
                       " no Process has started".format(const.STATUS_MM))
     pending = models.CharField("Nonce used to confirm this pending record", max_length=255, unique=False, blank=True)
+
+    def get_full_name(self):
+        return self.fullname
+
+    def get_short_name(self):
+        return self.cn
+
+    def get_username(self):
+        return self.username
+
+    def is_anonymous(self):
+        return False
+
+    def is_authenticated(self):
+        return True
+
+    def set_password(self, raw_password):
+        pass
+
+    def check_password(self, raw_password):
+        return False
+
+    def set_unusable_password(self):
+        pass
+
+    def has_usable_password(self):
+        return False
+
+    USERNAME_FIELD = 'username'
+    REQUIRED_FIELDS = ["cn", "email", "status"]
 
     @property
     def person(self):
