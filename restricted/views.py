@@ -136,34 +136,23 @@ def make_am_form(editor):
             fields = includes
     return AMForm
 
-class AMProfile(VisitorTemplateView):
+class AMProfile(VisitPersonTemplateView):
     require_visitor = "am"
     template_name = "restricted/amprofile.html"
 
     def get_context_data(self, **kw):
         ctx = super(AMProfile, self).get_context_data(**kw)
-        uid = self.kwargs.get("uid", None)
-
         from django.db.models import Min
-
-        if uid is None:
-            person = self.visitor
-        else:
-            person = bmodels.Person.lookup_or_404(uid)
-        am = person.am
-
+        am = self.person.am
         AMForm = make_am_form(am)
-
         form = AMForm(instance=am)
-
         processes = bmodels.Process.objects.filter(manager=am).annotate(started=Min("log__logdate")).order_by("-started")
-
         ctx.update(
-            person=person,
             am=am,
             processes=processes,
             form=form,
         )
+        return ctx
 
     def post(self, request, uid=None, *args, **kw):
         if uid is None:

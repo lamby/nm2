@@ -109,7 +109,7 @@ $(function() {
 <p>The following managers have free slots (#free/#slots):</p>
 <ul class="horizontal">
     {% for a in am_available %}
-    <li><a href="{% url 'restricted_amprofile' uid=a.person.uid %}">{{a.person.uid}}</a>
+    <li><a href="{% url 'restricted_amprofile' key=a.person.lookup_key %}">{{a.person.uid}}</a>
         ({{a.stats_free}}/{{a.slots}})</li>
     {% endfor %}
 </ul>
