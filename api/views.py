@@ -39,7 +39,7 @@ class Serializer(json.JSONEncoder):
         return json.JSONEncoder.default(self, o)
 
 def json_response(val, status_code=200):
-    res = http.HttpResponse(mimetype="application/json")
+    res = http.HttpResponse(content_type="application/json")
     res.status_code = status_code
     json.dump(val, res, cls=Serializer, indent=1)
     return res

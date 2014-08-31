@@ -337,7 +337,7 @@ class DBExport(VisitorMixin, View):
                     return o.strftime("%Y-%m-%d %H:%M:%S")
                 return json.JSONEncoder.default(self, o)
 
-        res = http.HttpResponse(mimetype="application/json")
+        res = http.HttpResponse(content_type="application/json")
         if full:
             res["Content-Disposition"] = "attachment; filename=nm-full.json"
         else:
@@ -467,7 +467,7 @@ class MailArchive(VisitorMixin, View):
 
         user_fname = "%s.mbox" % (process.person.uid or process.person.email)
 
-        res = http.HttpResponse(mimetype="application/octet-stream")
+        res = http.HttpResponse(content_type="application/octet-stream")
         res["Content-Disposition"] = "attachment; filename=%s.gz" % user_fname
 
         # Compress the mailbox and pass it to the request

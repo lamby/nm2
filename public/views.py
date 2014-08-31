@@ -370,7 +370,7 @@ class Stats(VisitorTemplateView):
 
         # If JSON is requested, dump them right away
         if 'json' in self.request.GET:
-            res = http.HttpResponse(mimetype="application/json")
+            res = http.HttpResponse(content_type="application/json")
             res["Content-Disposition"] = "attachment; filename=stats.json"
             json.dump(stats, res, indent=1)
             return res
@@ -527,7 +527,7 @@ class StatsLatest(VisitorTemplateView):
                     )
                 json_evs.append(ne)
             ctx["events"] = json_evs
-            res = http.HttpResponse(mimetype="application/json")
+            res = http.HttpResponse(content_type="application/json")
             res["Content-Disposition"] = "attachment; filename=stats.json"
             json.dump(ctx, res, indent=1)
             return res

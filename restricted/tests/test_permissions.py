@@ -28,18 +28,6 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
         for u in allowed:
             self.assertVisit(WhenView(user=self.users[u]), ThenSuccess())
 
-    def test_person(self):
-        class WhenView(NMTestUtilsWhen):
-            url = reverse("restricted_person", kwargs={ "key": self.users["app"].lookup_key })
-        allowed = frozenset(("app", "adv", "am", "fd", "dam"))
-        self.assertVisit(WhenView(), ThenForbidden())
-        for u in self.users.viewkeys() - allowed:
-            self.assertVisit(WhenView(user=self.users[u]), ThenForbidden())
-        for u in allowed:
-            self.assertVisit(WhenView(user=self.users[u]), ThenSuccess())
-
-        # TODO: post
-
     def test_impersonate(self):
         class WhenView(NMTestUtilsWhen):
             url = reverse("impersonate", kwargs={ "key": self.users["app"].lookup_key })
@@ -235,3 +223,94 @@ class AssignAMAgainTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
             self.assertVisit(WhenView(user=self.users[u]), ThenForbidden())
 
         # TODO: post
+
+
+class PersonTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TransactionTestCase):
+    def setUp(self):
+        super(PersonTestCase, self).setUp()
+        self.app = self.make_user("app", const.STATUS_MM, alioth=True, fd_comment="FD_COMMENTS")
+        self.adv = self.make_user("adv", const.STATUS_DD_NU)
+        self.am = self.make_user("am", const.STATUS_DD_NU)
+        self.proc = self.make_process(self.app, const.STATUS_DD_NU, const.PROGRESS_AM, manager=self.am, advocates=[self.adv])
+
+    def test_person(self):
+        class WhenView(NMTestUtilsWhen):
+            url = reverse("restricted_person", kwargs={ "key": self.users["app"].lookup_key })
+        allowed = frozenset(("app", "adv", "am", "fd", "dam"))
+        self.assertVisit(WhenView(), ThenForbidden())
+        for u in self.users.viewkeys() - allowed:
+            self.assertVisit(WhenView(user=self.users[u]), ThenForbidden())
+        for u in allowed:
+            self.assertVisit(WhenView(user=self.users[u]), ThenSuccess())
+
+    def test_post(self):
+        users = self.users
+        class WhenPost(NMTestUtilsWhen):
+            method = "post"
+            def __init__(self, user=None, person=None, **kw):
+                user = users[user] if user else None
+                self.person = users[person]
+                data = { "cn": "Z", "fd_comment": "Z", "bio": "Z", "email": self.person.email, "status": const.STATUS_MM }
+                self.orig_cn = self.person.cn
+                self.orig_fd = self.person.fd_comment
+                self.orig_bio = self.person.bio
+                self.orig_status = self.person.status
+                super(WhenPost, self).__init__(user=user, data=data, url=reverse("restricted_person", kwargs={ "key": self.person.lookup_key }), **kw)
+            def tearDown(self, fixture):
+                super(WhenPost, self).tearDown(fixture)
+                self.person.cn = self.orig_cn
+                self.person.fd_comment = self.orig_fd
+                self.person.bio = self.orig_bio
+                self.person.status = self.orig_status
+                self.person.save()
+
+        class ThenChanges(ThenRedirect):
+            def __init__(self, cn=False, fd=False, bio=False, status=False):
+                self.cn, self.fd, self.bio, self.status = cn, fd, bio, status
+            def __call__(self, fixture, response, when, test_client):
+                super(ThenChanges, self).__call__(fixture, response, when, test_client)
+                person = bmodels.Person.objects.get(pk=when.person.pk)
+                if self.cn:
+                    fixture.assertEquals(person.cn, "Z")
+                else:
+                    fixture.assertEquals(person.cn, when.orig_cn)
+                if self.fd:
+                    fixture.assertEquals(person.fd_comment, "Z")
+                else:
+                    fixture.assertEquals(person.fd_comment, when.orig_fd)
+                if self.bio:
+                    fixture.assertEquals(person.bio, "Z")
+                else:
+                    fixture.assertEquals(person.bio, when.orig_bio)
+                if self.status:
+                    fixture.assertEquals(person.status, const.STATUS_MM )
+                else:
+                    fixture.assertEquals(person.status, when.orig_status)
+
+        # Anonymous cannot post to anything
+        for u in self.users.viewkeys():
+            self.assertVisit(WhenPost(person=u), ThenForbidden())
+
+        for u in self.users.viewkeys() - frozenset(("app", "adv", "am", "fd", "dam")):
+            self.assertVisit(WhenPost(user=u, person="app"), ThenForbidden())
+        self.assertVisit(WhenPost(user="app", person="app"), ThenChanges(True, False, True, False))
+        self.assertVisit(WhenPost(user="adv", person="app"), ThenChanges(True, False, True, False))
+        self.assertVisit(WhenPost(user="am", person="app"), ThenChanges(True, False, True, False))
+        self.assertVisit(WhenPost(user="fd", person="app"), ThenChanges(True, True, True, True))
+        self.assertVisit(WhenPost(user="dam", person="app"), ThenChanges(True, True, True, True))
+
+        for u in self.users.viewkeys() - frozenset(("adv", "fd", "dam")):
+            self.assertVisit(WhenPost(user=u, person="adv"), ThenForbidden())
+        self.assertVisit(WhenPost(user="adv", person="adv"), ThenChanges(False, False, True, False))
+        self.assertVisit(WhenPost(user="fd", person="adv"), ThenChanges(False, True, True, True))
+        self.assertVisit(WhenPost(user="dam", person="adv"), ThenChanges(False, True, True, True))
+
+        for u in self.users.viewkeys() - frozenset(("fd", "dam")):
+            self.assertVisit(WhenPost(user=u, person="fd"), ThenForbidden())
+        self.assertVisit(WhenPost(user="fd", person="fd"), ThenChanges(False, True, True, True))
+        self.assertVisit(WhenPost(user="dam", person="fd"), ThenChanges(False, True, True, True))
+
+        for u in self.users.viewkeys() - frozenset(("fd", "dam")):
+            self.assertVisit(WhenPost(user=u, person="dam"), ThenForbidden())
+        self.assertVisit(WhenPost(user="fd", person="dam"), ThenChanges(False, True, True, True))
+        self.assertVisit(WhenPost(user="dam", person="dam"), ThenChanges(False, True, True, True))
