@@ -391,7 +391,7 @@ class PersonManager(BaseUserManager):
         return self.create_user(email, **other_fields)
 
 
-class Person(models.Model):
+class Person(PermissionsMixin, models.Model):
     """
     A person (DM, DD, AM, applicant, FD member, DAM, anything)
     """
@@ -454,6 +454,9 @@ class Person(models.Model):
         return False
 
     def is_authenticated(self):
+        return True
+
+    def is_active(self):
         return True
 
     def set_password(self, raw_password):
