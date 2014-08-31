@@ -588,7 +588,7 @@ class Person(PermissionsMixin, models.Model):
             parms["gpgfp"] = self.fpr
         if self.uid:
             parms["username"] = self.uid
-        return u"http://portfolio.debian.net/result?".format(urllib.urlencode(parms))
+        return u"http://portfolio.debian.net/result?" + urllib.urlencode(parms)
 
     @property
     def active_processes(self):
