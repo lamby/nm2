@@ -455,58 +455,6 @@ def _assign_am(request, visitor, nm, am):
         l.logtext = "[%s as %s] %s" % (request.user, visitor.lookup_key, l.logtext)
     l.save()
 
-class NMAMMatch(VisitorTemplateView):
-    template_name = "restricted/nm-am-match.html"
-    require_visitor = "admin"
-
-    def get_context_data(self, **kw):
-        from django.db.models import Min, Max
-        ctx = super(AMProfile, self).get_context_data(**kw)
-        procs = []
-        for p in bmodels.Process.objects.filter(is_active=True, progress=const.PROGRESS_APP_OK) \
-                        .annotate(
-                            started=Min("log__logdate"),
-                            last_change=Max("log__logdate")) \
-                        .order_by("started"):
-            p.annotate_with_duration_stats()
-            procs.append(p)
-        ams = bmodels.AM.list_free()
-
-        json_ams = dict()
-        for a in ams:
-            json_ams[a.person.lookup_key] = dict(
-                name=a.person.fullname,
-                uid=a.person.uid,
-                email=a.person.email,
-                key=a.person.lookup_key,
-            )
-        json_nms = dict()
-        for p in procs:
-            json_nms[p.lookup_key] = dict(
-                name=p.person.fullname,
-                uid=p.person.uid,
-                email=p.person.email,
-                key=p.lookup_key,
-            )
-
-        ctx.update(
-            procs=procs,
-            ams=ams,
-            json_ams=json.dumps(json_ams),
-            json_nms=json.dumps(json_nms),
-        )
-        return ctx
-
-    def post(self, request, *args, **kw):
-        # Perform assignment if requested
-        am_key = request.POST.get("am", None)
-        am = bmodels.AM.lookup_or_404(am_key)
-        nm_key = request.POST.get("nm", None)
-        nm = bmodels.Process.lookup_or_404(nm_key)
-        _assign_am(request, self.visitor, nm, am)
-        context = self.get_context_data(**kw)
-        return self.render_to_response(context)
-
 class MailArchive(VisitorMixin, View):
     def get(self, request, key, *args, **kw):
         process = bmodels.Process.lookup_or_404(key)

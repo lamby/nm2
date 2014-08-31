@@ -124,7 +124,7 @@ $(function() {
 {% usemacro process_table prog_poll_sent "" %}
 
 <p>The following applicants are waiting for an Application Manager to be
-assigned (first one is oldest). {% if am_available %}<a href="{% url 'restricted_nm_am_match' %}">Compute best matches</a>.{% else %}Currently there are no free application managers.{% endif %}</p>
+assigned (first one is oldest).</p>
 {% usemacro process_table prog_app_ok "" %}
 
 <p>Applicants currently not ready to be assigned to an AM (ordered by hold date):</p>
