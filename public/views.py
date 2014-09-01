@@ -130,7 +130,7 @@ class Process(VisitorTemplateView):
         ctx.update(
             process=process,
             person=process.person,
-            perms=perms,
+            vperms=perms,
         )
 
         # Process form ASAP, so we compute the rest with updated values
