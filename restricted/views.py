@@ -253,7 +253,7 @@ class NewProcess(VisitPersonTemplateView):
                 became_dm = None
                 for p in self.person.processes.filter(is_active=False, applying_for__in=self.dm_statuses) \
                                             .annotate(last_change=Max("log__logdate")) \
-                                            .order_by("last_change")[0]:
+                                            .order_by("last_change"):
                     became_dm = p.last_change
                 if not became_dm:
                     became_dm = self.person.status_changed
