@@ -402,26 +402,24 @@ class CheckDjangoPermissions(hk.Task):
     DEPENDS = [MakeLink]
 
     def run_main(self, stage):
-        from django.contrib.auth.models import User
         from django.db.models import Q
 
         # Get the list of users that django thinks are powerful
-        django_power_users = set()
-        for u in User.objects.all():
-            if u.is_staff or u.is_superuser:
-                django_power_users.add(u.id)
+        person_power_users = set()
+        for p in bmodels.Person.objects.all():
+            if p.is_staff or p.is_superuser:
+                person_power_users.add(p.id)
 
         # Get the list of users that we think are powerful
-        nm_power_users = set()
+        am_power_users = set()
         for a in bmodels.AM.objects.filter(Q(is_fd=True) | Q(is_dam=True)):
-            if a.person.user is None:
-                log.warning("%s: %s: no corresponding django user", self.IDENTIFIER, self.hk.link(a.person))
-            else:
-                nm_power_users.add(a.person.user.id)
+            am_power_users.add(a.person.id)
 
-        for id in (django_power_users - nm_power_users):
-            log.warning("%s: auth.models.User.id %d has powers that the NM site does not know about",
-                        self.IDENTIFIER, id)
-        for id in (nm_power_users - django_power_users):
-            log.warning("%s: auth.models.User.id %d has powers in NM that django does not know about",
-                        self.IDENTIFIER, id)
+        for id in (person_power_users - am_power_users):
+            p = bmodels.Person.objects.get(pk=id)
+            log.warning("%s: bmodels.Person.id %d (%s) has powers that bmodels.AM does not know about",
+                        self.IDENTIFIER, id, p.lookup_key)
+        for id in (am_power_users - person_power_users):
+            p = bmodels.Person.objects.get(pk=id)
+            log.warning("%s: bmodels.Person.id %d (%s) has powers in bmodels.AM that bmodels.Person does not know about",
+                        self.IDENTIFIER, id, p.lookup_key)
