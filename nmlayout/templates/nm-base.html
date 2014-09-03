@@ -32,13 +32,20 @@
 
 {% block relatedpages %}
 {% if user.is_anonymous %}
-<a href="https://sso.debian.org/sso/login?url={{request.build_absolute_uri}}&site=NM">login</a>
+ {% if request.sso_username %}
+  <a href="{% url 'public_newnm' %}">{{request.sso_username}} not known to this site yet</a>
+ {% else %}
+  <a href="https://sso.debian.org/sso/login?url={{request.build_absolute_uri}}&site=NM">login</a>
+ {% endif %}
 {% else %}
-{% if visitor.is_am %}
-<a href="{% url 'restricted_ammain' %}">{{visitor.lookup_key}}</a>
-{% else %}
+ {% if visitor.is_am %}
+  <a href="{% url 'restricted_ammain' %}">{{visitor.lookup_key}}</a>
+ {% else %}
+  <a href="{{visitor.get_absolute_url}}">{{visitor.lookup_key}}</a>
+ {% endif %}
 {% endif %}
-<a href="https://sso.debian.org/sso/logout?url={{request.build_absolute_uri}}">logout</a>
+{% if request.sso_username %}
+  <a href="https://sso.debian.org/sso/logout?url={{request.build_absolute_uri}}">logout</a>
 {% endif %}
 {% comment %}
     <a href="{% url 'search_packages' %}">Search</a>

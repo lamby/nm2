@@ -61,6 +61,10 @@ class DACSRemoteUserMiddleware(django.contrib.auth.middleware.RemoteUserMiddlewa
         if request.user.is_authenticated():
             if request.user.username == self.clean_username(dacs_user, request):
                 return
+            else:
+                # sso username does not match the current person: we may have
+                # an invalid entry in the browser session. Force a new login.
+                auth.logout(request)
 
         # We are seeing this user for the first time in this session, attempt
         # to authenticate the user.
@@ -70,6 +74,11 @@ class DACSRemoteUserMiddleware(django.contrib.auth.middleware.RemoteUserMiddlewa
             # by logging the user in.
             request.user = user
             auth.login(request, user)
+        else:
+            # Actually, make really sure we are logged out!
+            # FIXME: do we need to file a django bug for this case as well?
+            if request.user.is_authenticated():
+                auth.logout(request)
 
 class DACSUserBackend(django.contrib.auth.backends.RemoteUserBackend):
     """

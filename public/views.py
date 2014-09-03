@@ -574,7 +574,7 @@ class NewPersonForm(forms.ModelForm):
             "bio": forms.Textarea(attrs={'cols': 80, 'rows': 25}),
         }
 
-class Newnm(FormView):
+class Newnm(VisitorMixin, FormView):
     """
     Display the new Person form
     """
