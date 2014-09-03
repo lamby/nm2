@@ -8,6 +8,17 @@ DACSInfo = namedtuple('DACSInfo', ('federation', 'unknown1', "jurisdiction", "us
 
 TEST_REMOTE_USER = getattr(settings, "DACS_TEST_USERNAME", None)
 
+def _clean_dacs_username(username):
+    """
+    Map usernames from DACS to usernames in our auth database
+    """
+    # Take the username out of DACS parts
+    info = DACSInfo(*username.split(":"))
+    if '@' in info.username:
+        return info.username
+    else:
+        return info.username + "@debian.org"
+
 class DACSRemoteUserMiddleware(django.contrib.auth.middleware.RemoteUserMiddleware):
     header = 'REMOTE_USER'
 
@@ -41,6 +52,8 @@ class DACSRemoteUserMiddleware(django.contrib.auth.middleware.RemoteUserMiddlewa
                 auth.logout(request)
             return
 
+        request.sso_username = _clean_dacs_username(dacs_user)
+
         # If the user is already authenticated and that user is the user we are
         # getting passed in the headers, then the correct user is already
         # persisted in the session and we don't need to continue.
@@ -62,16 +75,8 @@ class DACSUserBackend(django.contrib.auth.backends.RemoteUserBackend):
     RemoteUserBackend customised to create User objects from Person
     """
 
-    def split_dacs_user(self, username):
-        return DACSInfo(*username.split(":"))
-
     def clean_username(self, username):
         """
         Map usernames from DACS to usernames in our auth database
         """
-        # Take the username out of DACS parts
-        info = self.split_dacs_user(username)
-        if '@' in info.username:
-            return info.username
-        else:
-            return info.username + "@debian.org"
+        return _clean_dacs_username(username)
