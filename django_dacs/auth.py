@@ -42,6 +42,7 @@ class DACSRemoteUserMiddleware(django.contrib.auth.middleware.RemoteUserMiddlewa
         try:
             dacs_user = request.META[self.header]
         except KeyError:
+            request.sso_username = None
             # If specified header doesn't exist then return (leaving
             # request.user set to AnonymousUser by the
             # AuthenticationMiddleware).

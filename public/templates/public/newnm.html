@@ -287,26 +287,44 @@ $(main);
 </div>
 {% endif %}
 
-<h2 id="hasentry">If you already have an entry in the system</h2>
+{% if person %}
+<h2 id="hasentry">You already have an entry in the system</h2>
 
-<p>You should already have an entry in the system if you are a DD, a DM, or
-have a guest account on Debian machines.</p>
+<p>You already have an entry in the system if you are a DD, a DM, have a guest
+account on Debian machines or have already applied on this page.</p>
 
-<p>You can check <a href="{% url 'public_findperson' %}">here</a>: if you find
-your own page, send its link to your advocate(s). They can then:
+{% if "dd" in person.perms %}
+<p>Not only you have an entry, but you are also <i>{{person.status|desc_status}}</i>.
+The rest of this page does not apply to you, but you can still see it so that
+you know how it looks like if you want to refer prospective new applicants to
+this page.</p>
+{% endif %}
+
+<p>To have people advocate you, refer them to
+<a href="{{person.get_absolute_url}}">this link</a>.
+They can then:
 <ol>
 	<li>login;</li>
-	<li>click on "advocate for DD" on the top right of the page;</li>
-	<li>follow the simple instructions.</li>
+	<li>click on one of the "advocate" links on the top right of the page;</li>
+	<li>follow the instructions.</li>
 </ol>
 </p>
+{% endif %}
 
+{% if not request.sso_username %}
 
-<h2>If you do not have an entry in the system</h2>
+<h2>Please login first</h2>
 
-<p>Have you checked <a href="{% url 'public_findperson' %}">here</a>? If you
-already have an entry, see <a href="#hasentry">above</a>. Otherwise, keep
-going; the form is quite long, so you may want to read it all from top to
+You can login using with your Alioth credentials using
+<a href="https://sso.debian.org/sso/login?url={{request.build_absolute_uri}}&site=NM">this link</a>.
+
+{% else %}
+
+<h2>Apply for an entry in the system</h2>
+
+<p>With the form below you can apply to have an entry in the system, so that
+people can advocate you to have some permission granted or some new role in
+Debian. The form is quite long, so you may want to read it all from top to
 bottom before starting to fill it in.</p>
 
 <p>Note that after you submit the form, you will have {{DAYS_VALID}} days to
@@ -439,5 +457,7 @@ that you can read encrypted email before spending time on this form.</p>
     <input type="submit">
   </div>
 </form>
+
+{% endif %}
 
 {% endblock %}

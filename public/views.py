@@ -27,6 +27,7 @@ from django.core.exceptions import PermissionDenied
 from django.utils.translation import ugettext as _
 from django.utils.timezone import now
 from django.views.generic import TemplateView
+from django.views.generic.edit import FormView
 import backend.models as bmodels
 import backend.email as bemail
 from backend import const
@@ -573,43 +574,60 @@ class NewPersonForm(forms.ModelForm):
             "bio": forms.Textarea(attrs={'cols': 80, 'rows': 25}),
         }
 
-def newnm(request):
+class Newnm(FormView):
     """
     Display the new Person form
     """
+    template_name = "public/newnm.html"
+    form_class = NewPersonForm
     DAYS_VALID = 3
 
-    if request.method == 'POST':
-        form = NewPersonForm(request.POST)
-        if form.is_valid():
-            person = form.save(commit=False)
-            person.status = const.STATUS_MM
-            person.status_changed = now()
-            person.make_pending(days_valid=DAYS_VALID)
-            person.save()
-            # Redirect to the send challenge page
-            return redirect("public_newnm_resend_challenge", key=person.lookup_key)
-    else:
-        form = NewPersonForm()
-    errors = []
-    for k, v in form.errors.iteritems():
-        if k in ("cn", "mn", "sn"):
-            section = "name"
-        elif k in ("sc_ok", "dmup_ok"):
-            section = "rules"
+    def get_success_url(self):
+        return redirect("public_newnm_resend_challenge", key=self.request.user.lookup_key)
+
+    def form_valid(self, form):
+        person = form.save(commit=False)
+        person.username = self.request.sso_username
+        person.status = const.STATUS_MM
+        person.status_changed = now()
+        person.make_pending(days_valid=self.DAYS_VALID)
+        person.save()
+        # Redirect to the send challenge page
+        return redirect("public_newnm_resend_challenge", key=person.lookup_key)
+
+    def get_context_data(self, **kw):
+        ctx = super(Newnm, self).get_context_data(**kw)
+        form = ctx["form"]
+        errors = []
+        for k, v in form.errors.iteritems():
+            if k in ("cn", "mn", "sn"):
+                section = "name"
+            elif k in ("sc_ok", "dmup_ok"):
+                section = "rules"
+            else:
+                section = k
+            errors.append({
+                "section": section,
+                "label": form.fields[k].label,
+                "id": k,
+                "errors": v,
+            })
+
+        if self.request.sso_username:
+            try:
+                person = bmodels.Person.objects.get(username=self.request.sso_username)
+            except bmodels.Person.DoesNotExist:
+                person = None
         else:
-            section = k
-        errors.append({
-            "section": section,
-            "label": form.fields[k].label,
-            "id": k,
-            "errors": v,
-        })
-    return render(request, "public/newnm.html", {
-        "form": form,
-        "errors": errors,
-        "DAYS_VALID": DAYS_VALID,
-    })
+            person = None
+
+        ctx.update(
+            person=person,
+            form=form,
+            errors=errors,
+            DAYS_VALID=self.DAYS_VALID,
+        )
+        return ctx
 
 def newnm_resend_challenge(request, key):
     """
