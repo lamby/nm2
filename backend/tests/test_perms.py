@@ -13,7 +13,7 @@ from backend.test_common import *
 class PermissionsTestCase(NMBasicFixtureMixin, TestCase):
     def setUp(self):
         super(PermissionsTestCase, self).setUp()
-        self.applicant = self.make_user("applicant", const.STATUS_MM)
+        self.applicant = self.make_user("applicant", const.STATUS_DC)
         self.am = self.make_user("am", const.STATUS_DD_NU)
         self.make_process(self.applicant, const.STATUS_DD_NU, const.PROGRESS_AM, manager=self.am)
         self.e_dd = self.make_user("e_dd", const.STATUS_EMERITUS_DD)
@@ -22,9 +22,9 @@ class PermissionsTestCase(NMBasicFixtureMixin, TestCase):
         self.r_dm = self.make_user("r_dm", const.STATUS_REMOVED_DM)
         self.am_e_dd = self.make_user("am_e_dd", const.STATUS_EMERITUS_DD)
         self.am_r_dd = self.make_user("am_r_dd", const.STATUS_REMOVED_DD)
-        self.applicant1 = self.make_user("applicant1", const.STATUS_MM)
+        self.applicant1 = self.make_user("applicant1", const.STATUS_DC)
         self.make_process(self.applicant1, const.STATUS_DD_NU, const.PROGRESS_AM, manager=self.am_e_dd)
-        self.applicant2 = self.make_user("applicant2", const.STATUS_MM)
+        self.applicant2 = self.make_user("applicant2", const.STATUS_DC)
         self.make_process(self.applicant2, const.STATUS_DD_NU, const.PROGRESS_AM, manager=self.am_r_dd)
 
     def assertPerms(self, pname, perms):

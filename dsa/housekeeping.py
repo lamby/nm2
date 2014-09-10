@@ -100,7 +100,7 @@ class NewGuestAccountsFromDSA(hk.Task):
                 email=entry.single("emailForward"),
                 uid=entry.uid,
                 fpr=entry.single("keyFingerPrint"),
-                status=const.STATUS_MM_GA,
+                status=const.STATUS_DC_GA,
             )
             p.save()
             log.info("%s (guest account only) imported from LDAP", self.hk.link(p))

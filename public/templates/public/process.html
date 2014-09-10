@@ -37,7 +37,7 @@ $(function() {
     //   logtext: button sets log text to this value
     //   hook: function to execute on button press
     var macros = [
-{% if process.applying_for == STATUS_MM_GA or process.applying_for == STATUS_DM_GA %}
+{% if process.applying_for == STATUS_DC_GA or process.applying_for == STATUS_DM_GA %}
     {
         admin: true,
         label: "Approve",
@@ -201,7 +201,7 @@ TODO: assign AM, field with uid and macros to fill it with a list of free ones
 
 <h1>Status Page for {{person.fullname}}</h1>
 
-{% if process.applying_for == STATUS_MM_GA or process.applying_for == STATUS_DM_GA %}
+{% if process.applying_for == STATUS_DC_GA or process.applying_for == STATUS_DM_GA %}
 <div id="checklist">
 <h2>Guest account activation checklist</h2>
 <ul>
@@ -287,7 +287,7 @@ not submit the form. That is so that you have a chance to add a log entry if
 you wish to add a note to the progress update.</p>
 </div>
 
-{% if process.applying_for == STATUS_MM_GA or process.applying_for == STATUS_DM_GA %}
+{% if process.applying_for == STATUS_DC_GA or process.applying_for == STATUS_DM_GA %}
 <div id="dam-mail">
 <h2>Draft activation email</h2>
 <textarea rows="25" cols="80">

@@ -19,11 +19,11 @@ class NMBasicFixtureMixin(object):
 
         # anonymous
         # pending account
-        self.make_user("pending", const.STATUS_MM, expires=now() + datetime.timedelta(days=1), pending="12345", alioth=True)
+        self.make_user("pending", const.STATUS_DC, expires=now() + datetime.timedelta(days=1), pending="12345", alioth=True)
         # debian contributor
-        self.make_user("dc", const.STATUS_MM, alioth=True)
+        self.make_user("dc", const.STATUS_DC, alioth=True)
         # debian contributor with guest account
-        self.make_user("dc_ga", const.STATUS_MM_GA, alioth=True)
+        self.make_user("dc_ga", const.STATUS_DC_GA, alioth=True)
         # dm
         self.make_user("dm", const.STATUS_DM, alioth=True)
         # dm with guest account
@@ -33,9 +33,9 @@ class NMBasicFixtureMixin(object):
         # dd, uploading
         self.make_user("dd_u", const.STATUS_DD_U)
 #        # non-dd applicant
-#        app_dc = self.make_user("app_dc", const.STATUS_MM, alioth=True, fd_comment="FD_COMMENTS")
+#        app_dc = self.make_user("app_dc", const.STATUS_DC, alioth=True, fd_comment="FD_COMMENTS")
 #        # non-dd applicant
-#        app_dc_ga = self.make_user("app_dc_ga", const.STATUS_MM_GA, alioth=True, fd_comment="FD_COMMENTS")
+#        app_dc_ga = self.make_user("app_dc_ga", const.STATUS_DC_GA, alioth=True, fd_comment="FD_COMMENTS")
 #        # non-dd applicant
 #        app_dm = self.make_user("app_dm", const.STATUS_DM, alioth=True, fd_comment="FD_COMMENTS")
 #        # non-dd applicant
@@ -48,7 +48,7 @@ class NMBasicFixtureMixin(object):
 #        am =self.make_user("am", const.STATUS_DD_NU)
 #        am_am = bmodels.AM.objects.create(person=am, slots=1)
 #        proc = bmodels.Process.objects.create(person=applicant,
-#                                       applying_as=const.STATUS_MM_GA,
+#                                       applying_as=const.STATUS_DC_GA,
 #                                       applying_for=const.STATUS_DD_NU,
 #                                       progress=const.PROGRESS_AM,
 #                                       manager=am_am,
@@ -61,8 +61,8 @@ class NMBasicFixtureMixin(object):
 #        am_past = self.make_user("am_past", const.STATUS_DD_NU)
 #        am_am_past = bmodels.AM.objects.create(person=am_past, slots=1)
 #        proc = bmodels.Process.objects.create(person=applicant,
-#                                       applying_as=const.STATUS_MM,
-#                                       applying_for=const.STATUS_MM_GA,
+#                                       applying_as=const.STATUS_DC,
+#                                       applying_for=const.STATUS_DC_GA,
 #                                       progress=const.PROGRESS_DONE,
 #                                       manager=am_am_past,
 #                                       is_active=False)

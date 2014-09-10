@@ -53,12 +53,12 @@ class SimpleFixture(object):
         self.am_am = bmodels.AM(person=self.am, slots=1, is_am=True)
         self.am_am.save()
 
-        self.nm = bmodels.Person(cn="John", sn="Smith", email="doctor@example.com", status=bconst.STATUS_MM, bio="I meet people, I do things.")
+        self.nm = bmodels.Person(cn="John", sn="Smith", email="doctor@example.com", status=bconst.STATUS_DC, bio="I meet people, I do things.")
         self.nm.save()
 
     def make_process_dm(self, progress=bconst.PROGRESS_DONE):
         self.process_dm = bmodels.Process(person=self.nm,
-                                       applying_as=bconst.STATUS_MM,
+                                       applying_as=bconst.STATUS_DC,
                                        applying_for=bconst.STATUS_DM,
                                        progress=progress,
                                        manager=self.am_am,
@@ -226,12 +226,12 @@ class NotificationTest(TransactionTestCase):
 class SimpleFixtureFingerprintField(object):
     def __init__(self):
         bmodels.Person(cn="Marco", sn="Bardelli", email="safanaj@debian.org", uid="safanaj",
-                       status=bconst.STATUS_MM_GA,
-                       fpr="A410 5B0A 9F84 97EC AB5F  1683 8D5B 478C F7FE 4DAA").save()
+                status=bconst.STATUS_DC_GA,
+                fpr="A410 5B0A 9F84 97EC AB5F  1683 8D5B 478C F7FE 4DAA").save()
 
-        bmodels.Person(cn="Invalid", sn="FPR", email="invalid@debian.org", uid="invalid_fpr",
-                       status=bconst.STATUS_MM,
-                       fpr="FIXME: I'll let you know later when I'll have a bit of a clue").save()
+        bmodels.Person(cn="Invalid", sn="FPR", email="invalid@debian.org",
+                uid="invalid_fpr", status=bconst.STATUS_DC,
+                fpr="FIXME: I'll let you know later when I'll have a bit of a clue").save()
 
         bmodels.Person(cn="Empty", sn="FPR", email="empty@debian.org", uid="empty",
                        status=bconst.STATUS_DD_NU,
@@ -252,7 +252,7 @@ class FingerprintTest(TransactionTestCase):
         self.assertIsNone(on_db_empty_fpr)
 
         p = bmodels.Person(cn="Invalid", sn="FPR", email="invalid1@debian.org", uid="invalid_fpr1",
-                       status=bconst.STATUS_MM,
+                       status=bconst.STATUS_DC,
                        fpr="66B4 Invalid FPR BFAB")
         p.save()
         p1 = bmodels.Person.objects.get(uid="invalid_fpr1")
@@ -262,7 +262,7 @@ class FingerprintTest(TransactionTestCase):
 class PersonExpires(TransactionTestCase):
     def setUp(self):
         self.person = bmodels.Person(cn="Enrico", sn="Zini", email="enrico@debian.org", uid="enrico",
-                                     status=bconst.STATUS_MM, fpr="66B4DFB68CB24EBBD8650BC4F4B4B0CC797EBFAB")
+                                     status=bconst.STATUS_DC, fpr="66B4DFB68CB24EBBD8650BC4F4B4B0CC797EBFAB")
         self.person.save()
 
     def test_expires(self):
@@ -309,7 +309,7 @@ class PersonExpires(TransactionTestCase):
 
         # if expires is older than today and Person is not DC, then it does not
         # expire, and its 'expires' date is reset
-        self.person.status = bconst.STATUS_MM_GA
+        self.person.status = bconst.STATUS_DC_GA
         self.person.save()
         p = run_maint()
         self.assertIsNotNone(p)
@@ -317,10 +317,10 @@ class PersonExpires(TransactionTestCase):
 
         # if expires is older than today and Person has open processes, then it
         # does not expire, and its 'expires' date is reset
-        self.person.status = bconst.STATUS_MM
+        self.person.status = bconst.STATUS_DC
         self.person.save()
         proc = bmodels.Process(person=self.person,
-                applying_as=self.person.status, applying_for=bconst.STATUS_MM_GA,
+                applying_as=self.person.status, applying_for=bconst.STATUS_DC_GA,
                 progress=bconst.PROGRESS_APP_NEW, is_active=True)
         proc.save()
         p = run_maint()

@@ -297,7 +297,7 @@ class CheckKeyringLogs(hk.Task):
             #print("# %s goes from %s to DM (already known in the database) %s" % (p.lookup_key, p.status, self.rturl(rt)))
             pass # Already a DM
         else:
-            if p.status == const.STATUS_MM_GA:
+            if p.status == const.STATUS_DC_GA:
                 new_status = const.STATUS_DM_GA
             else:
                 new_status = const.STATUS_DM

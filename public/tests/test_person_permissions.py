@@ -113,8 +113,8 @@ class NoProcessTestCase(PersonTestMixin, TestCase):
     def test_dc(self):
         with visit(self, "dc"):
             self.assertPerms("fd dam dc", "edit_bio edit_ldap")
-            self.assertAdvs("fd dam dd_nu dd_u", "mm_ga dm dd_u dd_nu")
-            self.assertAdvs("dm dm_ga", "mm_ga")
+            self.assertAdvs("fd dam dd_nu dd_u", "dc_ga dm dd_u dd_nu")
+            self.assertAdvs("dm dm_ga", "dc_ga")
 
     def test_dc_ga(self):
         with visit(self, "dc_ga"):
@@ -280,19 +280,19 @@ class ProcDcgaAdvDMTestCase(ProcTestMixin, TestCase):
     """
     Test all visit combinations for an applicant from dc to dc_ga, with a dm advocate
     """
-    applying_as = const.STATUS_MM
-    applying_for = const.STATUS_MM_GA
+    applying_as = const.STATUS_DC
+    applying_for = const.STATUS_DC_GA
     advocate_status = const.STATUS_DM
 
     def assertAdvsInitial(self):
-        self.assertAdvs("fd dam am dd_nu dd_u", "mm_ga dm dd_u dd_nu")
-        self.assertAdvs("adv dm dm_ga", "mm_ga")
+        self.assertAdvs("fd dam am dd_nu dd_u", "dc_ga dm dd_u dd_nu")
+        self.assertAdvs("adv dm dm_ga", "dc_ga")
     def assertAdvsAdv(self):
-        self.assertAdvs("fd dam am dd_nu dd_u", "mm_ga dm dd_u dd_nu")
-        self.assertAdvs("dm dm_ga", "mm_ga")
+        self.assertAdvs("fd dam am dd_nu dd_u", "dc_ga dm dd_u dd_nu")
+        self.assertAdvs("dm dm_ga", "dc_ga")
     def assertAdvsAdvAM(self):
-        self.assertAdvs("fd dam dd_nu dd_u", "mm_ga dm dd_u dd_nu")
-        self.assertAdvs("dm dm_ga", "mm_ga")
+        self.assertAdvs("fd dam dd_nu dd_u", "dc_ga dm dd_u dd_nu")
+        self.assertAdvs("dm dm_ga", "dc_ga")
         self.assertAdvs("am", "dm dd_u dd_nu")
     def assertAdvsFDDAM(self):
         self.assertAdvs("fd dam am dd_nu dd_u", "dm dd_u dd_nu")
@@ -303,20 +303,20 @@ class ProcDcgaAdvDDTestCase(ProcTestMixin, TestCase):
     """
     Test all visit combinations for an applicant from dc to dc_ga, with a dd advocate
     """
-    applying_as = const.STATUS_MM
-    applying_for = const.STATUS_MM_GA
+    applying_as = const.STATUS_DC
+    applying_for = const.STATUS_DC_GA
     advocate_status = const.STATUS_DD_NU
 
     def assertAdvsInitial(self):
-        self.assertAdvs("fd dam adv am dd_nu dd_u", "mm_ga dm dd_u dd_nu")
-        self.assertAdvs("dm dm_ga", "mm_ga")
+        self.assertAdvs("fd dam adv am dd_nu dd_u", "dc_ga dm dd_u dd_nu")
+        self.assertAdvs("dm dm_ga", "dc_ga")
     def assertAdvsAdv(self):
-        self.assertAdvs("fd dam am dd_nu dd_u", "mm_ga dm dd_u dd_nu")
+        self.assertAdvs("fd dam am dd_nu dd_u", "dc_ga dm dd_u dd_nu")
         self.assertAdvs("adv", "dm dd_u dd_nu")
-        self.assertAdvs("dm dm_ga", "mm_ga")
+        self.assertAdvs("dm dm_ga", "dc_ga")
     def assertAdvsAdvAM(self):
-        self.assertAdvs("fd dam dd_nu dd_u", "mm_ga dm dd_u dd_nu")
-        self.assertAdvs("dm dm_ga", "mm_ga")
+        self.assertAdvs("fd dam dd_nu dd_u", "dc_ga dm dd_u dd_nu")
+        self.assertAdvs("dm dm_ga", "dc_ga")
         self.assertAdvs("adv am", "dm dd_u dd_nu")
     def assertAdvsFDDAM(self):
         self.assertAdvs("fd dam adv am dd_nu dd_u", "dm dd_u dd_nu")
@@ -374,24 +374,24 @@ class ProcDMTestCase(ProcTestMixin, TestCase):
     """
     Test all visit combinations for an applicant from dc to dc_ga, with a dd advocate
     """
-    applying_as = const.STATUS_MM
+    applying_as = const.STATUS_DC
     applying_for = const.STATUS_DM
     advocate_status = const.STATUS_DD_NU
 
     def assertAdvsInitial(self):
-        self.assertAdvs("fd dam adv am dd_nu dd_u", "mm_ga dm dd_u dd_nu")
-        self.assertAdvs("dm dm_ga", "mm_ga")
+        self.assertAdvs("fd dam adv am dd_nu dd_u", "dc_ga dm dd_u dd_nu")
+        self.assertAdvs("dm dm_ga", "dc_ga")
     def assertAdvsAdv(self):
-        self.assertAdvs("fd dam am dd_nu dd_u", "mm_ga dm dd_u dd_nu")
-        self.assertAdvs("dm dm_ga", "mm_ga")
-        self.assertAdvs("adv", "mm_ga dd_u dd_nu")
+        self.assertAdvs("fd dam am dd_nu dd_u", "dc_ga dm dd_u dd_nu")
+        self.assertAdvs("dm dm_ga", "dc_ga")
+        self.assertAdvs("adv", "dc_ga dd_u dd_nu")
     def assertAdvsAdvAM(self):
-        self.assertAdvs("fd dam dd_nu dd_u", "mm_ga dm dd_u dd_nu")
-        self.assertAdvs("dm dm_ga", "mm_ga")
-        self.assertAdvs("adv am", "mm_ga dd_u dd_nu")
+        self.assertAdvs("fd dam dd_nu dd_u", "dc_ga dm dd_u dd_nu")
+        self.assertAdvs("dm dm_ga", "dc_ga")
+        self.assertAdvs("adv am", "dc_ga dd_u dd_nu")
     def assertAdvsFDDAM(self):
-        self.assertAdvs("fd dam adv am dd_nu dd_u", "mm_ga dd_u dd_nu")
-        self.assertAdvs("dm dm_ga", "mm_ga")
+        self.assertAdvs("fd dam adv am dd_nu dd_u", "dc_ga dd_u dd_nu")
+        self.assertAdvs("dm dm_ga", "dc_ga")
     def assertAdvsDone(self):
         self.assertAdvs("fd dam adv am dd_nu dd_u", "dm_ga dd_u dd_nu")
         self.assertAdvs("app dm dm_ga", "dm_ga")
@@ -403,24 +403,24 @@ class ProcDcDdnuTestCase(ProcTestMixin, TestCase):
     """
     Test all visit combinations for an applicant from dc to dc_ga, with a dm advocate
     """
-    applying_as = const.STATUS_MM
+    applying_as = const.STATUS_DC
     applying_for = const.STATUS_DD_NU
     advocate_status = const.STATUS_DD_NU
 
     def assertAdvsInitial(self):
-        self.assertAdvs("fd dam adv am dd_nu dd_u", "mm_ga dm dd_u dd_nu")
-        self.assertAdvs("dm dm_ga", "mm_ga")
+        self.assertAdvs("fd dam adv am dd_nu dd_u", "dc_ga dm dd_u dd_nu")
+        self.assertAdvs("dm dm_ga", "dc_ga")
     def assertAdvsAdv(self):
-        self.assertAdvs("fd dam am dd_nu dd_u", "mm_ga dm dd_u dd_nu")
-        self.assertAdvs("dm dm_ga", "mm_ga")
-        self.assertAdvs("adv", "mm_ga dm")
+        self.assertAdvs("fd dam am dd_nu dd_u", "dc_ga dm dd_u dd_nu")
+        self.assertAdvs("dm dm_ga", "dc_ga")
+        self.assertAdvs("adv", "dc_ga dm")
     def assertAdvsAdvAM(self):
-        self.assertAdvs("fd dam dd_nu dd_u", "mm_ga dm dd_u dd_nu")
-        self.assertAdvs("dm dm_ga", "mm_ga")
-        self.assertAdvs("adv am", "mm_ga dm")
+        self.assertAdvs("fd dam dd_nu dd_u", "dc_ga dm dd_u dd_nu")
+        self.assertAdvs("dm dm_ga", "dc_ga")
+        self.assertAdvs("adv am", "dc_ga dm")
     def assertAdvsFDDAM(self):
-        self.assertAdvs("fd dam adv am dd_nu dd_u", "mm_ga dm")
-        self.assertAdvs("dm dm_ga", "mm_ga")
+        self.assertAdvs("fd dam adv am dd_nu dd_u", "dc_ga dm")
+        self.assertAdvs("dm dm_ga", "dc_ga")
     def assertAdvsDone(self):
         pass
 
@@ -428,7 +428,7 @@ class ProcDcgaDdnuTestCase(ProcTestMixin, TestCase):
     """
     Test all visit combinations for an applicant from dc to dc_ga, with a dm advocate
     """
-    applying_as = const.STATUS_MM_GA
+    applying_as = const.STATUS_DC_GA
     applying_for = const.STATUS_DD_NU
     advocate_status = const.STATUS_DD_NU
 
@@ -461,24 +461,24 @@ class ProcDcDduTestCase(ProcTestMixin, TestCase):
     """
     Test all visit combinations for an applicant from dc to dc_ga, with a dm advocate
     """
-    applying_as = const.STATUS_MM
+    applying_as = const.STATUS_DC
     applying_for = const.STATUS_DD_U
     advocate_status = const.STATUS_DD_U
 
     def assertAdvsInitial(self):
-        self.assertAdvs("fd dam adv am dd_nu dd_u", "mm_ga dm dd_u dd_nu")
-        self.assertAdvs("dm dm_ga", "mm_ga")
+        self.assertAdvs("fd dam adv am dd_nu dd_u", "dc_ga dm dd_u dd_nu")
+        self.assertAdvs("dm dm_ga", "dc_ga")
     def assertAdvsAdv(self):
-        self.assertAdvs("fd dam am dd_nu dd_u", "mm_ga dm dd_u dd_nu")
-        self.assertAdvs("dm dm_ga", "mm_ga")
-        self.assertAdvs("adv", "mm_ga dm")
+        self.assertAdvs("fd dam am dd_nu dd_u", "dc_ga dm dd_u dd_nu")
+        self.assertAdvs("dm dm_ga", "dc_ga")
+        self.assertAdvs("adv", "dc_ga dm")
     def assertAdvsAdvAM(self):
-        self.assertAdvs("fd dam dd_nu dd_u", "mm_ga dm dd_u dd_nu")
-        self.assertAdvs("dm dm_ga", "mm_ga")
-        self.assertAdvs("adv am", "mm_ga dm")
+        self.assertAdvs("fd dam dd_nu dd_u", "dc_ga dm dd_u dd_nu")
+        self.assertAdvs("dm dm_ga", "dc_ga")
+        self.assertAdvs("adv am", "dc_ga dm")
     def assertAdvsFDDAM(self):
-        self.assertAdvs("fd dam adv am dd_nu dd_u", "mm_ga dm")
-        self.assertAdvs("dm dm_ga", "mm_ga")
+        self.assertAdvs("fd dam adv am dd_nu dd_u", "dc_ga dm")
+        self.assertAdvs("dm dm_ga", "dc_ga")
     def assertAdvsDone(self):
         pass
 
@@ -486,7 +486,7 @@ class ProcDcgaDduTestCase(ProcTestMixin, TestCase):
     """
     Test all visit combinations for an applicant from dc to dc_ga, with a dm advocate
     """
-    applying_as = const.STATUS_MM_GA
+    applying_as = const.STATUS_DC_GA
     applying_for = const.STATUS_DD_U
     advocate_status = const.STATUS_DD_U
 

@@ -275,7 +275,7 @@ class PersonExpires(hk.Task):
         """
         today = datetime.date.today()
         for p in bmodels.Person.objects.filter(expires__lt=today):
-            if p.status != const.STATUS_MM:
+            if p.status != const.STATUS_DC:
                 log.info("%s: removing expiration date for %s who has become %s",
                          self.IDENTIFIER, self.hk.link(p), p.status)
                 p.expires = None

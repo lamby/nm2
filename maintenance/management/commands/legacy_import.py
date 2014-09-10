@@ -185,8 +185,8 @@ class Importer(object):
             try:
                 person = bmodels.Person.objects.get(uid=uid)
                 person.fpr = fpr
-                if person.status == const.STATUS_MM:
-                    person.status = const.STATUS_MM_GA
+                if person.status == const.STATUS_DC:
+                    person.status = const.STATUS_DC_GA
                 person.save()
                 continue
             except bmodels.Person.DoesNotExist:
@@ -197,8 +197,8 @@ class Importer(object):
                 person = bmodels.Person.objects.get(email=uid + "@debian.org")
                 person.uid = uid
                 person.fpr = fpr
-                if person.status == const.STATUS_MM:
-                    person.status = const.STATUS_MM_GA,
+                if person.status == const.STATUS_DC:
+                    person.status = const.STATUS_DC_GA,
                 person.save()
                 continue
             except bmodels.Person.DoesNotExist:
@@ -209,8 +209,8 @@ class Importer(object):
                 person = bmodels.Person.objects.get(email=email)
                 person.uid = uid
                 person.fpr = fpr
-                if person.status == const.STATUS_MM:
-                    person.status = const.STATUS_MM_GA,
+                if person.status == const.STATUS_DC:
+                    person.status = const.STATUS_DC_GA,
                 person.save()
                 continue
             except bmodels.Person.DoesNotExist:
@@ -237,7 +237,7 @@ class Importer(object):
                 uid=uid,
                 # Default to MM_GA: if they are in LDAP, they have at least a
                 # guest account
-                status=const.STATUS_MM_GA,
+                status=const.STATUS_DC_GA,
             )
             if get_field("gidNumber") == '800':
                 person.email = uid + "@debian.org"

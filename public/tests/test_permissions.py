@@ -82,7 +82,7 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
             data = {
                 "cn": "Test",
                 "email": "test@example.org",
-                "status": const.STATUS_MM,
+                "status": const.STATUS_DC,
             }
             def setUp(self, fixture):
                 super(WhenPost, self).setUp(fixture)
@@ -120,9 +120,9 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
         class WhenViewOther(NMTestUtilsWhen):
             def setUp(self, fixture):
                 super(WhenViewOther, self).setUp(fixture)
-                self.person = bmodels.Person.objects.create(cn="Other", email="other@example.org", status=const.STATUS_MM)
+                self.person = bmodels.Person.objects.create(cn="Other", email="other@example.org", status=const.STATUS_DC)
                 self.process = bmodels.Process.objects.create(person=self.person,
-                                               applying_as=const.STATUS_MM,
+                                               applying_as=const.STATUS_DC,
                                                applying_for=const.STATUS_DD_NU,
                                                progress=const.PROGRESS_APP_OK,
                                                is_active=True)
@@ -162,7 +162,7 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
 class ProcessesTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
     def setUp(self):
         super(ProcessesTestCase, self).setUp()
-        self.app = self.make_user("app", const.STATUS_MM, alioth=True, fd_comment="FD_COMMENTS")
+        self.app = self.make_user("app", const.STATUS_DC, alioth=True, fd_comment="FD_COMMENTS")
         self.adv = self.make_user("adv", const.STATUS_DD_NU)
         self.am = self.make_user("am", const.STATUS_DD_NU)
         self.am_am = bmodels.AM.objects.create(person=self.am)
@@ -195,7 +195,7 @@ class ProcessesTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
 class ManagersTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
     def setUp(self):
         super(ManagersTestCase, self).setUp()
-        self.app = self.make_user("app", const.STATUS_MM, alioth=True, fd_comment="FD_COMMENTS")
+        self.app = self.make_user("app", const.STATUS_DC, alioth=True, fd_comment="FD_COMMENTS")
         self.adv = self.make_user("adv", const.STATUS_DD_NU)
         self.am = self.make_user("am", const.STATUS_DD_NU)
         self.am_am = bmodels.AM.objects.create(person=self.am)

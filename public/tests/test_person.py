@@ -21,7 +21,7 @@ class PersonPageTestCase(TestCase):
 
         # Create a test person and process
         person = factory.make_one(Person, cn='Test', sn='User', email='testuser@debian.org')
-        process = factory.make_one(Process, person=person, applying_as=const.ALL_STATUS_BYTAG['mm'], applying_for=const.ALL_STATUS_BYTAG['dm'])
+        process = factory.make_one(Process, person=person, applying_as=const.STATUS_DC, applying_for=const.STATUS_DM)
 
         # Check that the new person is listed on the page
         response = self.client.get('/public/people')

@@ -30,8 +30,8 @@ g = globals()
 # Status of a person in Debian
 ALL_STATUS = (
     # TODO: could become DC
-    Status("STATUS_MM",          "mm",     "DC",            "Debian Contributor"),
-    Status("STATUS_MM_GA",       "mm_ga",  "DC+account",    "Debian Contributor, with guest account"),
+    Status("STATUS_DC",          "dc",     "DC",            "Debian Contributor"),
+    Status("STATUS_DC_GA",       "dc_ga",  "DC+account",    "Debian Contributor, with guest account"),
     Status("STATUS_DM",          "dm",     "DM",            "Debian Maintainer"),
     Status("STATUS_DM_GA",       "dm_ga",  "DM+account",    "Debian Maintainer, with guest account"),
     Status("STATUS_DD_U",        "dd_u",   "DD, upl.",      "Debian Developer, uploading"),

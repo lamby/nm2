@@ -238,8 +238,8 @@ class Process(VisitorTemplateView):
 
 
 SIMPLIFY_STATUS = {
-    const.STATUS_MM: "new",
-    const.STATUS_MM_GA: "new",
+    const.STATUS_DC: "new",
+    const.STATUS_DC_GA: "new",
     const.STATUS_DM: "dm",
     const.STATUS_DM_GA: "dm",
     const.STATUS_DD_U: "dd",
@@ -588,7 +588,7 @@ class Newnm(VisitorMixin, FormView):
     def form_valid(self, form):
         person = form.save(commit=False)
         person.username = self.request.sso_username
-        person.status = const.STATUS_MM
+        person.status = const.STATUS_DC
         person.status_changed = now()
         person.make_pending(days_valid=self.DAYS_VALID)
         person.save()

@@ -156,7 +156,7 @@ class PersonVisitorPermissions(object):
     """
     fddam_states = frozenset((const.PROGRESS_AM_OK, const.PROGRESS_FD_HOLD,
         const.PROGRESS_FD_OK, const.PROGRESS_DAM_HOLD, const.PROGRESS_DAM_OK))
-    pre_dd_statuses = frozenset((const.STATUS_MM, const.STATUS_MM_GA,
+    pre_dd_statuses = frozenset((const.STATUS_DC, const.STATUS_DC_GA,
                                     const.STATUS_DM, const.STATUS_DM_GA,
                                     const.STATUS_EMERITUS_DD, const.STATUS_EMERITUS_DM,
                                     const.STATUS_REMOVED_DD, const.STATUS_REMOVED_DM))
@@ -220,7 +220,7 @@ class PersonVisitorPermissions(object):
         """
         # If the person is already in LDAP, then nobody can edit their LDAP
         # info, since this database then becomes a read-only mirror of LDAP
-        return self.person.status not in (const.STATUS_MM, const.STATUS_DM)
+        return self.person.status not in (const.STATUS_DC, const.STATUS_DM)
 
     @cached_property
     def _can_edit_ldap_fields(self):
@@ -290,7 +290,7 @@ class PersonVisitorPermissions(object):
         # Anonymous visitors cannot advocate
         if not self.visitor: return []
         # Mere mortals cannot currently advocate
-        if self.visitor.status in (const.STATUS_MM, const.STATUS_MM_GA): return []
+        if self.visitor.status in (const.STATUS_DC, const.STATUS_DC_GA): return []
 
         def involved_pks(proc):
             pks = {a.pk for a in proc.advocates.all()}
@@ -307,24 +307,24 @@ class PersonVisitorPermissions(object):
             return True
 
         res = []
-        if (self.person.status == const.STATUS_MM
+        if (self.person.status == const.STATUS_DC
             and self.visitor.pk != self.person.pk
             and self.visitor.status in self.dm_or_dd
-            and can_add_advocate(const.STATUS_MM_GA)):
-            res.append(const.STATUS_MM_GA)
+            and can_add_advocate(const.STATUS_DC_GA)):
+            res.append(const.STATUS_DC_GA)
 
         if (self.person.status == const.STATUS_DM
             and self.visitor.status in self.dm_or_dd
             and can_add_advocate(const.STATUS_DM_GA)):
                 res.append(const.STATUS_DM_GA)
 
-        if (self.person.status == const.STATUS_MM
+        if (self.person.status == const.STATUS_DC
             and self.visitor.pk != self.person.pk
             and self.visitor.status in self.dd
             and can_add_advocate(const.STATUS_DM)):
             res.append(const.STATUS_DM)
 
-        if (self.person.status == const.STATUS_MM_GA
+        if (self.person.status == const.STATUS_DC_GA
             and self.visitor.pk != self.person.pk
             and self.visitor.status in self.dd
             and can_add_advocate(const.STATUS_DM_GA)):
@@ -438,7 +438,7 @@ class Person(PermissionsMixin, models.Model):
     created = models.DateTimeField("Person record created", null=True, default=datetime.datetime.utcnow)
     expires = models.DateField("Expiration date for the account", null=True, blank=True, default=None,
             help_text="This person will be deleted after this date if the status is still {} and"
-                      " no Process has started".format(const.STATUS_MM))
+                      " no Process has started".format(const.STATUS_DC))
     pending = models.CharField("Nonce used to confirm this pending record", max_length=255, unique=False, blank=True)
 
     def get_full_name(self):

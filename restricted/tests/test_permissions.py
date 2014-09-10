@@ -13,7 +13,7 @@ from backend.test_common import *
 class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
     def setUp(self):
         super(PermissionsTestCase, self).setUp()
-        self.app = self.make_user("app", const.STATUS_MM, alioth=True, fd_comment="FD_COMMENTS")
+        self.app = self.make_user("app", const.STATUS_DC, alioth=True, fd_comment="FD_COMMENTS")
         self.adv = self.make_user("adv", const.STATUS_DD_NU)
         self.am = self.make_user("am", const.STATUS_DD_NU)
         self.proc = self.make_process(self.app, const.STATUS_DD_NU, const.PROGRESS_AM, advocates=[self.adv], manager=self.am)
@@ -102,7 +102,7 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
 class AMProfileTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TransactionTestCase):
     def setUp(self):
         super(AMProfileTestCase, self).setUp()
-        self.app = self.make_user("app", const.STATUS_MM, alioth=True, fd_comment="FD_COMMENTS")
+        self.app = self.make_user("app", const.STATUS_DC, alioth=True, fd_comment="FD_COMMENTS")
         self.adv = self.make_user("adv", const.STATUS_DD_NU)
         self.am = self.make_user("am", const.STATUS_DD_NU)
         self.am_am = bmodels.AM.objects.create(person=self.am, slots=1, is_am=True)
@@ -189,7 +189,7 @@ class AMProfileTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TransactionTestCa
 class AssignAMTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
     def setUp(self):
         super(AssignAMTestCase, self).setUp()
-        self.app = self.make_user("app", const.STATUS_MM, alioth=True, fd_comment="FD_COMMENTS")
+        self.app = self.make_user("app", const.STATUS_DC, alioth=True, fd_comment="FD_COMMENTS")
         self.adv = self.make_user("adv", const.STATUS_DD_NU)
         self.am = self.make_user("am", const.STATUS_DD_NU)
         self.am_am = bmodels.AM.objects.create(person=self.am, slots=1, is_am=True)
@@ -210,7 +210,7 @@ class AssignAMTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
 class AssignAMAgainTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
     def setUp(self):
         super(AssignAMAgainTestCase, self).setUp()
-        self.app = self.make_user("app", const.STATUS_MM, alioth=True, fd_comment="FD_COMMENTS")
+        self.app = self.make_user("app", const.STATUS_DC, alioth=True, fd_comment="FD_COMMENTS")
         self.adv = self.make_user("adv", const.STATUS_DD_NU)
         self.am = self.make_user("am", const.STATUS_DD_NU)
         self.proc = self.make_process(self.app, const.STATUS_DD_NU, const.PROGRESS_AM, manager=self.am, advocates=[self.adv])
@@ -228,7 +228,7 @@ class AssignAMAgainTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
 class PersonTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TransactionTestCase):
     def setUp(self):
         super(PersonTestCase, self).setUp()
-        self.app = self.make_user("app", const.STATUS_MM, alioth=True, fd_comment="FD_COMMENTS")
+        self.app = self.make_user("app", const.STATUS_DC, alioth=True, fd_comment="FD_COMMENTS")
         self.adv = self.make_user("adv", const.STATUS_DD_NU)
         self.am = self.make_user("am", const.STATUS_DD_NU)
         self.proc = self.make_process(self.app, const.STATUS_DD_NU, const.PROGRESS_AM, manager=self.am, advocates=[self.adv])
@@ -250,7 +250,7 @@ class PersonTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TransactionTestCase)
             def __init__(self, user=None, person=None, **kw):
                 user = users[user] if user else None
                 self.person = users[person]
-                data = { "cn": "Z", "fd_comment": "Z", "bio": "Z", "email": self.person.email, "status": const.STATUS_MM }
+                data = { "cn": "Z", "fd_comment": "Z", "bio": "Z", "email": self.person.email, "status": const.STATUS_DC }
                 self.orig_cn = self.person.cn
                 self.orig_fd = self.person.fd_comment
                 self.orig_bio = self.person.bio
@@ -283,7 +283,7 @@ class PersonTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TransactionTestCase)
                 else:
                     fixture.assertEquals(person.bio, when.orig_bio)
                 if self.status:
-                    fixture.assertEquals(person.status, const.STATUS_MM )
+                    fixture.assertEquals(person.status, const.STATUS_DC )
                 else:
                     fixture.assertEquals(person.status, when.orig_status)
 
