@@ -1,7 +1,7 @@
 # coding: utf8
 # nm.debian.org website API
 #
-# Copyright (C) 2012--2013  Enrico Zini <enrico@debian.org>
+# Copyright (C) 2012--2014  Enrico Zini <enrico@debian.org>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -26,5 +26,6 @@ from . import views
 urlpatterns = patterns('api.views',
     url(r'^$', VisitorTemplateView.as_view(template_name="api/doc.html"), name="api_doc"),
     url(r'^people$', views.People.as_view(), name="api_people"),
+    url(r'^status$', views.Status.as_view(), name="api_status"),
 )
 

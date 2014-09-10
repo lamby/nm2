@@ -125,8 +125,9 @@ class NMTestUtilsWhen(object):
     url = None
     user = None
     data = None # Optional dict with GET or POST data
+    data_content_type = None # Content type to use for POST request. See: http://stackoverflow.com/questions/11802299/django-testing-post-based-views-with-json-objects
 
-    def __init__(self, method=None, url=None, user=None, data=None, **kw):
+    def __init__(self, method=None, url=None, user=None, data=None, data_content_type=None, **kw):
         """
         Set up the parameters used by assertVisit to make a request
         """
@@ -135,6 +136,7 @@ class NMTestUtilsWhen(object):
         if self.url is None or url is not None: self.url = url
         if self.user is None or user is not None: self.user = user
         if self.data is None or data is not None: self.data = data
+        if self.data_content_type is None or data_content_type is not None: self.data_content_type = data_content_type
         self.args = kw
 
     def setUp(self, fixture):
@@ -203,10 +205,10 @@ class NMTestUtilsMixin(object):
         when.setUp(self)
 
         meth = getattr(test_client, when.method)
-        if when.user is None:
-            response = meth(when.url, data=when.data)
-        else:
-            response = meth(when.url, data=when.data, REMOTE_USER=when.user.remote_user)
+        kw = { "data": when.data }
+        if when.user is not None: kw["REMOTE_USER"] = when.user.remote_user
+        if when.data_content_type: kw["content_type"] = when.data_content_type
+        response = meth(when.url, **kw)
 
         try:
             then(self, response, when, test_client)

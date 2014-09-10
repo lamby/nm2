@@ -66,5 +66,49 @@ $ curl https://nm.debian.org/api/people?cn=nric
 }
 </pre>
 
+<h2>{% url 'api_status' %}</h2>
+
+<p>Query the status of one, many or all people in the database</p>
+
+<p>GET parameters can be used to control the results:</p>
+
+<table>
+    <thead>
+      <tr><th>Auth required</th><th>key</th><th>value</th></tr>
+    </thead>
+    <tbody>
+    <tr><td>yes</td><td>status</td>
+      <td>Get a list of all the people with the given status. You can use a
+        comma-separated list of statuses, like <tt>dd_nu,dd_u</tt>.</td></tr>
+    <tr><td>no</td><td>person</td>
+      <td>Get the status of the person with the given SSO username. You can use
+        a comma-separated list of SSO usernames.</td></tr>
+    </tbody>
+</table>
+
+<p>If no parameter is specified, it returns a list of all known people. This
+requires authentication.</p>
+
+<p>Alternatively, you can POST a JSON list of SSO usernames, and get a reply
+with the status of those people. This does not require authentication.</p>
+
+<p>Example:</p>
+
+<pre>
+$ curl https://nm.debian.org/api/status --data '["enrico@debian.org","example-guest@users.alioth.debian.org"]'
+{
+ "people": {
+  "enrico@debian.org": {
+   "status": "dd_u", 
+   "is_am": true
+  },
+  "example-guest@users.alioth.debian.org": {
+   "status": "dm", 
+  }
+ }
+}
+</pre>
+
+
 {% endblock %}
 
