@@ -35,25 +35,25 @@ def dump_message(msg):
 
 class SimpleFixture(object):
     def __init__(self):
-        self.fd = bmodels.Person(cn="Enrico", sn="Zini", email="enrico@debian.org", uid="enrico", status=bconst.STATUS_DD_U)
+        self.fd = bmodels.Person(username="enrico@debian.org", cn="Enrico", sn="Zini", email="enrico@debian.org", uid="enrico", status=bconst.STATUS_DD_U)
         self.fd.save()
 
         self.fd_am = bmodels.AM(person=self.fd, slots=1, is_am=True, is_fd=True, is_dam=True)
         self.fd_am.save()
 
-        self.adv = bmodels.Person(cn="Andrea", sn="Berardi", email="andrea@debian.org", uid="andrea", status=bconst.STATUS_DD_NU)
+        self.adv = bmodels.Person(username="andrea@debian.org", cn="Andrea", sn="Berardi", email="andrea@debian.org", uid="andrea", status=bconst.STATUS_DD_NU)
         self.adv.save()
 
-        self.dd = bmodels.Person(cn="Lesley", sn="Leisel", email="lesley@debian.org", uid="lesley", status=bconst.STATUS_DD_U)
+        self.dd = bmodels.Person(username="lesley@debian.org", cn="Lesley", sn="Leisel", email="lesley@debian.org", uid="lesley", status=bconst.STATUS_DD_U)
         self.dd.save()
 
-        self.am = bmodels.Person(cn="Jane", sn="Doe", email="jane@janedoe.org", uid="jane", status=bconst.STATUS_DD_U)
+        self.am = bmodels.Person(username="jane@debian.org", cn="Jane", sn="Doe", email="jane@janedoe.org", uid="jane", status=bconst.STATUS_DD_U)
         self.am.save()
 
         self.am_am = bmodels.AM(person=self.am, slots=1, is_am=True)
         self.am_am.save()
 
-        self.nm = bmodels.Person(cn="John", sn="Smith", email="doctor@example.com", status=bconst.STATUS_DC, bio="I meet people, I do things.")
+        self.nm = bmodels.Person(username="john-guest@users.alioth.debian.org", cn="John", sn="Smith", email="doctor@example.com", status=bconst.STATUS_DC, bio="I meet people, I do things.")
         self.nm.save()
 
     def make_process_dm(self, progress=bconst.PROGRESS_DONE):
@@ -225,17 +225,18 @@ class NotificationTest(TransactionTestCase):
 
 class SimpleFixtureFingerprintField(object):
     def __init__(self):
-        bmodels.Person(cn="Marco", sn="Bardelli", email="safanaj@debian.org", uid="safanaj",
+        bmodels.Person(username="safanaj-guest@users.alioth.debian.org",
+                cn="Marco", sn="Bardelli", email="safanaj@debian.org", uid="safanaj",
                 status=bconst.STATUS_DC_GA,
                 fpr="A410 5B0A 9F84 97EC AB5F  1683 8D5B 478C F7FE 4DAA").save()
 
-        bmodels.Person(cn="Invalid", sn="FPR", email="invalid@debian.org",
-                uid="invalid_fpr", status=bconst.STATUS_DC,
-                fpr="FIXME: I'll let you know later when I'll have a bit of a clue").save()
+        bmodels.Person(username="invalid-guest@users.alioth.debian.org",
+                cn="Invalid", sn="FPR", email="invalid@debian.org",
+                uid="invalid_fpr", status=bconst.STATUS_DC, fpr="FIXME: I'll let you know later when I'll have a bit of a clue").save()
 
-        bmodels.Person(cn="Empty", sn="FPR", email="empty@debian.org", uid="empty",
-                       status=bconst.STATUS_DD_NU,
-                       fpr="").save()
+        bmodels.Person(username="empty-guest@users.alioth.debian.org",
+            cn="Empty", sn="FPR", email="empty@debian.org", uid="empty",
+            status=bconst.STATUS_DD_NU, fpr="").save()
 
 class FingerprintTest(TransactionTestCase):
     def setUp(self):
