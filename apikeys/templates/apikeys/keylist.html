@@ -1,0 +1,89 @@
+{% extends "apikeys/base.html" %}
+{% load nm %}
+
+{% block relatedpages %}
+<a href="{% url 'api_doc' %}">API</a>
+{{block.super}}
+{% endblock %}
+
+{% block head %}
+{{block.super}}
+<style type="text/css">
+form.inline {
+  display: inline;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<h1>Api keys for {{visitor.fullname}}</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Name</th><th>Value</th><th>Enabled</th><th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for k in keys %}
+  <tr>
+    <td>{{k.name}}</td>
+    <td><tt>{{k.value}}</tt></td>
+    <td>{{k.enabled}}</td>
+    <td>
+      <form class="inline" method="POST" action="{% url 'apikeys_enable' pk=k.pk %}">{% csrf_token %}
+        <input type="hidden" name="enabled" value="{{k.enabled|yesno:"0,1"}}">
+        <button>{% if k.enabled %}Disable{% else %}Enable{% endif %}</button>
+      </form>
+      <form class="inline" method="POST" action="{% url 'apikeys_delete' pk=k.pk %}">{% csrf_token %}
+        <button>Delete</button>
+      </form>
+    </td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="4">No API keys configured for {{visitor.username}}</td></tr>
+  {% endfor %}
+  </tbody>
+  <tfoot>
+    <tr>
+      <td colspan="4">
+        <form action="{{request.get_absolute_uri}}" method="POST">{% csrf_token %}
+          {{ form.non_field_errors }}
+          {{ form.name.errors }}
+          {{ form.name.label_tag }} {{ form.name }}
+          <button>Create</button>
+        </form>
+      </td>
+    </tr>
+  </tfoot>
+</table>
+
+<h2>Use in the last {{audit_log_cutoff_days}} days</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>When</th>
+      <th>Key</th>
+      <th>Enabled</th>
+      <th>From</th>
+      <th>Request</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for l in audit_log %}
+  <tr>
+    <td>{{l.ts|date:"Y-m-d H:i:s"}}</td>
+    <td>{{l.key.name}}</td>
+    <td>{{l.key_enabled}}</td>
+    <td><tt>{{l.remote_addr}}</tt></td>
+    <td><tt>{{l.request_method}} {{l.absolute_uri}}</tt></td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="5">No API key usage for {{visitor.username}}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}

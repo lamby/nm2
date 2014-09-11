@@ -26,7 +26,7 @@ from django.forms.models import model_to_dict
 from django.views.generic import View
 from django.views.decorators.csrf import csrf_exempt
 import backend.models as bmodels
-from backend.mixins import VisitorMixin
+from apikeys.mixins import APIVisitorMixin
 from backend import const
 import datetime
 import json
@@ -50,7 +50,7 @@ def person_to_json(p, **kw):
     res["url"] = p.get_absolute_url()
     return res
 
-class People(VisitorMixin, View):
+class People(APIVisitorMixin, View):
     def get(self, request, *args, **kw):
         # Pick what to include in the result based on auth status
         fields = ["cn", "mn", "sn", "uid", "fpr", "status", "status_changed", "created"]
@@ -98,7 +98,7 @@ class People(VisitorMixin, View):
             return json_response(dict(e=str(e)), status_code=500)
 
 
-class Status(VisitorMixin, View):
+class Status(APIVisitorMixin, View):
     def _serialize_people(self, people):
         res = {}
         for p in people:

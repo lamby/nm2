@@ -33,6 +33,7 @@ urlpatterns = patterns('',
     url(r'^public/', include("public.urls")),
     url(r'^am/', include("restricted.urls")),
     url(r'^api/', include("api.urls")),
+    url(r'^apikeys/', include("apikeys.urls")),
     url(r'^keyring/', include("keyring.urls")),
     url(r'^inconsistencies/', include("inconsistencies.urls")),
 

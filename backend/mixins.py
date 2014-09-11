@@ -33,7 +33,7 @@ class VisitorMixin(object):
     # given test on the visitor fails
     require_visitor = None
 
-    def pre_dispatch(self):
+    def set_visitor_info(self):
         self.impersonator = None
 
         if not self.request.user.is_authenticated():
@@ -49,6 +49,9 @@ class VisitorMixin(object):
                     if p is not None:
                         self.impersonator = self.visitor
                         self.visitor = p
+
+    def pre_dispatch(self):
+        self.set_visitor_info()
 
         if self.require_visitor and (self.visitor is None or self.require_visitor not in self.visitor.perms):
             raise PermissionDenied

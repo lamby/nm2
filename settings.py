@@ -139,6 +139,7 @@ INSTALLED_APPS = (
     'deblayout',
     'nmlayout',
     'backend',
+    'apikeys',
     'public',
     'restricted',
     'maintenance',

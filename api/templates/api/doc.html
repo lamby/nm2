@@ -1,8 +1,25 @@
 {% extends "api/base.html" %}
 
+{% block relatedpages %}
+{% if user.is_authenticated %}
+<a href="{% url 'apikeys_list' %}">API keys</a>
+{% endif %}
+{{block.super}}
+{% endblock %}
+
 {% block content %}
 
 <h1>Debian New Member - API documentation</h2>
+
+<h2>Authentication</h2>
+
+<p>If you are using a browser Debian SSO authentication works as usual. If
+you are using a script and public access is not enough for you, you can use
+<a href="{% url 'apikeys_list' %}">API keys</a>. For example:
+<pre>
+curl -H "Api-Key: YourAPIKeyValue" {% url 'api_status' %}
+</pre>
+</p>
 
 <h2>{% url 'api_people' %}</h2>
 
