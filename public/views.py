@@ -369,13 +369,6 @@ class Stats(VisitorTemplateView):
             by_progress[row["progress"]] = row["progress__count"]
         stats["by_progress"] = by_progress
 
-        # If JSON is requested, dump them right away
-        if 'json' in self.request.GET:
-            res = http.HttpResponse(content_type="application/json")
-            res["Content-Disposition"] = "attachment; filename=stats.json"
-            json.dump(stats, res, indent=1)
-            return res
-
         # Cook up more useful bits for the templates
 
         ctx["stats"] = stats
@@ -406,6 +399,18 @@ class Stats(VisitorTemplateView):
         ctx["active_processes"] = active_processes
 
         return ctx
+
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+        # If JSON is requested, dump them right away
+        if 'json' in request.GET:
+            res = http.HttpResponse(content_type="application/json")
+            res["Content-Disposition"] = "attachment; filename=stats.json"
+            json.dump(context["stats"], res, indent=1)
+            return res
+        else:
+            return self.render_to_response(context)
+
 
 def make_findperson_form(request, visitor):
     includes = ["cn", "mn", "sn", "email", "uid", "fpr", "status"]
