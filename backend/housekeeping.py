@@ -423,3 +423,26 @@ class CheckDjangoPermissions(hk.Task):
             p = bmodels.Person.objects.get(pk=id)
             log.warning("%s: bmodels.Person.id %d (%s) has powers in bmodels.AM that bmodels.Person does not know about",
                         self.IDENTIFIER, id, p.lookup_key)
+
+class DDUsernames(hk.Task):
+    """
+    Make sure that people with a DD status have a DD SSO username
+    """
+    DEPENDS = [MakeLink]
+
+    @transaction.commit_on_success
+    def run_main(self, stage):
+        dd_statuses = (const.STATUS_DD_U, const.STATUS_DD_NU,
+                       const.STATUS_EMERITUS_DD, const.STATUS_EMERITUS_DM,
+                       const.STATUS_REMOVED_DD, const.STATUS_REMOVED_DM)
+        for p in bmodels.Person.objects.filter(username__endswith="@users.alioth.debian.org",
+                                               status__in=dd_statuses):
+            if p.uid is None:
+                log.warning("%s: %s has status %s but uid is empty",
+                            self.IDENTIFIER, self.hk.link(p), p.status)
+                continue
+            new_username = p.uid + "@debian.org"
+            log.info("%s: %s has status %s but an alioth username: setting username to %s",
+                        self.IDENTIFIER, self.hk.link(p), p.status, new_username)
+            p.username = new_username
+            p.save()
