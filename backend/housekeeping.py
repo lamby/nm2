@@ -435,12 +435,12 @@ class DDUsernames(hk.Task):
         dd_statuses = (const.STATUS_DD_U, const.STATUS_DD_NU,
                        const.STATUS_EMERITUS_DD, const.STATUS_EMERITUS_DM,
                        const.STATUS_REMOVED_DD, const.STATUS_REMOVED_DM)
-        for p in bmodels.Person.objects.filter(username__endswith="@users.alioth.debian.org",
-                                               status__in=dd_statuses):
+        for p in bmodels.Person.objects.filter(status__in=dd_statuses):
             if p.uid is None:
                 log.warning("%s: %s has status %s but uid is empty",
                             self.IDENTIFIER, self.hk.link(p), p.status)
                 continue
+            if p.username.endswith("@debian.org"): continue
             new_username = p.uid + "@debian.org"
             log.info("%s: %s has status %s but an alioth username: setting username to %s",
                         self.IDENTIFIER, self.hk.link(p), p.status, new_username)
