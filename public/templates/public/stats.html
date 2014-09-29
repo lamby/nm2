@@ -167,7 +167,9 @@ $(function() {
             {% if visitor.is_admin %}
             <td>
               {% if p.mbox_stats %}
-              <span class="mbox_sparkline" values="{{p.mbox_stats|join:","}}"></span>
+              <a href="{% url 'display_mail_archive' key=p.lookup_key %}">
+                <span class="mbox_sparkline" values="{{p.mbox_stats|join:","}}"></span>
+              </a>
               {% else %}
               ---
               {% endif %}
