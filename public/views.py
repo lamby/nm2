@@ -402,7 +402,7 @@ class Stats(VisitorTemplateView):
                     p.mbox_stats = []
                     for idx, (addr, length) in enumerate(mailbox_get_gaps(pathname)):
                         neg = 1 if idx % 2 == 0 else -1
-                        p.mbox_stats.append(neg * length)
+                        p.mbox_stats.append(neg * max(round(length/86400), 30))
                 else:
                     p.mbox_stats = None
         active_processes.sort(key=lambda x:(x.log_first.logdate if x.log_first else None))

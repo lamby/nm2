@@ -61,7 +61,13 @@ $(function() {
         }
     });
 
-    $(".mbox_sparkline").sparkline("html", { type: "bar", barColor: "#005382", negBarColor: "#823000" });
+    $(".mbox_sparkline").sparkline("html", {
+      type: "bar",
+      barColor: "#005382",
+      negBarColor: "#823000",
+      chartRangeMin: -30,
+      chartRangeMax: 30
+    });
 });
 </script>
 {% endblock %}
