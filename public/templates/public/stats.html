@@ -4,7 +4,7 @@
 
 {% block head_resources %}
   {{block.super}}
-  {% jsinclude "tables,jqplot" %}
+  {% jsinclude "tables,jqplot,sparkline" %}
   <style type="text/css">
   #progstats {
       font-size: small;
@@ -60,6 +60,8 @@ $(function() {
             show: false,
         }
     });
+
+    $(".mbox_sparkline").sparkline("html", { type: "bar", barColor: "#005382", negBarColor: "#823000" });
 });
 </script>
 {% endblock %}
@@ -132,6 +134,7 @@ $(function() {
         <th>Last AM hold days</th>
         <th>Mbox age</th>
         {% if visitor.is_admin %}
+        <th>Activity</th>
         <th>Last log entry</th>
         {% endif %}
     </tr>
@@ -162,6 +165,13 @@ $(function() {
             <td>{{p.last_amhold_time}}</td>
             <td>{{p.mbox_age|default_if_none:"-"}}</td>
             {% if visitor.is_admin %}
+            <td>
+              {% if p.mbox_stats %}
+              <span class="mbox_sparkline" values="{{p.mbox_stats|join:","}}"></span>
+              {% else %}
+              ---
+              {% endif %}
+            </td>
             <td>
                 {% if p.log_last.logtext %}
                 {{ p.log_last.logtext }}

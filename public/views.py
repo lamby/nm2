@@ -32,6 +32,7 @@ import backend.models as bmodels
 import backend.email as bemail
 from backend import const
 from backend.mixins import VisitorMixin, VisitorTemplateView, VisitPersonTemplateView
+from .email_stats import mailbox_get_gaps
 import markdown
 import datetime
 import json
@@ -395,6 +396,15 @@ class Stats(VisitorTemplateView):
             else:
                 p.mbox_age = (dtnow - mbox_mtime).days
             active_processes.append(p)
+            if self.visitor.is_admin:
+                pathname = p.mailbox_file
+                if pathname:
+                    p.mbox_stats = []
+                    for idx, (addr, length) in enumerate(mailbox_get_gaps(pathname)):
+                        neg = 1 if idx % 2 == 0 else -1
+                        p.mbox_stats.append(neg * length)
+                else:
+                    p.mbox_stats = None
         active_processes.sort(key=lambda x:(x.log_first.logdate if x.log_first else None))
         ctx["active_processes"] = active_processes
 

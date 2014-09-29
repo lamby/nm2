@@ -49,6 +49,12 @@ JS_MODULES = dict(
             "plugins/jqplot.canvasAxisLabelRenderer.min.js",
         ]
     ),
+    sparkline=dict(
+        deps=["core"],
+        files=[
+            "jquery.sparkline.min.js",
+        ]
+    ),
 )
 
 @register.simple_tag
