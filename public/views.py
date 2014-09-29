@@ -396,7 +396,7 @@ class Stats(VisitorTemplateView):
             else:
                 p.mbox_age = (dtnow - mbox_mtime).days
             active_processes.append(p)
-            if self.visitor.is_admin:
+            if self.visitor and self.visitor.is_admin:
                 pathname = p.mailbox_file
                 if pathname:
                     p.mbox_stats = []
