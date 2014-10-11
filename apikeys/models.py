@@ -20,15 +20,13 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 from django.db import models
-from django.contrib.auth import get_user_model
-
-User = get_user_model()
+from django.conf import settings
 
 class Key(models.Model):
     """
     An API access token and its associated user
     """
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL)
     name = models.CharField(max_length=16)
     value = models.CharField(max_length=16, unique=True)
     enabled = models.BooleanField(default=True)
@@ -39,7 +37,7 @@ class AuditLog(models.Model):
     """
     key = models.ForeignKey(Key)
     ts = models.DateTimeField(auto_now_add=True)
-    key_enabled = models.BooleanField()
+    key_enabled = models.BooleanField(default=False)
     remote_addr = models.CharField(max_length=255)
     request_method = models.CharField(max_length=8)
     absolute_uri = models.TextField()

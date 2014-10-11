@@ -1,177 +1,104 @@
 # -*- coding: utf-8 -*-
+from __future__ import unicode_literals
+
+from django.db import models, migrations
+import backend.models
 import datetime
-from south.db import db
-from south.v2 import SchemaMigration
-from django.db import models
+import django.utils.timezone
+from django.conf import settings
 
 
-class Migration(SchemaMigration):
+class Migration(migrations.Migration):
 
-    def forwards(self, orm):
-        # Adding model 'Person'
-        db.create_table('person', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('user', self.gf('django.db.models.fields.related.OneToOneField')(to=orm['auth.User'], unique=True, null=True)),
-            ('cn', self.gf('django.db.models.fields.CharField')(max_length=250)),
-            ('mn', self.gf('django.db.models.fields.CharField')(max_length=250, null=True, blank=True)),
-            ('sn', self.gf('django.db.models.fields.CharField')(max_length=250, null=True, blank=True)),
-            ('email', self.gf('django.db.models.fields.EmailField')(unique=True, max_length=75)),
-            ('uid', self.gf('backend.models.CharNullField')(max_length=32, unique=True, null=True, blank=True)),
-            ('fpr', self.gf('backend.models.CharNullField')(max_length=80, unique=True, null=True, blank=True)),
-            ('status', self.gf('django.db.models.fields.CharField')(max_length=20)),
-            ('status_changed', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.utcnow)),
-            ('fd_comment', self.gf('django.db.models.fields.TextField')(null=True, blank=True)),
-            ('created', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.utcnow, null=True)),
-        ))
-        db.send_create_signal(u'backend', ['Person'])
+    dependencies = [
+        ('auth', '0001_initial'),
+    ]
 
-        # Adding model 'AM'
-        db.create_table('am', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('person', self.gf('django.db.models.fields.related.OneToOneField')(related_name='am', unique=True, to=orm['backend.Person'])),
-            ('slots', self.gf('django.db.models.fields.IntegerField')(default=1)),
-            ('is_am', self.gf('django.db.models.fields.BooleanField')(default=True)),
-            ('is_fd', self.gf('django.db.models.fields.BooleanField')(default=False)),
-            ('is_dam', self.gf('django.db.models.fields.BooleanField')(default=False)),
-            ('is_am_ctte', self.gf('django.db.models.fields.BooleanField')(default=False)),
-            ('created', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.utcnow, null=True)),
-        ))
-        db.send_create_signal(u'backend', ['AM'])
-
-        # Adding model 'Process'
-        db.create_table('process', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('person', self.gf('django.db.models.fields.related.ForeignKey')(related_name='processes', to=orm['backend.Person'])),
-            ('applying_as', self.gf('django.db.models.fields.CharField')(max_length=20)),
-            ('applying_for', self.gf('django.db.models.fields.CharField')(max_length=20)),
-            ('progress', self.gf('django.db.models.fields.CharField')(max_length=20)),
-            ('manager', self.gf('django.db.models.fields.related.ForeignKey')(blank=True, related_name='processed', null=True, to=orm['backend.AM'])),
-            ('is_active', self.gf('django.db.models.fields.BooleanField')(default=False)),
-            ('archive_key', self.gf('django.db.models.fields.CharField')(unique=True, max_length=128)),
-        ))
-        db.send_create_signal(u'backend', ['Process'])
-
-        # Adding M2M table for field advocates on 'Process'
-        db.create_table('process_advocates', (
-            ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
-            ('process', models.ForeignKey(orm[u'backend.process'], null=False)),
-            ('person', models.ForeignKey(orm[u'backend.person'], null=False))
-        ))
-        db.create_unique('process_advocates', ['process_id', 'person_id'])
-
-        # Adding model 'Log'
-        db.create_table('log', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('changed_by', self.gf('django.db.models.fields.related.ForeignKey')(related_name='log_written', null=True, to=orm['backend.Person'])),
-            ('process', self.gf('django.db.models.fields.related.ForeignKey')(related_name='log', to=orm['backend.Process'])),
-            ('progress', self.gf('django.db.models.fields.CharField')(max_length=20)),
-            ('logdate', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.utcnow)),
-            ('logtext', self.gf('backend.models.TextNullField')(null=True, blank=True)),
-        ))
-        db.send_create_signal(u'backend', ['Log'])
-
-
-    def backwards(self, orm):
-        # Deleting model 'Person'
-        db.delete_table('person')
-
-        # Deleting model 'AM'
-        db.delete_table('am')
-
-        # Deleting model 'Process'
-        db.delete_table('process')
-
-        # Removing M2M table for field advocates on 'Process'
-        db.delete_table('process_advocates')
-
-        # Deleting model 'Log'
-        db.delete_table('log')
-
-
-    models = {
-        u'auth.group': {
-            'Meta': {'object_name': 'Group'},
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '80'}),
-            'permissions': ('django.db.models.fields.related.ManyToManyField', [], {'to': u"orm['auth.Permission']", 'symmetrical': 'False', 'blank': 'True'})
-        },
-        u'auth.permission': {
-            'Meta': {'ordering': "(u'content_type__app_label', u'content_type__model', u'codename')", 'unique_together': "((u'content_type', u'codename'),)", 'object_name': 'Permission'},
-            'codename': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
-            'content_type': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['contenttypes.ContentType']"}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '50'})
-        },
-        u'auth.user': {
-            'Meta': {'object_name': 'User'},
-            'date_joined': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'email': ('django.db.models.fields.EmailField', [], {'max_length': '75', 'blank': 'True'}),
-            'first_name': ('django.db.models.fields.CharField', [], {'max_length': '30', 'blank': 'True'}),
-            'groups': ('django.db.models.fields.related.ManyToManyField', [], {'to': u"orm['auth.Group']", 'symmetrical': 'False', 'blank': 'True'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
-            'is_staff': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'is_superuser': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'last_login': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'last_name': ('django.db.models.fields.CharField', [], {'max_length': '30', 'blank': 'True'}),
-            'password': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
-            'user_permissions': ('django.db.models.fields.related.ManyToManyField', [], {'to': u"orm['auth.Permission']", 'symmetrical': 'False', 'blank': 'True'}),
-            'username': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '30'})
-        },
-        u'backend.am': {
-            'Meta': {'object_name': 'AM', 'db_table': "'am'"},
-            'created': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.utcnow', 'null': 'True'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'is_am': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
-            'is_am_ctte': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'is_dam': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'is_fd': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'person': ('django.db.models.fields.related.OneToOneField', [], {'related_name': "'am'", 'unique': 'True', 'to': u"orm['backend.Person']"}),
-            'slots': ('django.db.models.fields.IntegerField', [], {'default': '1'})
-        },
-        u'backend.log': {
-            'Meta': {'object_name': 'Log', 'db_table': "'log'"},
-            'changed_by': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'log_written'", 'null': 'True', 'to': u"orm['backend.Person']"}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'logdate': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.utcnow'}),
-            'logtext': ('backend.models.TextNullField', [], {'null': 'True', 'blank': 'True'}),
-            'process': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'log'", 'to': u"orm['backend.Process']"}),
-            'progress': ('django.db.models.fields.CharField', [], {'max_length': '20'})
-        },
-        u'backend.person': {
-            'Meta': {'object_name': 'Person', 'db_table': "'person'"},
-            'cn': ('django.db.models.fields.CharField', [], {'max_length': '250'}),
-            'created': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.utcnow', 'null': 'True'}),
-            'email': ('django.db.models.fields.EmailField', [], {'unique': 'True', 'max_length': '75'}),
-            'fd_comment': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
-            'fpr': ('backend.models.CharNullField', [], {'max_length': '80', 'unique': 'True', 'null': 'True', 'blank': 'True'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'mn': ('django.db.models.fields.CharField', [], {'max_length': '250', 'null': 'True', 'blank': 'True'}),
-            'sn': ('django.db.models.fields.CharField', [], {'max_length': '250', 'null': 'True', 'blank': 'True'}),
-            'status': ('django.db.models.fields.CharField', [], {'max_length': '20'}),
-            'status_changed': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.utcnow'}),
-            'uid': ('backend.models.CharNullField', [], {'max_length': '32', 'unique': 'True', 'null': 'True', 'blank': 'True'}),
-            'user': ('django.db.models.fields.related.OneToOneField', [], {'to': u"orm['auth.User']", 'unique': 'True', 'null': 'True'})
-        },
-        u'backend.process': {
-            'Meta': {'object_name': 'Process', 'db_table': "'process'"},
-            'advocates': ('django.db.models.fields.related.ManyToManyField', [], {'symmetrical': 'False', 'related_name': "'advocated'", 'blank': 'True', 'to': u"orm['backend.Person']"}),
-            'applying_as': ('django.db.models.fields.CharField', [], {'max_length': '20'}),
-            'applying_for': ('django.db.models.fields.CharField', [], {'max_length': '20'}),
-            'archive_key': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '128'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'manager': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'processed'", 'null': 'True', 'to': u"orm['backend.AM']"}),
-            'person': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'processes'", 'to': u"orm['backend.Person']"}),
-            'progress': ('django.db.models.fields.CharField', [], {'max_length': '20'})
-        },
-        u'contenttypes.contenttype': {
-            'Meta': {'ordering': "('name',)", 'unique_together': "(('app_label', 'model'),)", 'object_name': 'ContentType', 'db_table': "'django_content_type'"},
-            'app_label': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'model': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '100'})
-        }
-    }
-
-    complete_apps = ['backend']
+    operations = [
+        migrations.CreateModel(
+            name='Person',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('is_superuser', models.BooleanField(default=False, help_text='Designates that this user has all permissions without explicitly assigning them.', verbose_name='superuser status')),
+                ('username', models.CharField(unique=True, max_length=255)),
+                ('last_login', models.DateTimeField(default=django.utils.timezone.now, verbose_name='last login')),
+                ('date_joined', models.DateTimeField(default=django.utils.timezone.now, verbose_name='date joined')),
+                ('is_staff', models.BooleanField(default=False)),
+                ('cn', models.CharField(max_length=250, verbose_name='first name')),
+                ('mn', models.CharField(max_length=250, null=True, verbose_name='middle name', blank=True)),
+                ('sn', models.CharField(max_length=250, null=True, verbose_name='last name', blank=True)),
+                ('email', models.EmailField(unique=True, max_length=75, verbose_name='email address')),
+                ('bio', backend.models.TextNullField(help_text='Please enter here a short biographical information', null=True, verbose_name='short biography', blank=True)),
+                ('uid', backend.models.CharNullField(max_length=32, unique=True, null=True, verbose_name='Debian account name', blank=True)),
+                ('fpr', backend.models.FingerprintField(max_length=40, unique=True, null=True, verbose_name='OpenPGP key fingerprint', blank=True)),
+                ('status', models.CharField(max_length=20, verbose_name='current status in the project', choices=[('dc', 'Debian Contributor'), ('dc_ga', 'Debian Contributor, with guest account'), ('dm', 'Debian Maintainer'), ('dm_ga', 'Debian Maintainer, with guest account'), ('dd_u', 'Debian Developer, uploading'), ('dd_nu', 'Debian Developer, non-uploading'), ('dd_e', 'Debian Developer, emeritus'), ('dm_e', 'Debian Maintainer, emeritus'), ('dd_r', 'Debian Developer, removed'), ('dm_r', 'Debian Maintainer, removed')])),
+                ('status_changed', models.DateTimeField(default=datetime.datetime.utcnow, verbose_name='when the status last changed')),
+                ('fd_comment', models.TextField(null=True, verbose_name='Front Desk comments', blank=True)),
+                ('created', models.DateTimeField(default=datetime.datetime.utcnow, null=True, verbose_name='Person record created')),
+                ('expires', models.DateField(default=None, help_text='This person will be deleted after this date if the status is still dc and no Process has started', null=True, verbose_name='Expiration date for the account', blank=True)),
+                ('pending', models.CharField(max_length=255, verbose_name='Nonce used to confirm this pending record', blank=True)),
+                ('groups', models.ManyToManyField(related_query_name='user', related_name='user_set', to='auth.Group', blank=True, help_text='The groups this user belongs to. A user will get all permissions granted to each of his/her group.', verbose_name='groups')),
+                ('user_permissions', models.ManyToManyField(related_query_name='user', related_name='user_set', to='auth.Permission', blank=True, help_text='Specific permissions for this user.', verbose_name='user permissions')),
+            ],
+            options={
+                'db_table': 'person',
+            },
+            bases=(models.Model,),
+        ),
+        migrations.CreateModel(
+            name='AM',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('slots', models.IntegerField(default=1)),
+                ('is_am', models.BooleanField(default=True, verbose_name='Active AM')),
+                ('is_fd', models.BooleanField(default=False, verbose_name='FD member')),
+                ('is_dam', models.BooleanField(default=False, verbose_name='DAM')),
+                ('is_am_ctte', models.BooleanField(default=False, verbose_name='NM CTTE member')),
+                ('created', models.DateTimeField(default=datetime.datetime.utcnow, null=True, verbose_name='AM record created')),
+                ('person', models.OneToOneField(related_name='am', to=settings.AUTH_USER_MODEL)),
+            ],
+            options={
+                'db_table': 'am',
+            },
+            bases=(models.Model,),
+        ),
+        migrations.CreateModel(
+            name='Log',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('progress', models.CharField(max_length=20, choices=[('app_new', 'Applicant asked to enter the process'), ('app_rcvd', 'Applicant replied to initial mail'), ('app_hold', 'On hold before entering the queue'), ('adv_rcvd', 'Received enough advocacies'), ('poll_sent', 'Activity poll sent'), ('app_ok', 'Advocacies have been approved'), ('am_rcvd', 'Waiting for AM to confirm'), ('am', 'Interacting with an AM'), ('am_hold', 'AM hold'), ('am_ok', 'AM approved'), ('fd_hold', 'FD hold'), ('fd_ok', 'FD approved'), ('dam_hold', 'DAM hold'), ('dam_ok', 'DAM approved'), ('done', 'Completed'), ('cancelled', 'Cancelled')])),
+                ('is_public', models.BooleanField(default=False)),
+                ('logdate', models.DateTimeField(default=datetime.datetime.utcnow)),
+                ('logtext', backend.models.TextNullField(null=True, blank=True)),
+                ('changed_by', models.ForeignKey(related_name='log_written', to=settings.AUTH_USER_MODEL, null=True)),
+            ],
+            options={
+                'db_table': 'log',
+            },
+            bases=(models.Model,),
+        ),
+        migrations.CreateModel(
+            name='Process',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('applying_as', models.CharField(max_length=20, verbose_name='original status', choices=[('dc', 'DC'), ('dc_ga', 'DC+account'), ('dm', 'DM'), ('dm_ga', 'DM+account'), ('dd_u', 'DD, upl.'), ('dd_nu', 'DD, non-upl.'), ('dd_e', 'DD, emeritus'), ('dm_e', 'DM, emeritus'), ('dd_r', 'DD, removed'), ('dm_r', 'DM, removed')])),
+                ('applying_for', models.CharField(max_length=20, verbose_name='target status', choices=[('dc', 'DC'), ('dc_ga', 'DC+account'), ('dm', 'DM'), ('dm_ga', 'DM+account'), ('dd_u', 'DD, upl.'), ('dd_nu', 'DD, non-upl.'), ('dd_e', 'DD, emeritus'), ('dm_e', 'DM, emeritus'), ('dd_r', 'DD, removed'), ('dm_r', 'DM, removed')])),
+                ('progress', models.CharField(max_length=20, choices=[('app_new', 'Applied'), ('app_rcvd', 'Validated'), ('app_hold', 'App hold'), ('adv_rcvd', 'Adv ok'), ('poll_sent', 'Poll sent'), ('app_ok', 'App ok'), ('am_rcvd', 'AM assigned'), ('am', 'AM'), ('am_hold', 'AM hold'), ('am_ok', 'AM ok'), ('fd_hold', 'FD hold'), ('fd_ok', 'FD ok'), ('dam_hold', 'DAM hold'), ('dam_ok', 'DAM ok'), ('done', 'Done'), ('cancelled', 'Cancelled')])),
+                ('is_active', models.BooleanField(default=False)),
+                ('archive_key', models.CharField(unique=True, max_length=128, verbose_name='mailbox archive key')),
+                ('advocates', models.ManyToManyField(related_name='advocated', to=settings.AUTH_USER_MODEL, blank=True)),
+                ('manager', models.ForeignKey(related_name='processed', blank=True, to='backend.AM', null=True)),
+                ('person', models.ForeignKey(related_name='processes', to=settings.AUTH_USER_MODEL)),
+            ],
+            options={
+                'db_table': 'process',
+            },
+            bases=(models.Model,),
+        ),
+        migrations.AddField(
+            model_name='log',
+            name='process',
+            field=models.ForeignKey(related_name='log', to='backend.Process'),
+            preserve_default=True,
+        ),
+    ]

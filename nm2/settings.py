@@ -30,7 +30,7 @@ LANGUAGE_CODE = 'en_GB'
 
 LOCALE_PATHS = (os.path.join(PROJECT_DIR, "locale"), )
 SECRET_KEY = 'non-empty secret for ugettext'
-from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext_lazy as _
 LANGUAGES = (
     ('de', _('German')),
     ('en', _('English')),
@@ -148,7 +148,6 @@ INSTALLED_APPS = (
     'api',
     'contributors',
     'inconsistencies',
-    'south',
 )
 
 TEMPLATE_CONTEXT_PROCESSORS = global_settings.TEMPLATE_CONTEXT_PROCESSORS + (
@@ -184,6 +183,9 @@ LOGGING = {
         },
     }
 }
+
+# New 1.7 test runner, we set it explicitly to silence django's checks
+TEST_RUNNER = 'django.test.runner.DiscoverRunner'
 
 # LDAP server to use to access Debian's official LDAP information
 LDAP_SERVER = "ldap://db.debian.org"
