@@ -221,6 +221,6 @@ RT_LOGIN_INFO = {'user': "debian", 'pass': "the_guest_password"}
 
 # Try importing local settings from local_settings.py, if we can't, it's just fine, use defaults from this file
 try:
-    from local_settings import *
+    from .local_settings import *
 except:
     pass
