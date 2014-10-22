@@ -482,6 +482,7 @@ class CheckKeyringLogs(hk.Task):
         """
         start_date = datetime.datetime.utcnow() - datetime.timedelta(days=360)
         gk = kmodels.GitKeyring()
+        gk.run_git("fetch")
         for shasum, ts in gk.get_valid_shasums("--since", start_date.strftime("%Y-%m-%d")):
             c = gk.get_commit_message(shasum)
             if c is None: continue
