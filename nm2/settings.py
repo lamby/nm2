@@ -196,6 +196,12 @@ KEYRINGS = os.path.join(DATA_DIR, "keyrings")
 # Location of temporary keyrings used by keycheck
 KEYRINGS_TMPDIR = os.path.join(DATA_DIR, "tmp_keyrings")
 
+# Keyring used to validate signatures of keyring-maint members
+KEYRING_MAINT_KEYRING = os.path.join(DATA_DIR, "keyring-maint.gpg")
+
+# Git repository of keyring-maint's git repo
+KEYRING_MAINT_GIT_REPO = os.path.join(DATA_DIR, "keyring-maint.git")
+
 # Work paths used by minechangelogs (indexing cache and the index itself)
 MINECHANGELOGS_CACHEDIR = os.path.join(DATA_DIR, "mc_cache")
 MINECHANGELOGS_INDEXDIR = os.path.join(DATA_DIR, "mc_index")

@@ -25,6 +25,7 @@ from __future__ import division
 from __future__ import unicode_literals
 from django.db import models
 from django.conf import settings
+from django.utils.timezone import utc
 import os
 import os.path
 import subprocess
@@ -41,6 +42,8 @@ KEYRINGS = getattr(settings, "KEYRINGS", "/srv/keyring.debian.org/keyrings")
 KEYRINGS_TMPDIR = getattr(settings, "KEYRINGS_TMPDIR", "/srv/keyring.debian.org/data/tmp_keyrings")
 #KEYSERVER = getattr(settings, "KEYSERVER", "keys.gnupg.net")
 KEYSERVER = getattr(settings, "KEYSERVER", "pgp.mit.edu")
+KEYRING_MAINT_KEYRING = getattr(settings, "KEYRING_MAINT_KEYRING", "data/keyring-maint.gpg")
+KEYRING_MAINT_GIT_REPO = getattr(settings, "KEYRING_MAINT_GIT_REPO", "data/keyring-maint.git")
 
 #WithFingerprint = namedtuple("WithFingerprint", (
 #    "type", "trust", "bits", "alg", "id", "created", "expiry",
@@ -638,3 +641,92 @@ class Changelog(object):
             if since is not None and d <= since: continue
             for lines in self._group_lines_by_indentation(c.changes()):
                 yield d, lines
+
+
+class GitKeyring(object):
+    """
+    Access the git repository of keyring-maint
+    """
+    # http://mikegerwitz.com/papers/git-horror-story
+    re_update_changelog = re.compile(r"Update changelog", re.I)
+    re_import_changes = re.compile(r"Import changes sent to keyring.debian.org HKP interface", re.I)
+    re_field_split = re.compile(r":\s*")
+    re_summaries = [
+        {
+            "re": re.compile(r"Add new (?P<role>[A-Z]+) key 0x(?P<key>[0-9A-F]+) \((?P<subj>[^)]+)\) \(RT #(?P<rt>\d+)\)"),
+            "proc": lambda x: { "Action": "add", "Role": x.group("role"), "New-Key": x.group("key"), "Subject": x.group("subj"), "RT-Ticket": x.group("rt") },
+        },
+        {
+            "re": re.compile(r"Replace 0x(?P<old>[0-9A-F]+) with 0x(?P<new>[0-9A-F]+) \((?P<subj>[^)]+)\) \(RT #(?P<rt>\d+)\)"),
+            "proc": lambda x: { "Action": "replace", "Old-key": x.group("old"), "New-key": x.group("new"), "Subject": x.group("subj"), "RT-Ticket": x.group("rt") },
+        },
+    ]
+
+    def run_git(self, *args):
+        """
+        Run git in the keyring git repo, with GNUPGHOME set to the
+        keyring-maint keyring.
+
+        Returns stdout if everything was fine, otherwise it throws an
+        exception.
+        """
+        cmdline = ["git"]
+        cmdline.extend(args)
+        env = dict(os.environ)
+        env["GNUPGHOME"] = KEYRING_MAINT_KEYRING
+        proc = subprocess.Popen(cmdline, cwd=KEYRING_MAINT_GIT_REPO, env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = proc.communicate()
+        res = proc.wait()
+        if res != 0:
+            raise RuntimeError("{} returned error code {}. Stderr: {}", cmdline, res, stderr)
+        return stdout
+
+    def get_valid_shasums(self, *args):
+        """
+        Run git log on the keyring dir and return the valid shasums that it found.
+
+        Extra git log options passed as *args will be appended to the command line
+        """
+        for line in self.run_git("log", "--pretty=format:%H:%ct:%G?", *args).split("\n"):
+            shasum, ts, validated = line.split(":")
+            # "G" for a Good signature, "B" for a Bad signature, "U" for a good, untrusted signature and "N" for no signature
+            if validated in "GU":
+                yield shasum, datetime.datetime.fromtimestamp(int(ts), utc)
+
+    def get_commit_message(self, shasum):
+        """
+        Return the commit message for the given shasum
+        """
+        body = self.run_git("show", "--pretty=format:%B", shasum).decode("utf-8")
+        subject, body = body.split("\n\n", 1)
+        if self.re_update_changelog.match(subject): return None
+        if self.re_import_changes.match(subject): return None
+        if body.startswith("Action:"):
+            return { k: v for k, v in self.parse_action(body) }
+        else:
+            for match in self.re_summaries:
+                mo = match["re"].match(subject)
+                if mo: return match["proc"](mo)
+            #print("UNKNOWN", repr(subject))
+            return None
+
+    def parse_action(self, body):
+        """
+        Parse an Action: * body
+        """
+        name = None
+        cur = []
+        for line in body.split("\n"):
+            if not line: break
+            if not line[0].isspace():
+                if name:
+                    yield name, cur
+                    name = None
+                    cur = []
+                name, content = self.re_field_split.split(line, 1)
+                cur.append(content)
+            else:
+                cur.append(line.lstrip())
+
+        if name:
+            yield name, cur
