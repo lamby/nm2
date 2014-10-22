@@ -220,7 +220,7 @@ class ComputeAMCTTE(hk.Task):
     """
     Compute AM Committee membership
     """
-    @transaction.commit_on_success
+    @transaction.atomic
     def run_main(self, stage):
         # Set all to False
         bmodels.AM.objects.update(is_am_ctte=False)
@@ -241,7 +241,6 @@ class ComputeAMCTTE(hk.Task):
         ids = [x[0] for x in cursor]
 
         bmodels.AM.objects.filter(id__in=ids).update(is_am_ctte=True)
-        transaction.commit_unless_managed()
         log.info("%s: %d CTTE members", self.IDENTIFIER, bmodels.AM.objects.filter(is_am_ctte=True).count())
 
 
@@ -249,13 +248,12 @@ class ComputeProcessActiveFlag(hk.Task):
     """
     Compute Process.is_active from Process.progress
     """
-    @transaction.commit_on_success
+    @transaction.atomic
     def run_main(self, stage):
         cursor = connection.cursor()
         cursor.execute("""
             UPDATE process SET is_active=(progress NOT IN (%s, %s))
         """, (const.PROGRESS_DONE, const.PROGRESS_CANCELLED))
-        transaction.commit_unless_managed()
         log.info("%s: %d/%d active processes",
                  self.IDENTIFIER,
                  bmodels.Process.objects.filter(is_active=True).count(),
@@ -268,7 +266,7 @@ class PersonExpires(hk.Task):
     """
     DEPENDS = [MakeLink]
 
-    @transaction.commit_on_success
+    @transaction.atomic
     def run_main(self, stage):
         """
         Generate a sequence of Person objects that have expired
@@ -430,7 +428,7 @@ class DDUsernames(hk.Task):
     """
     DEPENDS = [MakeLink]
 
-    @transaction.commit_on_success
+    @transaction.atomic
     def run_main(self, stage):
         dd_statuses = (const.STATUS_DD_U, const.STATUS_DD_NU,
                        const.STATUS_EMERITUS_DD, const.STATUS_EMERITUS_DM,

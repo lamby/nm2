@@ -174,7 +174,7 @@ class CheckKeyringConsistency(hk.Task):
         log.info("%s: %d mismatches between keyring and nm.debian.org databases",
                     self.IDENTIFIER, self.count)
 
-    #@transaction.commit_on_success
+    #@transaction.atomic
     #def compute_display_names_from_keyring(self, **kw):
     #    """
     #    Update Person.display_name with data from keyrings

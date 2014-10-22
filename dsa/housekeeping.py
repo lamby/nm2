@@ -35,7 +35,7 @@ class ProgressFinalisationsOnAccountsCreated(hk.Task):
     """
     DEPENDS = [MakeLink]
 
-    @transaction.commit_on_success
+    @transaction.atomic
     def run_main(self, stage):
         # Get a lits of accounts from DSA
         dm_ga_uids = set()
@@ -68,7 +68,7 @@ class NewGuestAccountsFromDSA(hk.Task):
     """
     DEPENDS = [MakeLink, Inconsistencies]
 
-    @transaction.commit_on_success
+    @transaction.atomic
     def run_main(self, stage):
         for entry in dmodels.list_people():
             # Skip DDs

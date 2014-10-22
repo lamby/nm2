@@ -108,7 +108,7 @@ class Importer(object):
                 l.changed_by = self.people[li["changed_by"]]
             l.save()
 
-    @transaction.commit_on_success
+    @transaction.atomic
     def import_people(self, people):
         count_people = 0
         count_procs = 0
