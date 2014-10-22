@@ -1,3 +1,4 @@
+# coding: utf-8
 # nm.debian.org website housekeeping
 #
 # Copyright (C) 2012--2014  Enrico Zini <enrico@debian.org>
@@ -234,14 +235,6 @@ class CleanUserKeyrings(hk.Task):
             log.info("%s: removing old user keyring %s", self.IDENTIFIER, pn)
             shutil.rmtree(pn)
 
-def keyring_log_matcher(regexp, **kw):
-    def decorator(f):
-        f.re = re.compile(regexp)
-        for k, v in kw.iteritems():
-            setattr(f, k, v)
-        return f
-    return decorator
-
 class CheckKeyringLogs(hk.Task):
     """
     Show entries that do not match between keyrings and our DB
@@ -249,15 +242,30 @@ class CheckKeyringLogs(hk.Task):
     DEPENDS = [Inconsistencies, Keyrings]
 
     def person_for_key_id(self, kid):
+        """
+        Given a key id (short, long or full fingerprint) return the
+        corresponding Person object, or None if none did match.
+        """
         try:
             return bmodels.Person.objects.get(fpr__endswith=kid)
         except bmodels.Person.DoesNotExist:
             return None
 
     def rturl(self, num):
+        """
+        Build an RT URL for an RT ticket
+        """
         return "https://rt.debian.org/" + num
 
     def _ann_fpr(self, d, rt, fpr, log, **kw):
+        """
+        Annotate a fingerprint inconsistency:
+            d: datetime object
+            rt: rt ticket number
+            fpr: key fingerprint
+            log: text description of the inconsistency
+            **kw: passed as extra annotation information
+        """
         if rt is not None:
             self.hk.inconsistencies.annotate_fingerprint(self, fpr,
                                                     "{}, RT #{}".format(log, rt),
@@ -270,6 +278,14 @@ class CheckKeyringLogs(hk.Task):
                                                     **kw)
 
     def _ann_person(self, d, rt, person, log, **kw):
+        """
+        Annotate a Person inconsistency:
+            d: datetime object
+            rt: rt ticket number
+            person: Person object to annotate
+            log: text description of the inconsistency
+            **kw: passed as extra annotation information
+        """
         if rt is not None:
             self.hk.inconsistencies.annotate_person(self, person,
                                                     "{}, RT #{}".format(log, rt),
@@ -281,18 +297,22 @@ class CheckKeyringLogs(hk.Task):
                                                     keyring_log_date=d.strftime("%Y%m%d %H%M%S"),
                                                     **kw)
 
-    @keyring_log_matcher(r"^\s*\*\s+Add new DM key 0x(?P<key>[0-9A-F]+) \([^)]+\)\s+\(RT #(?P<rt>\d+)")
-    def do_new_dm(self, d, key, rt):
+    def do_add_dm(self, shasum, ts, info):
+        # { "Action": "add", "Role": x.group("role"), "New-Key": x.group("key"), "Subject": x.group("subj"), "RT-Ticket": x.group("rt") },
+        rt = info.get("RT-Ticket", None)
+        key = info.get("New-key", None)
         p = self.person_for_key_id(key)
         if p is None:
             fpr, ktype = self.hk.keyrings.resolve_keyid(key)
             if fpr is None:
-                log.info("%s: unknown key ID %s found in log for %s RT#%s", self.IDENTIFIER, key, d, rt)
+                log.info("%s: unknown key ID %s found in %s RT#%s", self.IDENTIFIER, key, shasum, rt)
             else:
                 # TODO: connect to RT and try to fetch person details
-                self._ann_fpr(d, rt, fpr, "keyring logs report a new DM",
+                self._ann_fpr(ts, rt, fpr, "keyring logs report a new DM",
                               keyring_status=const.STATUS_DM,
-                              fix_cmdline="./manage.py dm_from_rt {}".format(rt))
+                              fix_cmdline="./manage.py dm_from_rt {}".format(rt),
+                              shasum=shasum,
+                              **info)
         elif p.status in (const.STATUS_DM, const.STATUS_DM_GA):
             #print("# %s goes from %s to DM (already known in the database) %s" % (p.lookup_key, p.status, self.rturl(rt)))
             pass # Already a DM
@@ -301,56 +321,73 @@ class CheckKeyringLogs(hk.Task):
                 new_status = const.STATUS_DM_GA
             else:
                 new_status = const.STATUS_DM
-            self._ann_person(d, rt, p, "keyring logs report change from {} to {}".format(p.status, new_status),
+            self._ann_person(ts, rt, p, "keyring logs report change from {} to {}".format(p.status, new_status),
                              keyring_status=new_status,
                              fix_cmdline="./manage.py change_status {} {} --date='{}' --message='imported from keyring changelog, RT #{}'".format(
-                                 p.lookup_key, new_status, d.strftime("%Y-%m-%d %H:%M:%S"), rt))
+                                 p.lookup_key, new_status, ts.strftime("%Y-%m-%d %H:%M:%S"), rt),
+                             shasum=shasum,
+                             **info)
 
-    @keyring_log_matcher(r"^\s*\*\s+Add new DD key 0x(?P<key>[0-9A-F]+) \([^)]+\)\s+\(RT #(?P<rt>\d+)")
-    def do_new_dd(self, d, key, rt):
+    def do_add_dd(self, shasum, ts, info):
+        # { "Action": "add", "Role": x.group("role"), "New-Key": x.group("key"), "Subject": x.group("subj"), "RT-Ticket": x.group("rt") },
+        rt = info.get("RT-Ticket", None)
+        key = info.get("New-key", None)
         p = self.person_for_key_id(key)
         if p is None:
             fpr, ktype = self.hk.keyrings.resolve_keyid(key)
-            self._ann_fpr(d, rt, fpr, "keyring logs report a new DD, with no known record in our database", keyring_status=ktype)
+            self._ann_fpr(ts, rt, fpr, "keyring logs report a new DD, with no known record in our database", keyring_status=ktype,
+                          shasum=shasum, **info)
             #print("! New DD %s %s (no account before??)" % (key, self.rturl(rt)))
         elif p.status == const.STATUS_DD_U:
             #print("# %s goes from %s to DD (already known in the database) %s" % (p.lookup_key, p.status, self.rturl(rt)))
             pass # Already a DD
         else:
-            self._ann_person(d, rt, p, "keyring logs report change from {} to {}".format(p.status, const.STATUS_DD_U),
+            self._ann_person(ts, rt, p, "keyring logs report change from {} to {}".format(p.status, const.STATUS_DD_U),
                              keyring_status=const.STATUS_DD_U,
                              fix_cmdline="./manage.py change_status {} {} --date='{}' --message='imported from keyring changelog, RT #{}'".format(
-                                 p.lookup_key, const.STATUS_DD_U, d.strftime("%Y-%m-%d %H:%M:%S"), rt))
+                                 p.lookup_key, const.STATUS_DD_U, ts.strftime("%Y-%m-%d %H:%M:%S"), rt),
+                             shasum=shasum, **info)
 
-    @keyring_log_matcher(r"^\s*\*\s+Move 0x(?P<key>[0-9A-F]+) to [Ee]meritus \([^)]+\)\s+\(RT #(?P<rt>\d+)")
-    def do_new_em(self, d, key, rt):
+    def do_move_to_emeritus(self, shasum, ts, info):
+        # { "Action": "FIXME-move", "Key": x.group("key"), "Target": "emeritus", "Subject": x.group("subj"), "RT-Ticket": x.group("rt") }
+        rt = info.get("RT-Ticket", None)
+        key = info.get("Key", None)
         p = self.person_for_key_id(key)
         if p is None:
             fpr, ktype = self.hk.keyrings.resolve_keyid(key)
-            self._ann_fpr(d, rt, fpr, "keyring logs report a new emeritus DD, with no known record in our database", keyring_status=ktype)
+            self._ann_fpr(ts, rt, fpr, "keyring logs report a new emeritus DD, with no known record in our database", keyring_status=ktype,
+                          shasum=shasum, **info)
             #print("! New Emeritus DD %s %s (no account before??)" % (key, self.rturl(rt)))
         elif p.status == const.STATUS_EMERITUS_DD:
             # print("# %s goes from %s to emeritus DD (already known in the database) %s" % (p.lookup_key, p.status, self.rturl(rt)))
             pass # Already emeritus
         else:
-            self._ann_person(d, rt, p, "keyring logs report change from {} to {}".format(p.status, const.STATUS_EMERITUS_DD),
+            self._ann_person(ts, rt, p, "keyring logs report change from {} to {}".format(p.status, const.STATUS_EMERITUS_DD),
                              keyring_status=const.STATUS_EMERITUS_DD,
                              fix_cmdline="./manage.py change_status {} {} --date='{}' --message='imported from keyring changelog, RT {}'".format(
-                                 p.lookup_key, const.STATUS_EMERITUS_DD, d.strftime("%Y-%m-%d %H:%M:%S"), rt))
+                                 p.lookup_key, const.STATUS_EMERITUS_DD, ts.strftime("%Y-%m-%d %H:%M:%S"), rt),
+                             shasum=shasum, **info)
 
-    @keyring_log_matcher(r"^\s*\*\s+Move 0x(?P<key>[0-9A-F]+)\s+\([^)]+\) to removed keyring\s+\(RT #(?P<rt>\d+)")
-    def do_new_rem(self, d, key, rt):
+    def do_move_to_removed(self, shasum, ts, info):
+        # { "Action": "FIXME-move", "Key": x.group("key"), "Target": "removed", "Subject": x.group("subj"), "RT-Ticket": x.group("rt") },
+        rt = info.get("RT-Ticket", None)
+        key = info.get("Key", None)
         p = self.person_for_key_id(key)
         if p is None:
             fpr, ktype = self.hk.keyrings.resolve_keyid(key)
-            self._ann_fpr(d, rt, fpr, "keyring logs report a new removed DD, with no known record in our database", keyring_status=ktype)
+            self._ann_fpr(ts, rt, fpr, "keyring logs report a new removed DD, with no known record in our database", keyring_status=ktype,
+                          shasum=shasum, **info)
             #print("! New removed key %s %s (no account before??)" % (key, self.rturl(rt)))
         else:
             #print("! %s key %s moved to removed keyring %s" % (p.lookup_key, key, self.rturl(rt)))
-            self._ann_person(d, rt, p, "keyring logs report change from {} to removed".format(p.status, const.STATUS_REMOVED_DD), keyring_status=const.STATUS_REMOVED_DD)
+            self._ann_person(ts, rt, p, "keyring logs report change from {} to removed".format(p.status, const.STATUS_REMOVED_DD), keyring_status=const.STATUS_REMOVED_DD,
+                             shasum=shasum, **info)
 
-    @keyring_log_matcher(r"^\s*\*\s+Replace(?: key)? 0x(?P<key1>[0-9A-F]+) with 0x(?P<key2>[0-9A-F]+) \([^)]+\)\s+\(RT #(?P<rt>\d+)")
-    def do_replace(self, d, key1, key2, rt):
+    def do_replace(self, shasum, ts, info):
+        # { "Action": "replace", "Old-key": x.group("old"), "New-key": x.group("new"), "Subject": x.group("subj"), "RT-Ticket": x.group("rt") }
+        rt = info.get("RT-Ticket", None)
+        key1 = info.get("Old-key", None)
+        key2 = info.get("New-key", None)
         p1 = self.person_for_key_id(key1)
         p2 = self.person_for_key_id(key2)
         if p1 is None and p2 is None:
@@ -362,27 +399,31 @@ class CheckKeyringLogs(hk.Task):
                     # Before and after keyrings known
                     if ktype1 != ktype2:
                         # Keyring moved
-                        self._ann_fpr(d, rt, fpr1,
-                             "keyring logs report that this key has been replaced with {}, and moved from the {} to the {} keyring".format(fpr2, ktype1, ktype2),
-                             keyring_status=ktype2,
-                             keyring_fpr=fpr2)
+                        self._ann_fpr(ts, rt, fpr1,
+                                      "keyring logs report that this key has been replaced with {}, and moved from the {} to the {} keyring".format(fpr2, ktype1, ktype2),
+                                      keyring_status=ktype2,
+                                      keyring_fpr=fpr2,
+                                      shasum=shasum, **info)
                     else:
                         # Same keyring
-                        self._ann_fpr(d, rt, fpr1,
-                             "keyring logs report that this key has been replaced with {} in the {} keyring".format(fpr2, ktype2),
-                             keyring_status=ktype2,
-                             keyring_fpr=fpr2)
+                        self._ann_fpr(ts, rt, fpr1,
+                                      "keyring logs report that this key has been replaced with {} in the {} keyring".format(fpr2, ktype2),
+                                      keyring_status=ktype2,
+                                      keyring_fpr=fpr2,
+                                      shasum=shasum, **info)
                 else:
                     # Only 'before' keyring known
-                    self._ann_fpr(self, fpr1,
-                         "keyring logs report that this key has been replaced with unkonwn key {}".format(key2),
-                         keyring_status=ktype1)
+                    self._ann_fpr(ts, rt, fpr1,
+                                  "keyring logs report that this key has been replaced with unkonwn key {}".format(key2),
+                                  keyring_status=ktype1,
+                                  shasum=shasum, **info)
             else:
                 if fpr2 is not None:
                     # Only 'after' keyring known
-                    self._ann_fpr(self, fpr2,
-                         "keyring logs report that this key has replaced unknown key {} in the {} keyring".format(key1, ktype2),
-                         keyring_status=ktype2)
+                    self._ann_fpr(ts, rt, fpr2,
+                                  "keyring logs report that this key has replaced unknown key {} in the {} keyring".format(key1, ktype2),
+                                  keyring_status=ktype2,
+                                  shasum=shasum, **info)
                 else:
                     # Neither before nor after are known
                     pass
@@ -398,75 +439,72 @@ class CheckKeyringLogs(hk.Task):
         elif p1 is not None and p2 is None:
             fpr, ktype = self.hk.keyrings.resolve_keyid(key2)
             if fpr is None:
-                self._ann_person(d, rt, p1, "key changed to unknown key {}".format(key2))
+                self._ann_person(ts, rt, p1, "key changed to unknown key {}".format(key2), shasum=shasum, **info)
                 # print("! %s replaced key %s with %s but could not find %s in keyrings %s" % (p.lookup_key, key1, key2, key2, self.rturl(rt)))
             else:
-                self._ann_person(d, rt, p1, "key changed to {}".format(fpr),
+                self._ann_person(ts, rt, p1, "key changed to {}".format(fpr),
                                  keyring_fpr=fpr,
                                  keyring_status=ktype,
-                                 fix_cmdline="./manage.py change_key {} {}".format(p1.lookup_key, fpr))
+                                 fix_cmdline="./manage.py change_key {} {}".format(p1.lookup_key, fpr), shasum=shasum, **info)
         else:
             # This is very weird, so we log instead of just annotating
             for p in (p1, p2):
                 self.hk.inconsistencies.log_person(self, p,
                                                         "keyring logs report key change from {} to {}, but the keys belong to two different people, {} and {}. RT #{}".format(key1, key2, p1.lookup_key, p2.lookup_key, rt),
                                                         keyring_rt=rt,
-                                                        keyring_log_date=d.strftime("%Y%m%d %H%M%S"))
+                                                        keyring_log_date=ts.strftime("%Y%m%d %H%M%S"), shasum=shasum, **info)
 
-    @keyring_log_matcher(r"^\s*\*\s+(?P<line>.*0x[0-9A-F]+.+)", fallback=True)
-    def do_fallback(self, d, line):
-        # We get a line that contains at least one key id
-        keys = re.findall(r"0x(?P<key>[0-9A-F]+)", line)
-        rtmo = re.search(r"RT #(?P<rt>\d+)", line)
-        if rtmo:
-            rt = int(rtmo.group("rt"))
-        else:
-            rt = None
+    #@keyring_log_matcher(r"^\s*\*\s+(?P<line>.*0x[0-9A-F]+.+)", fallback=True)
+    #def do_fallback(self, d, line):
+    #    # We get a line that contains at least one key id
+    #    keys = re.findall(r"0x(?P<key>[0-9A-F]+)", line)
+    #    rtmo = re.search(r"RT #(?P<rt>\d+)", line)
+    #    if rtmo:
+    #        rt = int(rtmo.group("rt"))
+    #    else:
+    #        rt = None
 
-        # Log the line in all relevant bits found
-        for key in keys:
-            p = self.person_for_key_id(key)
-            if p is not None:
-                self._ann_person(d, rt, p, "relevant but unparsed log entry: \"{}\"".format(line))
-                continue
+    #    # Log the line in all relevant bits found
+    #    for key in keys:
+    #        p = self.person_for_key_id(key)
+    #        if p is not None:
+    #            self._ann_person(d, rt, p, "relevant but unparsed log entry: \"{}\"".format(line))
+    #            continue
 
-            fpr, ktype = self.hk.keyrings.resolve_keyid(key)
-            if fpr is not None:
-                self._ann_fpr(d, rt, fpr, "relevant but unparsed log entry: \"{}\"".format(line))
+    #        fpr, ktype = self.hk.keyrings.resolve_keyid(key)
+    #        if fpr is not None:
+    #            self._ann_fpr(d, rt, fpr, "relevant but unparsed log entry: \"{}\"".format(line))
 
-
-    def _find_matchers(self):
-        """
-        Return a sequence of (regexp, method) to use to match changelog lines
-        """
-        import inspect
-        matchers = []
-        for name, meth in inspect.getmembers(self, lambda x:(inspect.ismethod(x) and hasattr(x, "re"))):
-            matchers.append(meth)
-        return matchers
-
-    def _run_matchers(self, matchers, d, line, fallback=False):
-        for method in matchers:
-            is_fallback = getattr(method, "fallback", False)
-            if fallback != is_fallback: continue
-            mo = method.re.match(line)
-            if mo:
-                method(d, **mo.groupdict())
-                return True
-        return False
 
     def run_main(self, stage):
         """
         Parse changes from changelog entries after the given date (non inclusive).
         """
-        re_import = re.compile(r"^\s*\*\s+Import changes sent to keyring.debian.org HKP interface:")
-
-        matchers = self._find_matchers()
-
-        changelog = kmodels.Changelog()
-        for d, lines in changelog.read(since=datetime.datetime.utcnow() - datetime.timedelta(days=360)):
-            if re_import.match(lines[0]): continue
-            oneline = " ".join(c.strip() for c in lines)
-            if not self._run_matchers(matchers, d, oneline):
-                self._run_matchers(matchers, d, oneline, fallback=True)
-                # If not even the fallback matchers find anything, give it up
+        start_date = datetime.datetime.utcnow() - datetime.timedelta(days=360)
+        gk = kmodels.GitKeyring()
+        for shasum, ts in gk.get_valid_shasums("--since", start_date.strftime("%Y-%m-%d")):
+            c = gk.get_commit_message(shasum)
+            if c is None: continue
+            action = c.get("Action", None)
+            if action is None:
+                continue
+            elif action == "add":
+                role = c.get("Role", None)
+                if role == "DM":
+                    self.do_add_dm(shasum, ts, c)
+                elif role == "DD":
+                    self.do_add_dd(shasum, ts, c)
+                else:
+                    log.warning("Unsupported role %s for %s action in %s", role, action, shasum)
+            elif action == "replace":
+                self.do_replace(shasum, ts, c)
+            elif action == "FIXME-move":
+                target = c.get("Target", None)
+                if target == "emeritus":
+                    self.do_move_to_emeritus(shasum, ts, c)
+                elif target == "removed":
+                    self.do_move_to_removed(shasum, ts, c)
+                else:
+                    log.warning("Unsupported target %s for %s action in %s", target, action, shasum)
+            else:
+                log.warning("Unsupported action %s in %s", action, shasum)

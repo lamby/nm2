@@ -653,14 +653,23 @@ class GitKeyring(object):
     re_field_split = re.compile(r":\s*")
     re_summaries = [
         {
-            "re": re.compile(r"Add new (?P<role>[A-Z]+) key 0x(?P<key>[0-9A-F]+) \((?P<subj>[^)]+)\) \(RT #(?P<rt>\d+)\)"),
-            "proc": lambda x: { "Action": "add", "Role": x.group("role"), "New-Key": x.group("key"), "Subject": x.group("subj"), "RT-Ticket": x.group("rt") },
+            "re": re.compile(r"Add new (?P<role>[A-Z]+) key 0x(?P<key>[0-9A-F]+) \((?P<subj>[^)]+)\)\s+\(RT #(?P<rt>\d+)\)"),
+            "proc": lambda x: { "Action": "add", "Role": x.group("role"), "New-key": x.group("key"), "Subject": x.group("subj"), "RT-Ticket": x.group("rt") },
         },
         {
             "re": re.compile(r"Replace 0x(?P<old>[0-9A-F]+) with 0x(?P<new>[0-9A-F]+) \((?P<subj>[^)]+)\) \(RT #(?P<rt>\d+)\)"),
             "proc": lambda x: { "Action": "replace", "Old-key": x.group("old"), "New-key": x.group("new"), "Subject": x.group("subj"), "RT-Ticket": x.group("rt") },
         },
+        {
+            "re": re.compile(r"Move 0x(?P<key>[0-9A-F]+) to [Ee]meritus \(?P<subj>[^)]+\)\s+\(RT #(?P<rt>\d+)"),
+            "proc": lambda x: { "Action": "FIXME-move", "Key": x.group("key"), "Target": "emeritus", "Subject": x.group("subj"), "RT-Ticket": x.group("rt") },
+        },
+        {
+            "re": re.compile(r"Move 0x(?P<key>[0-9A-F]+)\s+\(?P<subj>[^)]+\) to [Rr]emoved keyring\s+\(RT #(?P<rt>\d+)"),
+            "proc": lambda x: { "Action": "FIXME-move", "Key": x.group("key"), "Target": "removed", "Subject": x.group("subj"), "RT-Ticket": x.group("rt") },
+        },
     ]
+
 
     def run_git(self, *args):
         """
@@ -720,7 +729,7 @@ class GitKeyring(object):
             if not line: break
             if not line[0].isspace():
                 if name:
-                    yield name, cur
+                    yield name, "\n".join(cur)
                     name = None
                     cur = []
                 name, content = self.re_field_split.split(line, 1)
@@ -729,4 +738,4 @@ class GitKeyring(object):
                 cur.append(line.lstrip())
 
         if name:
-            yield name, cur
+            yield name, "\n".join(cur)
