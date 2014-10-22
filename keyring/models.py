@@ -687,7 +687,7 @@ class GitKeyring(object):
 
         Extra git log options passed as *args will be appended to the command line
         """
-        for line in self.run_git("log", "--pretty=format:%H:%ct:%G?", *args).split("\n"):
+        for line in self.run_git("log", "--pretty=format:%H:%ct:%G?", "origin/master", *args).split("\n"):
             shasum, ts, validated = line.split(":")
             # "G" for a Good signature, "B" for a Bad signature, "U" for a good, untrusted signature and "N" for no signature
             if validated in "GU":
