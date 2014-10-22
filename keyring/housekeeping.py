@@ -104,6 +104,12 @@ class Keyrings(hk.Task):
         Return the (fingerprint, keyring type) given a key id, or (None, None)
         if the key id is unknown
         """
+        if len(keyid) > self.KEYID_LEN:
+            type = self.resolve_fpr(keyid)
+            if type is None:
+                return None, None
+            else:
+                return keyid, type
         rec = self.by_keyid.get(keyid, None)
         if rec is None:
             return None, None
