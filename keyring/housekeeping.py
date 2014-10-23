@@ -244,7 +244,7 @@ class CheckKeyringLogs(hk.Task):
     """
     Show entries that do not match between keyrings and our DB
     """
-    DEPENDS = [Inconsistencies, Keyrings]
+    DEPENDS = [MakeLink, Inconsistencies, Keyrings]
 
     def person_for_key_id(self, kid):
         """
@@ -447,10 +447,10 @@ class CheckKeyringLogs(hk.Task):
                 self._ann_person(ts, rt, p1, "key changed to unknown key {}".format(key2), shasum=shasum, **info)
                 # print("! %s replaced key %s with %s but could not find %s in keyrings %s" % (p.lookup_key, key1, key2, key2, self.rturl(rt)))
             else:
-                self._ann_person(ts, rt, p1, "key changed to {}".format(fpr),
-                                 keyring_fpr=fpr,
-                                 keyring_status=ktype,
-                                 fix_cmdline="./manage.py change_key {} {}".format(p1.lookup_key, fpr), shasum=shasum, **info)
+                # Keyring-maint is authoritative on key changes
+                p1.fpr = fpr
+                p1.save()
+                log.info("%s: %s key replaced with %s (RT #%s, shasum %s)", self.IDENTIFIER, self.hk.link(p1), fpr, rt, shasum)
         else:
             # This is very weird, so we log instead of just annotating
             for p in (p1, p2):
