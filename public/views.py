@@ -37,6 +37,15 @@ import markdown
 import datetime
 import json
 
+def lookup_or_404(dict, key):
+    """
+    Lookup a key in a dictionary, raising 404 if not found
+    """
+    try:
+        return dict[key]
+    except KeyError:
+        raise http.Http404
+
 class Managers(VisitorTemplateView):
     template_name = "public/managers.html"
 
@@ -274,8 +283,8 @@ class People(VisitorTemplateView):
             else:
                 objects = objects.filter(status=status)
                 show_status = False
-                status_sdesc = const.ALL_STATUS_BYTAG[status].sdesc
-                status_ldesc = const.ALL_STATUS_BYTAG[status].sdesc
+                status_sdesc = lookup_or_404(const.ALL_STATUS_BYTAG, status).sdesc
+                status_ldesc = lookup_or_404(const.ALL_STATUS_BYTAG, status).sdesc
 
         people = []
         for p in objects:
