@@ -20,4 +20,4 @@ def deploy():
         sudo("psql service=nm -c 'grant select,insert,update,delete on all tables in schema public to nmweb'",
              user="nm")
         sudo("psql service=nm -c 'grant usage on all sequences in schema public to nmweb'", user="nm")
-        sudo("touch nm2.wsgi", user="nm")
+        sudo("touch nm2/wsgi.py", user="nm")
