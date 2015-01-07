@@ -62,7 +62,7 @@
 {% endif %}
 {% if visitor.is_admin %}
 <a href="{% url 'admin:backend_person_change' person.id  %}">admin</a>
-{% if vperms.can_become_am %}
+{% if person.can_become_am %}
 <a href="{% url 'admin:backend_am_add' %}?person={{person.id}}">make am</a>
 {% endif %}
 {% endif %}
