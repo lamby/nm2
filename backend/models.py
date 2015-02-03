@@ -362,9 +362,8 @@ class ProcessVisitorPermissions(PersonVisitorPermissions):
         if self.visitor.is_admin: return True
         # The person themselves
         if self.visitor.pk == self.person.pk: return True
-        # The AM
-        am = self.visitor.am_or_none
-        if am is not None and self.process.manager == am: return True
+        # Any AM
+        if self.visitor.am_or_none: return True
         # The advocates
         return self.process.advocates.filter(pk=self.visitor.pk).exists()
 
