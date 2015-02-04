@@ -19,7 +19,7 @@ from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
-from django_maintenance import MaintenanceTask
+import django_housekeeping as hk
 from backend.maintenance import MakeLink
 import backend.models as bmodels
 from backend import const
@@ -28,13 +28,13 @@ import logging
 
 log = logging.getLogger(__name__)
 
-class CheckDMList(MaintenanceTask):
+class CheckDMList(hk.Task):
     """
     Show entries that do not match between projectb DM list and out DB
     """
     DEPENDS = [MakeLink]
 
-    def run(self):
+    def run_main(self):
         # Code used to import DMs is at 64a3e35a5c55aa3ee122e6234ad24c74a57dd843
         # Now this is just a consistency check
         maints = pmodels.Maintainers()
