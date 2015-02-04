@@ -139,7 +139,7 @@ $(function() {
         <th>Last AM days</th>
         <th>Last AM hold days</th>
         <th>Mbox age</th>
-        {% if visitor.is_admin %}
+        {% if visitor.is_am %}
         <th>Activity</th>
         <th>Last log entry</th>
         {% endif %}
@@ -170,7 +170,7 @@ $(function() {
             <td>{{p.last_am_time}}</td>
             <td>{{p.last_amhold_time}}</td>
             <td>{{p.mbox_age|default_if_none:"-"}}</td>
-            {% if visitor.is_admin %}
+            {% if visitor.is_am %}
             <td>
               {% if p.mbox_stats %}
               <a href="{% url 'display_mail_archive' key=p.lookup_key %}">
