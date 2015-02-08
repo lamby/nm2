@@ -39,6 +39,7 @@ $(function() {
         <tr>
             <th>Started</th>
             <th>Last</th>
+            <th>Target</th>
             <th>Applicant</th>
             <th>Uid</th>
             <th>Adv.</th>
@@ -53,6 +54,7 @@ $(function() {
     <tr>
         <td>{{p.started|date:"Y-m-d"}}</td>
         <td>{{p.last_change|date:"Y-m-d"}}</td>
+        <td>{{p.applying_for|sdesc_status}}</td>
         <td><a href="{{ p.get_absolute_url }}">{{p.person}}</a></td>
         <td><a href="{{ p.get_absolute_url }}">{{p.person.uid}}</a></td>
 	<td>
