@@ -24,5 +24,4 @@ admin.site.register(bmodels.Process, ProcessAdmin)
 
 class LogAdmin(admin.ModelAdmin):
     raw_id_fields = ('changed_by',)
-    exclude = ("process",)
 admin.site.register(bmodels.Log, LogAdmin)
