@@ -85,6 +85,7 @@ $(function() {
 
 {% block relatedpages %}
 <a href="{{ visitor.get_absolute_url }}">personal page</a>
+<a href="{% url 'restricted_amprofile' visitor.lookup_key %}">am page</a>
 {% if am.is_fd or am.is_dam %}
 <a href="{% url 'admin:backend_person_add' %}">new person</a>
 {% endif %}
