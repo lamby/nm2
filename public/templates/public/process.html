@@ -71,7 +71,7 @@ $(function() {
         label: "Approve applicant",
         prog_if: [ PROGRESS_AM ],
         prog_to: PROGRESS_AM_OK,
-        logtext: "Please enter personal comment about applicant.\nDon't forget to send the mailbox and any other relevant data you collected (like minechangelogs output) to nm@debian.org",
+        logtext: "Please enter personal comment about applicant for the process log.\nMake sure all your communication with the NM has been Cc'ed or forwarded to the archive mailbox.\nOn submitting, the system will announce the approval in a summary message including the applicant's bio to nm@debian.org.",
         hook: function() { am_mail.show(); },
     }, {
         label: "On hold",
