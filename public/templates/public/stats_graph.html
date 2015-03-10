@@ -1,0 +1,22 @@
+{% extends "public/base.html" %}
+{% load nm %}
+
+{% block breadcrumbs %}{{block.super}} / <a href="{% url 'public_stats' %}">stats</a> / <a href="{% url 'public_stats_graph' %}">graph</a> {% endblock %}
+
+{% block content %}
+
+<h1>Debian New Member - People Relationships</h2>
+
+<h2>AMs and NMs</h2>
+
+{% for am_uid, nm_uid in am_nm %}
+{{am_uid}} -> {{nm_uid}} <br />
+{% endfor %}
+
+<h2>Advocates and NMs</h2>
+
+{% for adv_uid, nm_uid in adv_nm %}
+{{adv_uid}} -> {{nm_uid}} <br />
+{% endfor %}
+
+{% endblock %}

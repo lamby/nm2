@@ -559,6 +559,44 @@ class StatsLatest(VisitorTemplateView):
 
         return ctx
 
+class StatsGraph(VisitorTemplateView):
+    template_name = "public/stats_graph.html"
+
+    def get_context_data(self, **kw):
+        ctx = super(StatsGraph, self).get_context_data(**kw)
+        from django.db import connection
+
+        cursor = connection.cursor()
+        cursor.execute("""
+        SELECT am_person.uid AS am_uid, nm_person.uid AS nm_uid
+        FROM person am_person
+        JOIN am ON (am_person.id = am.person_id)
+        JOIN process p ON (am.id = p.manager_id)
+        JOIN person nm_person ON (p.person_id = nm_person.id);
+        """)
+        am_nm = []
+        for am_uid, nm_uid in cursor:
+            am_nm.append((am_uid, nm_uid))
+
+        cursor = connection.cursor()
+        cursor.execute("""
+        SELECT adv_person.uid AS adv_uid, nm_person.uid AS nm_uid
+        FROM person adv_person
+        JOIN process_advocates adv ON (adv_person.id = adv.person_id)
+        JOIN process p ON (adv.process_id = p.id)
+        JOIN person nm_person ON (p.person_id = nm_person.id);
+        """)
+        adv_nm = []
+        for adv_uid, nm_uid in cursor:
+            adv_nm.append((adv_uid, nm_uid))
+
+        ctx = dict(
+            am_nm=am_nm,
+            adv_nm=adv_nm,
+        )
+
+        return ctx
+
 YESNO = (
         ("yes", "Yes"),
         ("no", "No"),
