@@ -708,6 +708,7 @@ def newnm_resend_challenge(request, key):
             confirm_url,
             request.build_absolute_uri(person.get_absolute_url()))
     key = UserKey(person.fpr)
+    key.refresh()
     encrypted = key.encrypt(plaintext.encode("utf8"))
     bemail.send_nonce("notification_mails/newperson.txt", person, encrypted_nonce=encrypted)
     return redirect(person.get_absolute_url())
