@@ -739,3 +739,10 @@ class GitKeyring(object):
 
         if name:
             yield name, "\n".join(cur)
+
+    def get_changelog_parser(self):
+        """
+        Create and return an instance of the keyring-maint changelog parser
+        """
+        from . import gitchangelog
+        return gitchangelog.Parser(repo=KEYRING_MAINT_GIT_REPO, gnupghome=KEYRING_MAINT_KEYRING)
