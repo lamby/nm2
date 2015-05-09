@@ -11,11 +11,61 @@ from django.utils.timezone import now
 import datetime
 import re
 
-class NMBasicFixtureMixin(object):
+class NMFactoryMixin(object):
+    def setUp(self):
+        super(NMFactoryMixin, self).setUp()
+        self.users = {}
+
+    def make_user(self, tag, status, alioth=False, **kw):
+        if alioth:
+            remote_user = "NM::DEBIAN:{}-guest@users.alioth.debian.org".format(tag)
+            uid = tag + "-guest"
+            username = uid + "@users.alioth.debian.org"
+        else:
+            remote_user = "NM::DEBIAN:{}".format(tag)
+            uid = tag
+            username = uid + "@debian.org"
+
+        kw.setdefault("email", tag + "@example.org")
+        kw.setdefault("cn", tag.capitalize())
+
+        res = bmodels.Person.objects.create_user(username=username,
+                                    uid=uid,
+                                    status=status,
+                                    audit_skip=True,
+                                    **kw)
+        res.remote_user = remote_user
+        self.users[tag] = res
+        return res
+
+    def make_process(self, applicant, applying_for, progress, applying_as=None, advocates=[], manager=None):
+        """
+        Create a process for the given applicant
+        """
+        if applying_as is None: applying_as = applicant.status
+        proc = bmodels.Process(person=applicant,
+                               applying_as=applying_as,
+                               applying_for=applying_for,
+                               progress=progress,
+                               is_active=progress not in (const.PROGRESS_DONE, const.PROGRESS_CANCELLED))
+        if manager:
+            try:
+                am = manager.am
+            except bmodels.AM.DoesNotExist:
+                am = bmodels.AM.objects.create(person=manager)
+            proc.manager = am
+
+        proc.save()
+
+        for a in advocates:
+            proc.advocates.add(a)
+
+        return proc
+
+
+class NMBasicFixtureMixin(NMFactoryMixin):
     def setUp(self):
         super(NMBasicFixtureMixin, self).setUp()
-
-        self.users = {}
 
         # anonymous
         # pending account
@@ -73,49 +123,6 @@ class NMBasicFixtureMixin(object):
         # dam
         dam = self.make_user("dam", const.STATUS_DD_NU)
         bmodels.AM.objects.create(person=dam, is_fd=True, is_dam=True)
-
-    def make_user(self, tag, status, alioth=False, **kw):
-        if alioth:
-            remote_user = "NM::DEBIAN:{}-guest@users.alioth.debian.org".format(tag)
-            uid = tag + "-guest"
-            username = uid + "@users.alioth.debian.org"
-        else:
-            remote_user = "NM::DEBIAN:{}".format(tag)
-            uid = tag
-            username = uid + "@debian.org"
-        res = bmodels.Person.objects.create(username=username,
-                                    cn=tag.capitalize(),
-                                    uid=uid,
-                                    email=tag + "@example.org",
-                                    status=status,
-                                    **kw)
-        res.remote_user = remote_user
-        self.users[tag] = res
-        return res
-
-    def make_process(self, applicant, applying_for, progress, applying_as=None, advocates=[], manager=None):
-        """
-        Create a process for the given applicant
-        """
-        if applying_as is None: applying_as = applicant.status
-        proc = bmodels.Process(person=applicant,
-                               applying_as=applying_as,
-                               applying_for=applying_for,
-                               progress=progress,
-                               is_active=progress not in (const.PROGRESS_DONE, const.PROGRESS_CANCELLED))
-        if manager:
-            try:
-                am = manager.am
-            except bmodels.AM.DoesNotExist:
-                am = bmodels.AM.objects.create(person=manager)
-            proc.manager = am
-
-        proc.save()
-
-        for a in advocates:
-            proc.advocates.add(a)
-
-        return proc
 
 
 # Inspired from http://blog.liw.fi/posts/yarn/

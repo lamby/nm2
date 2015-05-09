@@ -206,7 +206,7 @@ class ProcTestMixin(PersonTestMixin):
 
         # Final states
         self.app.status = self.applying_for
-        self.app.save()
+        self.app.save(audit_skip=True)
         for p in (const.PROGRESS_DONE, const.PROGRESS_CANCELLED):
             self.proc.progress = p
             self.proc.is_active = False
@@ -266,7 +266,7 @@ class ProcTestMixin(PersonTestMixin):
 
         # Final states
         self.app.status = self.applying_for
-        self.app.save()
+        self.app.save(audit_skip=True)
         for p in (const.PROGRESS_DONE, const.PROGRESS_CANCELLED):
             self.proc.progress = p
             self.proc.is_active = False

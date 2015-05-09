@@ -460,7 +460,8 @@ class Findperson(VisitorTemplateView):
         FindpersonForm = make_findperson_form(request, self.visitor)
         form = FindpersonForm(request.POST)
         if form.is_valid():
-            person = form.save()
+            person = form.save(commit=False)
+            person.save(audit_author=self.visitor, audit_notes="user created manually")
             return redirect(person.get_absolute_url())
 
         context = self.get_context_data(**kw)
@@ -653,7 +654,7 @@ class Newnm(VisitorMixin, FormView):
         person.status = const.STATUS_DC
         person.status_changed = now()
         person.make_pending(days_valid=self.DAYS_VALID)
-        person.save()
+        person.save(audit_author=person, audit_notes="new subscription to the site")
         # Redirect to the send challenge page
         return redirect("public_newnm_resend_challenge", key=person.lookup_key)
 
@@ -720,6 +721,6 @@ def newnm_confirm(request, nonce):
     person = get_object_or_404(bmodels.Person, pending=nonce)
     person.pending = ""
     person.expires = now() + datetime.timedelta(days=30)
-    person.save()
+    person.save(audit_author=person, audit_notes="confirmed pending subscription")
     return redirect(person.get_absolute_url())
 

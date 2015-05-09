@@ -21,7 +21,7 @@ from __future__ import division
 from __future__ import unicode_literals
 import django_housekeeping as hk
 from django.db import transaction
-from backend.housekeeping import MakeLink, Inconsistencies
+from backend.housekeeping import MakeLink, Inconsistencies, Housekeeper
 from . import models as dmodels
 from backend import const
 import backend.models as bmodels
@@ -93,7 +93,7 @@ class NewGuestAccountsFromDSA(hk.Task):
             except bmodels.Person.DoesNotExist:
                 pass
 
-            p = bmodels.Person(
+            p = bmodels.Person.objects.create_user(
                 cn=entry.single("cn"),
                 mn=entry.single("mn"),
                 sn=entry.single("sn"),
@@ -101,15 +101,16 @@ class NewGuestAccountsFromDSA(hk.Task):
                 uid=entry.uid,
                 fpr=entry.single("keyFingerPrint"),
                 status=const.STATUS_DC_GA,
+                audit_author=self.hk.housekeeper.user,
+                audit_notes="created new guest account entry from LDAP",
             )
-            p.save()
             log.info("%s (guest account only) imported from LDAP", self.hk.link(p))
 
 class CheckLDAPConsistency(hk.Task):
     """
     Show entries that do not match between LDAP and our DB
     """
-    DEPENDS = [MakeLink, Inconsistencies]
+    DEPENDS = [MakeLink, Inconsistencies, Housekeeper]
 
     def run_main(self, stage):
         # Prefetch people and index them by uid
@@ -143,7 +144,7 @@ class CheckLDAPConsistency(hk.Task):
                     log.info("%s: %s changing email from %s to %s (source: LDAP)",
                              self.IDENTIFIER, self.hk.link(person), person.email, email)
                     person.email = email
-                    person.save()
+                    person.save(audit_author=self.hk.housekeeper.user, audit_notes="updated email from LDAP")
                 # It gives lots of errors when run outside of the debian.org
                 # network, since emailForward is not exported there, and it has
                 # no use case I can think of so far

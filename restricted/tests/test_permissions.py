@@ -262,7 +262,7 @@ class PersonTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TransactionTestCase)
                 self.person.fd_comment = self.orig_fd
                 self.person.bio = self.orig_bio
                 self.person.status = self.orig_status
-                self.person.save()
+                self.person.save(audit_skip=True)
 
         class ThenChanges(ThenRedirect):
             def __init__(self, cn=False, fd=False, bio=False, status=False):

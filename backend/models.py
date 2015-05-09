@@ -26,6 +26,7 @@ from django.db import models
 from django.conf import settings
 from django.utils.timezone import now
 from django.contrib.auth.models import BaseUserManager, PermissionsMixin
+from django.forms.models import model_to_dict
 from . import const
 from .utils import cached_property
 from backend.notifications import maybe_notify_applicant_on_progress
@@ -33,6 +34,7 @@ import datetime
 import urllib
 import os.path
 import re
+import json
 from south.modelsinspector import add_introspection_rules
 from django.db.models.signals import post_save
 
@@ -377,11 +379,14 @@ class PersonManager(BaseUserManager):
     def create_user(self, email, **other_fields):
         if not email:
             raise ValueError('Users must have an email address')
+        audit_author = other_fields.pop("audit_author", None)
+        audit_notes = other_fields.pop("audit_notes", None)
+        audit_skip = other_fields.pop("audit_skip", False)
         user = self.model(
             email=self.normalize_email(email),
             **other_fields
         )
-        user.save(using=self._db)
+        user.save(using=self._db, audit_author=audit_author, audit_notes=audit_notes, audit_skip=audit_skip)
         return user
 
     def create_superuser(self, email, **other_fields):
@@ -608,6 +613,44 @@ class Person(PermissionsMixin, models.Model):
                                          'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
         self.expires = now().date() + datetime.timedelta(days=days_valid)
 
+    def save(self, *args, **kw):
+        """
+        Save, and add an entry to the Person audit log.
+
+        Extra arguments that can be passed:
+
+            audit_author: Person instance of the person doing the change
+            audit_notes: free form text annotations for this change
+            audit_skip: skip audit logging, used only for tests
+
+        """
+        # Extract our own arguments, so that they are not passed to django
+        author = kw.pop("audit_author", None)
+        notes = kw.pop("audit_notes", "")
+        audit_skip = kw.pop("audit_skip", False)
+
+        if audit_skip:
+            changes = None
+        else:
+            # Get the previous version of the Person object, so that PersonAuditLog
+            # can compute differences
+            if self.pk:
+                old_person = Person.objects.get(pk=self.pk)
+            else:
+                old_person = None
+
+            changes = PersonAuditLog.diff(old_person, self)
+            if changes and not author:
+                raise RuntimeError("Cannot save a Person instance without providing Author information")
+
+        # Perform the save; if we are creating a new person, this will also
+        # fill in the id/pk field, so that PersonAuditLog can link to us
+        super(Person, self).save(*args, **kw)
+
+        # Finally, create the audit log entry
+        if changes:
+            PersonAuditLog.objects.create(person=self, author=author, notes=notes, changes=PersonAuditLog.serialize_changes(changes))
+
     @property
     def lookup_key(self):
         """
@@ -642,6 +685,46 @@ class Person(PermissionsMixin, models.Model):
         if res is not None:
             return res
         raise Http404
+
+
+class PersonAuditLog(models.Model):
+    person = models.ForeignKey(Person, related_name="audit_log")
+    logdate = models.DateTimeField(null=False, auto_now_add=True)
+    author = models.ForeignKey(Person, related_name="+", null=False)
+    notes = models.TextField(null=False, default="")
+    changes = models.TextField(null=False, default="{}")
+
+    @classmethod
+    def diff(cls, old_person, new_person):
+        """
+        Compute the changes between two different instances of a Person model
+        """
+        exclude = ["last_login", "date_joined"]
+        changes = {}
+        if old_person is None:
+            for k, nv in model_to_dict(new_person, exclude=exclude).items():
+                changes[k] = [None, nv]
+        else:
+            old = model_to_dict(old_person, exclude=exclude)
+            new = model_to_dict(new_person, exclude=exclude)
+            for k, nv in new.items():
+                ov = old.get(k, None)
+                if ov != nv:
+                    changes[k] = [ov, nv]
+        return changes
+
+    @classmethod
+    def serialize_changes(cls, changes):
+        class Serializer(json.JSONEncoder):
+            def default(self, o):
+                if isinstance(o, datetime.datetime):
+                    return o.strftime("%Y-%m-%d %H:%M:%S")
+                elif isinstance(o, datetime.date):
+                    return o.strftime("%Y-%m-%d")
+                else:
+                    return json.JSONEncoder.default(self, o)
+        return json.dumps(changes, cls=Serializer)
+
 
 class AM(models.Model):
     """

@@ -38,6 +38,27 @@ BACKUP_DIR = getattr(settings, "BACKUP_DIR", None)
 
 STAGES = ["backup", "main", "stats"]
 
+class Housekeeper(hk.Task):
+    NAME = "housekeeper"
+
+    def __init__(self, *args, **kw):
+        super(Housekeeper, self).__init__(*args, **kw)
+        # Ensure that there is a __housekeeping__ user
+        try:
+            self.user = bmodels.Person.objects.get(username="__housekeeping__")
+        except bmodels.Person.DoesNotExist:
+            self.user = bmodels.Person.objects.create_user(
+                username="__housekeeping__",
+                is_staff=False,
+                cn="Housekeeping",
+                sn="Robot",
+                email="nm@debian.org",
+                bio="I am the robot that runs the automated tasks in the site",
+                uid=None,
+                fpr=None,
+                status=const.STATUS_DC,
+                audit_skip=True)
+
 
 class MakeLink(hk.Task):
     NAME = "link"
@@ -264,7 +285,7 @@ class PersonExpires(hk.Task):
     """
     Expire old Person records
     """
-    DEPENDS = [MakeLink]
+    DEPENDS = [MakeLink, Housekeeper]
 
     @transaction.atomic
     def run_main(self, stage):
@@ -277,12 +298,12 @@ class PersonExpires(hk.Task):
                 log.info("%s: removing expiration date for %s who has become %s",
                          self.IDENTIFIER, self.hk.link(p), p.status)
                 p.expires = None
-                p.save()
+                p.save(audit_author=self.hk.housekeeper.user, audit_notes="user became {}: removing expiration date".format(const.ALL_STATUS_DESCS[p.status]))
             elif p.processes.exists():
                 log.info("%s: removing expiration date for %s who now has process history",
                          self.IDENTIFIER, self.hk.link(p))
                 p.expires = None
-                p.save()
+                p.save(audit_author=self.hk.housekeeper.user, audit_notes="process detected: removing expiration date")
             else:
                 log.info("%s: deleting expired Person %s", self.IDENTIFIER, p)
                 p.delete()
@@ -426,7 +447,7 @@ class DDUsernames(hk.Task):
     """
     Make sure that people with a DD status have a DD SSO username
     """
-    DEPENDS = [MakeLink]
+    DEPENDS = [MakeLink, Housekeeper]
 
     @transaction.atomic
     def run_main(self, stage):
@@ -443,4 +464,4 @@ class DDUsernames(hk.Task):
             log.info("%s: %s has status %s but an alioth username: setting username to %s",
                         self.IDENTIFIER, self.hk.link(p), p.status, new_username)
             p.username = new_username
-            p.save()
+            p.save(audit_author=self.hk.housekeeper.user, audit_notes="updated SSO username to @debian.org version")

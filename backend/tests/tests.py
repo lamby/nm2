@@ -36,25 +36,25 @@ def dump_message(msg):
 class SimpleFixture(object):
     def __init__(self):
         self.fd = bmodels.Person(username="enrico@debian.org", cn="Enrico", sn="Zini", email="enrico@debian.org", uid="enrico", status=bconst.STATUS_DD_U)
-        self.fd.save()
+        self.fd.save(audit_skip=True)
 
         self.fd_am = bmodels.AM(person=self.fd, slots=1, is_am=True, is_fd=True, is_dam=True)
         self.fd_am.save()
 
         self.adv = bmodels.Person(username="andrea@debian.org", cn="Andrea", sn="Berardi", email="andrea@debian.org", uid="andrea", status=bconst.STATUS_DD_NU)
-        self.adv.save()
+        self.adv.save(audit_skip=True)
 
         self.dd = bmodels.Person(username="lesley@debian.org", cn="Lesley", sn="Leisel", email="lesley@debian.org", uid="lesley", status=bconst.STATUS_DD_U)
-        self.dd.save()
+        self.dd.save(audit_skip=True)
 
         self.am = bmodels.Person(username="jane@debian.org", cn="Jane", sn="Doe", email="jane@janedoe.org", uid="jane", status=bconst.STATUS_DD_U)
-        self.am.save()
+        self.am.save(audit_skip=True)
 
         self.am_am = bmodels.AM(person=self.am, slots=1, is_am=True)
         self.am_am.save()
 
         self.nm = bmodels.Person(username="john-guest@users.alioth.debian.org", cn="John", sn="Smith", email="doctor@example.com", status=bconst.STATUS_DC, bio="I meet people, I do things.")
-        self.nm.save()
+        self.nm.save(audit_skip=True)
 
     def make_process_dm(self, progress=bconst.PROGRESS_DONE):
         self.process_dm = bmodels.Process(person=self.nm,
@@ -225,18 +225,23 @@ class NotificationTest(TransactionTestCase):
 
 class SimpleFixtureFingerprintField(object):
     def __init__(self):
-        bmodels.Person(username="safanaj-guest@users.alioth.debian.org",
-                cn="Marco", sn="Bardelli", email="safanaj@debian.org", uid="safanaj",
-                status=bconst.STATUS_DC_GA,
-                fpr="A410 5B0A 9F84 97EC AB5F  1683 8D5B 478C F7FE 4DAA").save()
+        bmodels.Person.objects.create_user(
+            username="safanaj-guest@users.alioth.debian.org",
+            cn="Marco", sn="Bardelli", email="safanaj@debian.org", uid="safanaj",
+            status=bconst.STATUS_DC_GA,
+            fpr="A410 5B0A 9F84 97EC AB5F  1683 8D5B 478C F7FE 4DAA",
+            audit_skip=True)
 
-        bmodels.Person(username="invalid-guest@users.alioth.debian.org",
-                cn="Invalid", sn="FPR", email="invalid@debian.org",
-                uid="invalid_fpr", status=bconst.STATUS_DC, fpr="FIXME: I'll let you know later when I'll have a bit of a clue").save()
+        bmodels.Person.objects.create_user(
+            username="invalid-guest@users.alioth.debian.org",
+            cn="Invalid", sn="FPR", email="invalid@debian.org",
+            uid="invalid_fpr", status=bconst.STATUS_DC, fpr="FIXME: I'll let you know later when I'll have a bit of a clue",
+            audit_skip=True)
 
-        bmodels.Person(username="empty-guest@users.alioth.debian.org",
+        bmodels.Person.objects.create_user(
+            username="empty-guest@users.alioth.debian.org",
             cn="Empty", sn="FPR", email="empty@debian.org", uid="empty",
-            status=bconst.STATUS_DD_NU, fpr="").save()
+            status=bconst.STATUS_DD_NU, fpr="", audit_skip=True)
 
 class FingerprintTest(TransactionTestCase):
     def setUp(self):
@@ -255,7 +260,7 @@ class FingerprintTest(TransactionTestCase):
         p = bmodels.Person(cn="Invalid", sn="FPR", email="invalid1@debian.org", uid="invalid_fpr1",
                        status=bconst.STATUS_DC,
                        fpr="66B4 Invalid FPR BFAB")
-        p.save()
+        p.save(audit_skip=True)
         p1 = bmodels.Person.objects.get(uid="invalid_fpr1")
         self.assertIsNone(p1.fpr)
 
@@ -264,7 +269,7 @@ class PersonExpires(TransactionTestCase):
     def setUp(self):
         self.person = bmodels.Person(cn="Enrico", sn="Zini", email="enrico@debian.org", uid="enrico",
                                      status=bconst.STATUS_DC, fpr="66B4DFB68CB24EBBD8650BC4F4B4B0CC797EBFAB")
-        self.person.save()
+        self.person.save(audit_skip=True)
 
     def test_expires(self):
         from django_housekeeping import Housekeeping
@@ -290,13 +295,13 @@ class PersonExpires(TransactionTestCase):
 
         # if expires is today or later, it hasn't expired yet
         self.person.expires = today
-        self.person.save()
+        self.person.save(audit_skip=True)
         p = run_maint()
         self.assertIsNotNone(p)
         self.assertEquals(p.expires, today)
 
         self.person.expires = today + datetime.timedelta(days=1)
-        self.person.save()
+        self.person.save(audit_skip=True)
         p = run_maint()
         self.assertIsNotNone(p)
         self.assertEquals(p.expires, today + datetime.timedelta(days=1))
@@ -304,14 +309,14 @@ class PersonExpires(TransactionTestCase):
         # if expires is older than today and Person is DC and there are no
         # processes, it expires
         self.person.expires = today - datetime.timedelta(days=1)
-        self.person.save()
+        self.person.save(audit_skip=True)
         p = run_maint()
         self.assertIsNone(p)
 
         # if expires is older than today and Person is not DC, then it does not
         # expire, and its 'expires' date is reset
         self.person.status = bconst.STATUS_DC_GA
-        self.person.save()
+        self.person.save(audit_skip=True)
         p = run_maint()
         self.assertIsNotNone(p)
         self.assertIsNone(p.expires)
@@ -319,7 +324,7 @@ class PersonExpires(TransactionTestCase):
         # if expires is older than today and Person has open processes, then it
         # does not expire, and its 'expires' date is reset
         self.person.status = bconst.STATUS_DC
-        self.person.save()
+        self.person.save(audit_skip=True)
         proc = bmodels.Process(person=self.person,
                 applying_as=self.person.status, applying_for=bconst.STATUS_DC_GA,
                 progress=bconst.PROGRESS_APP_NEW, is_active=True)

@@ -120,7 +120,7 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
         class WhenViewOther(NMTestUtilsWhen):
             def setUp(self, fixture):
                 super(WhenViewOther, self).setUp(fixture)
-                self.person = bmodels.Person.objects.create(cn="Other", email="other@example.org", status=const.STATUS_DC)
+                self.person = bmodels.Person.objects.create_user(cn="Other", email="other@example.org", status=const.STATUS_DC, audit_skip=True)
                 self.process = bmodels.Process.objects.create(person=self.person,
                                                applying_as=const.STATUS_DC,
                                                applying_for=const.STATUS_DD_NU,

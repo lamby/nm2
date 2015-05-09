@@ -205,7 +205,8 @@ class Person(VisitPersonTemplateView):
     def post(self, request, *args, **kw):
         form = self.get_person_form()(request.POST, instance=self.person)
         if form.is_valid():
-            form.save()
+            p = form.save(commit=False)
+            p.save(audit_author=self.visitor, audit_notes="edited Person information")
 
             # TODO: message that it has been saved
 
