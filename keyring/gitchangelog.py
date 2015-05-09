@@ -273,7 +273,7 @@ class Parser(object):
         will also contain signature information.
         """
         # Get the signature information in this commit range
-        out = self.run_git("log", "--pretty=format:%H %at %G? %GK %ae", commit_range)
+        out = self.run_git("log", "--pretty=format:%H %at %G? %GK %ae", commit_range, "--")
         records = []
         last_good_sig = None
         for line in out.splitlines():
