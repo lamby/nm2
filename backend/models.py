@@ -265,6 +265,26 @@ class PersonVisitorPermissions(object):
 
         return True
 
+    @cached_property
+    def _can_view_person_audit_log(self):
+        """
+        The visitor can view the person's audit log
+        """
+        # Anonymous cannot see it
+        if self.visitor is None: return False
+
+        # The person can see it
+        if self.visitor.pk == self.person.pk: return True
+
+        # Any DD can see it
+        if self.visitor.status in self.dd: return True
+
+        # The advocate can see it
+        # (note, a DM can be advocate for a DC requesting a guest account)
+        if self._is_current_advocate: return True
+
+        return False
+
     def _compute_perms(self):
         """
         Compute the set of permission tags
@@ -272,6 +292,7 @@ class PersonVisitorPermissions(object):
         res = set()
         if self._can_edit_bio: res.add("edit_bio")
         if self._can_edit_ldap_fields: res.add("edit_ldap")
+        if self._can_view_person_audit_log: res.add("view_person_audit_log")
         return res
 
     @cached_property

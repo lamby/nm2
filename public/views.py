@@ -320,15 +320,29 @@ class Person(VisitPersonTemplateView):
             am = None
             am_processes = []
 
+        audit_log = []
+        if "view_person_audit_log" in self.vperms.perms:
+            is_admin = self.visitor.is_admin
+            for e in self.person.audit_log.order_by("-logdate"):
+                if is_admin:
+                    changes = sorted((k, v[0], v[1]) for k, v in json.loads(e.changes).items())
+                else:
+                    changes = sorted((k, v[0], v[1]) for k, v in json.loads(e.changes).items() if k != "fd_comment")
+                audit_log.append({
+                    "logdate": e.logdate,
+                    "author": e.author,
+                    "notes": e.notes,
+                    "changes": changes,
+                })
+
         ctx.update(
-            person=self.person,
             am=am,
             processes=processes,
             am_processes=am_processes,
-            vperms=self.vperms,
             adv_processes=self.person.advocated \
                     .annotate(started=Min("log__logdate"), ended=Max("log__logdate")) \
-                    .order_by("is_active", "ended")
+                    .order_by("is_active", "ended"),
+            audit_log=audit_log,
         )
 
 
