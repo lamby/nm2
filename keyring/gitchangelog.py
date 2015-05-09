@@ -180,7 +180,7 @@ class Parser(object):
                     #print("NOTE : Mail " + bts + " (new DM).")
                 return operation
             else:
-                print("TODO : Add with no RT ticket")
+                #print("TODO : Add with no RT ticket")
                 return (None, "")
         elif operation['action'] == 'remove':
             if 'rt-ticket' in operation:
@@ -194,7 +194,7 @@ class Parser(object):
                     username = operation['old-key']
                 elif 'subject' in operation:
                     username = operation['subject']
-                print("TODO : Removal for " + username + " without RT ticket.")
+                #print("TODO : Removal for " + username + " without RT ticket.")
                 return None
         elif operation['action'] == 'replace':
             if role_is_dd(operation['role']):

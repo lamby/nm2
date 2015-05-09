@@ -252,17 +252,17 @@ class KeyringMaint(hk.Task):
         {
             "uid": "noodles",
             "fpr": "0E3A94C3E83002DAB88CCA1694FA372B2DA8B985",
-            "email": "noodles@earth.li",
+            "email": ["noodles@earth.li"],
         },
         {
             "uid": "gwolf",
             "fpr": "AB41C1C68AFD668CA045EBF8673A03E4C1DB921F",
-            "email": "gwolf@debian.org",
+            "email": ["gwolf@debian.org", "gwolf@gwolf.org"],
         },
         {
             "uid": "dkg",
             "fpr": "0EE5BE979282D80B9F7540F1CCD2ED94D21739E9",
-            "email": "dkg@openflows.com",
+            "email": ["dkg@openflows.com"],
         },
     ]
 
@@ -273,7 +273,8 @@ class KeyringMaint(hk.Task):
         # that they use in git commits.
         self.persons = {}
         for entry in self.KEYRING_MAINT_MEMBERS:
-            self.persons[entry["email"]] = bmodels.Person.objects.get(uid=entry["uid"])
+            for email in entry["email"]:
+                self.persons[email] = bmodels.Person.objects.get(uid=entry["uid"])
 
         # Regenerate the keyring in a new directory
         tmpdir = kmodels.KEYRING_MAINT_KEYRING + ".tmp"
