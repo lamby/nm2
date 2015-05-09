@@ -352,6 +352,32 @@ class Person(VisitPersonTemplateView):
             ctx["bio_html"] = ""
         return ctx
 
+class AuditLog(VisitorTemplateView):
+    template_name = "public/audit_log.html"
+    require_visitor = "dd"
+
+    def get_context_data(self, **kw):
+        ctx = super(AuditLog, self).get_context_data(**kw)
+
+        audit_log = []
+        is_admin = self.visitor.is_admin
+        cutoff = datetime.datetime.utcnow() - datetime.timedelta(days=30)
+        for e in bmodels.PersonAuditLog.objects.filter(logdate__gte=cutoff).order_by("-logdate"):
+            if is_admin:
+                changes = sorted((k, v[0], v[1]) for k, v in json.loads(e.changes).items())
+            else:
+                changes = sorted((k, v[0], v[1]) for k, v in json.loads(e.changes).items() if k != "fd_comment")
+            audit_log.append({
+                "person": e.person,
+                "logdate": e.logdate,
+                "author": e.author,
+                "notes": e.notes,
+                "changes": changes,
+            })
+
+        ctx["audit_log"] = audit_log
+        return ctx
+
 class Progress(VisitorTemplateView):
     template_name = "public/progress.html"
 

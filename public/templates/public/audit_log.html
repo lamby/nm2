@@ -1,0 +1,37 @@
+{% extends "public/base.html" %}
+{% load nm %}
+
+{% block content %}
+
+<h1>Audit log</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Person</th>
+      <th>Author</th>
+      <th>Notes</th>
+      <th>Changes</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for e in audit_log %}
+    <tr>
+      <td>{{e.logdate|date:"Y-m-d H:i:s"}}</td>
+      <td><a href="{{e.person.get_absolute_url}}">{{e.person}}</a></td>
+      <td><a href="{{e.author.get_absolute_url}}">{{e.author}}</a></td>
+      <td>{{e.notes}}</td>
+      <td>
+        <ul>
+        {% for field, old, new in e.changes %}
+        <li>{{field}}: {{old}} → {{new}}</li>
+        {% endfor %}
+        </ul>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}
