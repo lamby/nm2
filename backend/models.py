@@ -81,6 +81,8 @@ class CharNullField(models.CharField):
            return value
 
 class TextNullField(models.TextField):
+    # This class is not used anymore, but it is kept as it is used by old
+    # migrations.
     description = "TextField that stores NULL but returns ''"
 
     # this is the value right out of the db, or an instance
@@ -148,7 +150,6 @@ class FingerprintField(models.CharField):
 ## no kwargs in constructors allow us to cite only the names
 add_introspection_rules(
     [], ["^backend\.models\.CharNullField",
-         "^backend\.models\.TextNullField",
          "^backend\.models\.FingerprintField"])
 
 class PersonVisitorPermissions(object):
@@ -427,7 +428,7 @@ class Person(PermissionsMixin, models.Model):
     mn = models.CharField("middle name", max_length=250, null=True, blank=True)
     sn = models.CharField("last name", max_length=250, null=True, blank=True)
     email = models.EmailField("email address", null=False, unique=True)
-    bio = TextNullField("short biography", blank=True, null=True,
+    bio = models.TextField("short biography", blank=True, null=False, default="",
                         help_text="Please enter here a short biographical information")
     # This is null for people who still have not picked one
     uid = CharNullField("Debian account name", max_length=32, null=True, unique=True, blank=True)
@@ -1148,7 +1149,7 @@ class Log(models.Model):
 
     is_public = models.BooleanField(default=False, null=False)
     logdate = models.DateTimeField(null=False, default=datetime.datetime.utcnow)
-    logtext = TextNullField(null=True, blank=True)
+    logtext = models.TextField(null=False, blank=True, default="")
 
     def __unicode__(self):
         return u"{}: {}".format(self.logdate, self.logtext)

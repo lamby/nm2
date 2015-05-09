@@ -332,7 +332,7 @@ class Person(VisitPersonTemplateView):
         )
 
 
-        if self.person.bio is not None:
+        if self.person.bio:
             ctx["bio_html"] = markdown.markdown(self.person.bio, safe_mode="escape")
         else:
             ctx["bio_html"] = ""
