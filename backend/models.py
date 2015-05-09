@@ -425,8 +425,8 @@ class Person(PermissionsMixin, models.Model):
 
     # First/Given name, or only name in case of only one name
     cn = models.CharField("first name", max_length=250, null=False)
-    mn = models.CharField("middle name", max_length=250, null=True, blank=True)
-    sn = models.CharField("last name", max_length=250, null=True, blank=True)
+    mn = models.CharField("middle name", max_length=250, null=False, blank=True, default="")
+    sn = models.CharField("last name", max_length=250, null=False, blank=True, default="")
     email = models.EmailField("email address", null=False, unique=True)
     bio = models.TextField("short biography", blank=True, null=False, default="",
                         help_text="Please enter here a short biographical information")
@@ -437,7 +437,7 @@ class Person(PermissionsMixin, models.Model):
     status = models.CharField("current status in the project", max_length=20, null=False,
                               choices=[(x.tag, x.ldesc) for x in const.ALL_STATUS])
     status_changed = models.DateTimeField("when the status last changed", null=False, default=datetime.datetime.utcnow)
-    fd_comment = models.TextField("Front Desk comments", null=True, blank=True)
+    fd_comment = models.TextField("Front Desk comments", null=False, blank=True, default="")
     # null=True because we currently do not have the info for old entries
     created = models.DateTimeField("Person record created", null=True, default=datetime.datetime.utcnow)
     expires = models.DateField("Expiration date for the account", null=True, blank=True, default=None,
@@ -710,7 +710,8 @@ class PersonAuditLog(models.Model):
             new = model_to_dict(new_person, exclude=exclude)
             for k, nv in new.items():
                 ov = old.get(k, None)
-                if ov != nv:
+                # Also ignore changes like None -> ""
+                if ov != nv and (ov or nv):
                     changes[k] = [ov, nv]
         return changes
 
