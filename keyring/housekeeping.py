@@ -447,6 +447,13 @@ class CheckKeyringLogs(hk.Task):
 #    #        if fpr is not None:
 #    #            self._ann_fpr(d, rt, fpr, "relevant but unparsed log entry: \"{}\"".format(line))
 
+    def _fetch_url(self, url):
+        bundle="/etc/ssl/ca-debian/ca-certificates.crt"
+        if os.path.exists(bundle):
+            return requests.get(url, verify=bundle)
+        else:
+            return requests.get(url)
+
     def _get_author(self, state):
         """
         Get the author person entry from a keyring maint commit state
@@ -501,7 +508,7 @@ class CheckKeyringLogs(hk.Task):
         email = None
         agreement_url = operation.get("Agreement", None)
         if agreement_url is not None:
-            r = requests.get(agreement_url.strip())
+            r = self._fetch_url(agreement_url.strip())
             if r.status_code == 200:
                 mo = re.search(r'<link rev="made" href="mailto:([^"]+)">', r.text)
                 if mo:
