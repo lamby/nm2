@@ -53,6 +53,24 @@ class KeyringMaintImport(object):
         author = self.persons.get(email, None)
         return author
 
+    def _split_subject(self, subject):
+        """
+        Arbitrary split a full name into cn, mn, sn
+
+        This is better than nothing, but not a lot better than that.
+        """
+        # See http://www.kalzumeus.com/2010/06/17/falsehoods-programmers-believe-about-names/
+        fn = subject.split()
+        if len(fn) == 1:
+            return fn[0], "", ""
+        elif len(fn) == 2:
+            return fn[0], "", fn[1]
+        elif len(fn) == 3:
+            return fn
+        else:
+            middle = len(fn) // 2
+            return " ".join(fn[:middle]), "", " ".join(fn[middle:])
+
     def _get_dm_info(self, state, operation):
         """
         Dig all information from a commit body that we can use to create a new
@@ -74,23 +92,7 @@ class KeyringMaintImport(object):
         if fn is None:
             log.warn("Subject field not found in commit %s", commit)
             return None
-        # Arbitrary split of full name into cn, mn, sn
-        fn = fn.split()
-        if len(fn) == 1:
-            cn = fn[0]
-            mn = ""
-            sn = ""
-        elif len(fn) == 2:
-            cn = fn[0]
-            mn = ""
-            sn = fn[1]
-        elif len(fn) == 3:
-            cn, mn, sn = fn
-        else:
-            middle = len(fn) // 2
-            cn = " ".join(fn[:middle])
-            mn = ""
-            sn = " ".join(fn[middle:])
+        cn, mn, sn = self._split_subject(fn)
 
         rt = operation.get("RT-Ticket", None)
 
@@ -122,6 +124,50 @@ class KeyringMaintImport(object):
             "status_changed": ts,
         }
 
+    def _get_dd_info(self, state, operation):
+        """
+        Dig all information from a commit body that we can use to create a new
+        DD
+        """
+        commit = state.get("commit", None)
+        ts = state.get("ts", None)
+        if ts is None:
+            log.warn("ts field not found in state for commit %s", commit)
+            return None
+        ts = datetime.datetime.utcfromtimestamp(ts)
+
+        fpr = operation.get("New-key", None)
+        if fpr is None:
+            log.warn("New-key field not found in commit %s", commit)
+            return None
+
+        fn = operation.get("Subject", None)
+        if fn is None:
+            log.warn("Subject field not found in commit %s", commit)
+            return None
+        cn, mn, sn = self._split_subject(fn)
+
+        rt = operation.get("RT-Ticket", None)
+
+        uid = operation.get("Username", None)
+        if uid is None:
+            log.warn("Username field not found in commit %s", commit)
+            return None
+
+        return {
+            # Dummy username used to avoid unique entry conflicts
+            "username": "{}@debian.org".format(uid),
+            "uid": uid,
+            "fpr": fpr,
+            "cn": cn,
+            "mn": mn,
+            "sn": sn,
+            "rt": rt,
+            "email": "{}@debian.org".format(uid),
+            "status": const.STATUS_DM,
+            "status_changed": ts,
+        }
+
     def do_add(self, state, operation):
         commit = state.get("commit", None)
         author = self._get_author(state)
@@ -136,8 +182,14 @@ class KeyringMaintImport(object):
 
         if role == "DM":
             info = self._get_dm_info(state, operation)
+            if info is None: return False
             info["audit_author"] = author
             return self.do_add_dm(commit, info)
+        elif role in ("DD", "DN"):
+            info = self._get_dd_info(state, operation)
+            if info is None: return False
+            info["audit_author"] = author
+            return self.do_add_dd(commit, role, info)
         else:
             log.warn("Unhandled add action in commit %s", commit)
             return False
@@ -222,6 +274,70 @@ class KeyringMaintImport(object):
                 audit_notes=audit_notes)
             log.info("%s: %s", self.person_link(person), audit_notes)
             return True
+
+    def do_add_dd(self, commit, role, info):
+        try:
+            fpr_person = bmodels.Person.objects.get(fpr=info["fpr"])
+        except bmodels.Person.DoesNotExist:
+            fpr_person = None
+        try:
+            uid_person = bmodels.Person.objects.get(fpr=info["uid"])
+        except bmodels.Person.DoesNotExist:
+            uid_person = None
+
+        # If it is all new, keyring has a DD that DAM does not know about:
+        # yell.
+        if fpr_person is None and uid_person is None:
+            log.warn("commit %s has new DD %s %s that we do not know about",
+                     commit, info["uid"], info["fpr"])
+            return False
+
+        # Otherwise, see if we are unambiguously referring to a record that we
+        # can work with
+        if fpr_person is not None and uid_person is not None and fpr_person.pk != uid_person.pk:
+            log.warn("commit %s has a new DD with uid and fingerprints corresponding to two different users: uid %s is %s and fpr %s is %s",
+                     commit, info["uid"], self.person_link(uid_person), info["fpr"], self.person_link(fpr_person))
+            return False
+
+        if uid_person.fpr != info["fpr"]:
+            # Keyring-maint added a different key: sync with them
+            if info.get("rt", None):
+                audit_notes = "Set fingerprint to {}, RT #{}".format(info["fpr"], info["rt"])
+            else:
+                audit_notes = "Set fingerprint to {}, RT unknown".format(info["fpr"])
+            uid_person.fpr = info["fpr"]
+            uid_person.save(audit_author=info["audit_author"], audit_notes=audit_notes)
+            log.info("%s: %s", self.person_link(uid_person), audit_notes)
+            # Do not return yet, we still need to check the status
+
+        role_status_map = {
+            "DD": const.STATUS_DD_U,
+            "DN": const.STATUS_DD_NU,
+        }
+
+        if uid_person.status == role_status_map[role]:
+            # Status already matches
+            log.info("%s is already %s: skipping duplicate entry", self.person_link(uid_person), const.ALL_STATUS_DESCS[uid_person.status])
+            return True
+        else:
+            found = False
+            for p in [x for x in uid_person.active_processes if x.applying_for == role_status_map[role]]:
+                if info.get("rt", None):
+                    logtext = "Added to %s keyring, RT #{}".format(role, info["rt"])
+                else:
+                    logtext = "Added to %s keyring, RT unknown".format(role)
+                if not bmodels.Log.objects.filter(process=p, changed_by=info["audit_author"], logdate=info["ts"], logtext=logtext).exists():
+                    l = bmodels.Log.for_process(p, changed_by=info["audit_author"], logdate=info["ts"], logtext=logtext)
+                    l.save()
+                log.info("%s has an open process to become %s, keyring added them as %s",
+                         self.person_link(uid_person), const.ALL_STATUS_DESCS[p.applying_for], role)
+                found = True
+            if found:
+                return True
+            else:
+                log.warn("%s: keyring added them as %s, but we have no relevant active process for this change",
+                         self.person_link(uid_person), role)
+                return False
 
     def do_remove(self, state, operation):
         commit = state.get("commit", None)
@@ -424,26 +540,6 @@ class KeyringMaintImport(object):
 #                                                    keyring_log_date=d.strftime("%Y%m%d %H%M%S"),
 #                                                    **kw)
 #
-#
-#    def do_add_dd(self, shasum, ts, info):
-#        # { "Action": "add", "Role": x.group("role"), "New-Key": x.group("key"), "Subject": x.group("subj"), "RT-Ticket": x.group("rt") },
-#        rt = info.get("RT-Ticket", None)
-#        key = info.get("New-key", None)
-#        p = self.person_for_key_id(key)
-#        if p is None:
-#            fpr, ktype = self.hk.keyrings.resolve_keyid(key)
-#            self._ann_fpr(ts, rt, fpr, "keyring logs report a new DD, with no known record in our database", keyring_status=ktype,
-#                          shasum=shasum, **info)
-#            #print("! New DD %s %s (no account before??)" % (key, self.rturl(rt)))
-#        elif p.status == const.STATUS_DD_U:
-#            #print("# %s goes from %s to DD (already known in the database) %s" % (p.lookup_key, p.status, self.rturl(rt)))
-#            pass # Already a DD
-#        else:
-#            self._ann_person(ts, rt, p, "keyring logs report change from {} to {}".format(p.status, const.STATUS_DD_U),
-#                             keyring_status=const.STATUS_DD_U,
-#                             fix_cmdline="./manage.py change_status {} {} --date='{}' --message='imported from keyring changelog, RT #{}'".format(
-#                                 p.lookup_key, const.STATUS_DD_U, ts.strftime("%Y-%m-%d %H:%M:%S"), rt),
-#                             shasum=shasum, **info)
 #
 #    def do_move_to_emeritus(self, shasum, ts, info):
 #        # { "Action": "FIXME-move", "Key": x.group("key"), "Target": "emeritus", "Subject": x.group("subj"), "RT-Ticket": x.group("rt") }

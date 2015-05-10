@@ -341,7 +341,7 @@ class CheckKeyringLogs(hk.Task):
 
             if processed:
                 # Update our bookmark
-                gk.run_git("update-ref", "keyring_maint_import", state["commit"])
+                gk.run_git("update-ref", "refs/heads/keyring_maint_import", state["commit"])
                 log.info("Updating ref keyring_maint_import to commit %s", state["commit"])
             else:
                 break
