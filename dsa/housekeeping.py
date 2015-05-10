@@ -95,8 +95,8 @@ class NewGuestAccountsFromDSA(hk.Task):
 
             p = bmodels.Person.objects.create_user(
                 cn=entry.single("cn"),
-                mn=entry.single("mn"),
-                sn=entry.single("sn"),
+                mn=entry.single("mn") or "",
+                sn=entry.single("sn") or "",
                 email=entry.single("emailForward"),
                 uid=entry.uid,
                 fpr=entry.single("keyFingerPrint"),
