@@ -165,9 +165,10 @@ class Parser(object):
             return None
 
         if 'rt-ticket' in operation and operation['rt-ticket'] in self.seenrt:
-            print("ERROR: RT " + operation['rt-ticket'] + " used in " +
-                    self.seenrt[operation['rt-ticket']] + " and " +
-                    state['commit'])
+            #print("ERROR: RT " + operation['rt-ticket'] + " used in " +
+            #        self.seenrt[operation['rt-ticket']] + " and " +
+            #        state['commit'])
+            pass
         else:
             self.seenrt[operation['rt-ticket']] = state['commit']
 
@@ -204,7 +205,7 @@ class Parser(object):
             else:
                 return operation
         else:
-            print("Error: Unknown action " + operation['action'])
+            #print("Error: Unknown action " + operation['action'])
             return None
 
     def parse_fd(self, fd, extra_commit_data=None):

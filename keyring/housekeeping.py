@@ -321,7 +321,8 @@ class CheckKeyringLogs(hk.Task):
         importer = KeyringMaintImport(self.hk.keyring_maint.persons, self.hk.link)
         gk = self.hk.keyring_git.keyring
         parser = gk.get_changelog_parser()
-        for state, operation in parser.parse_git("keyring_maint_import..remotes/origin/master"):
+        actions = list(parser.parse_git("keyring_maint_import..remotes/origin/master"))
+        for state, operation in reversed(actions):
             sig_status = state.get("sig_status", None)
             # %G?: show "G" for a Good signature, "B" for a Bad signature, "U" for a good, untrusted signature and "N" for no signature
             if sig_status not in "GU":
