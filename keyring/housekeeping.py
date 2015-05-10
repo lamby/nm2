@@ -26,6 +26,7 @@ from backend.housekeeping import MakeLink, Inconsistencies
 import backend.models as bmodels
 from backend import const
 from . import models as kmodels
+from .keyring_maint_import import KeyringMaintImport
 import os
 import os.path
 import time
@@ -33,8 +34,6 @@ import shutil
 import subprocess
 import datetime
 import pipes
-import re
-import requests
 import logging
 
 log = logging.getLogger(__name__)
@@ -315,430 +314,14 @@ class CheckKeyringLogs(hk.Task):
 #    DEPENDS = [MakeLink, Inconsistencies, Keyrings, KeyringGit]
     DEPENDS = [MakeLink, KeyringMaint, KeyringGit]
 
-#    def person_for_key_id(self, kid):
-#        """
-#        Given a key id (short, long or full fingerprint) return the
-#        corresponding Person object, or None if none did match.
-#        """
-#        try:
-#            return bmodels.Person.objects.get(fpr__endswith=kid)
-#        except bmodels.Person.DoesNotExist:
-#            return None
-#
-#    def rturl(self, num):
-#        """
-#        Build an RT URL for an RT ticket
-#        """
-#        return "https://rt.debian.org/" + num
-#
-#    def _ann_fpr(self, d, rt, fpr, log, **kw):
-#        """
-#        Annotate a fingerprint inconsistency:
-#            d: datetime object
-#            rt: rt ticket number
-#            fpr: key fingerprint
-#            log: text description of the inconsistency
-#            **kw: passed as extra annotation information
-#        """
-#        if rt is not None:
-#            self.hk.inconsistencies.annotate_fingerprint(self, fpr,
-#                                                    "{}, RT #{}".format(log, rt),
-#                                                    keyring_rt=rt,
-#                                                    keyring_log_date=d.strftime("%Y%m%d %H%M%S"),
-#                                                    **kw)
-#        else:
-#            self.hk.inconsistencies.annotate_fingerprint(self, fpr, log,
-#                                                    keyring_log_date=d.strftime("%Y%m%d %H%M%S"),
-#                                                    **kw)
-#
-#    def _ann_person(self, d, rt, person, log, **kw):
-#        """
-#        Annotate a Person inconsistency:
-#            d: datetime object
-#            rt: rt ticket number
-#            person: Person object to annotate
-#            log: text description of the inconsistency
-#            **kw: passed as extra annotation information
-#        """
-#        if rt is not None:
-#            self.hk.inconsistencies.annotate_person(self, person,
-#                                                    "{}, RT #{}".format(log, rt),
-#                                                    keyring_rt=rt,
-#                                                    keyring_log_date=d.strftime("%Y%m%d %H%M%S"),
-#                                                    **kw)
-#        else:
-#            self.hk.inconsistencies.annotate_person(self, person, log,
-#                                                    keyring_log_date=d.strftime("%Y%m%d %H%M%S"),
-#                                                    **kw)
-#
-#
-#    def do_add_dd(self, shasum, ts, info):
-#        # { "Action": "add", "Role": x.group("role"), "New-Key": x.group("key"), "Subject": x.group("subj"), "RT-Ticket": x.group("rt") },
-#        rt = info.get("RT-Ticket", None)
-#        key = info.get("New-key", None)
-#        p = self.person_for_key_id(key)
-#        if p is None:
-#            fpr, ktype = self.hk.keyrings.resolve_keyid(key)
-#            self._ann_fpr(ts, rt, fpr, "keyring logs report a new DD, with no known record in our database", keyring_status=ktype,
-#                          shasum=shasum, **info)
-#            #print("! New DD %s %s (no account before??)" % (key, self.rturl(rt)))
-#        elif p.status == const.STATUS_DD_U:
-#            #print("# %s goes from %s to DD (already known in the database) %s" % (p.lookup_key, p.status, self.rturl(rt)))
-#            pass # Already a DD
-#        else:
-#            self._ann_person(ts, rt, p, "keyring logs report change from {} to {}".format(p.status, const.STATUS_DD_U),
-#                             keyring_status=const.STATUS_DD_U,
-#                             fix_cmdline="./manage.py change_status {} {} --date='{}' --message='imported from keyring changelog, RT #{}'".format(
-#                                 p.lookup_key, const.STATUS_DD_U, ts.strftime("%Y-%m-%d %H:%M:%S"), rt),
-#                             shasum=shasum, **info)
-#
-#    def do_move_to_emeritus(self, shasum, ts, info):
-#        # { "Action": "FIXME-move", "Key": x.group("key"), "Target": "emeritus", "Subject": x.group("subj"), "RT-Ticket": x.group("rt") }
-#        rt = info.get("RT-Ticket", None)
-#        key = info.get("Key", None)
-#        p = self.person_for_key_id(key)
-#        if p is None:
-#            fpr, ktype = self.hk.keyrings.resolve_keyid(key)
-#            self._ann_fpr(ts, rt, fpr, "keyring logs report a new emeritus DD, with no known record in our database", keyring_status=ktype,
-#                          shasum=shasum, **info)
-#            #print("! New Emeritus DD %s %s (no account before??)" % (key, self.rturl(rt)))
-#        elif p.status == const.STATUS_EMERITUS_DD:
-#            # print("# %s goes from %s to emeritus DD (already known in the database) %s" % (p.lookup_key, p.status, self.rturl(rt)))
-#            pass # Already emeritus
-#        else:
-#            self._ann_person(ts, rt, p, "keyring logs report change from {} to {}".format(p.status, const.STATUS_EMERITUS_DD),
-#                             keyring_status=const.STATUS_EMERITUS_DD,
-#                             fix_cmdline="./manage.py change_status {} {} --date='{}' --message='imported from keyring changelog, RT {}'".format(
-#                                 p.lookup_key, const.STATUS_EMERITUS_DD, ts.strftime("%Y-%m-%d %H:%M:%S"), rt),
-#                             shasum=shasum, **info)
-#
-#    def do_move_to_removed(self, shasum, ts, info):
-#        # { "Action": "FIXME-move", "Key": x.group("key"), "Target": "removed", "Subject": x.group("subj"), "RT-Ticket": x.group("rt") },
-#        rt = info.get("RT-Ticket", None)
-#        key = info.get("Key", None)
-#        p = self.person_for_key_id(key)
-#        if p is None:
-#            fpr, ktype = self.hk.keyrings.resolve_keyid(key)
-#            self._ann_fpr(ts, rt, fpr, "keyring logs report a new removed DD, with no known record in our database", keyring_status=ktype,
-#                          shasum=shasum, **info)
-#            #print("! New removed key %s %s (no account before??)" % (key, self.rturl(rt)))
-#        else:
-#            #print("! %s key %s moved to removed keyring %s" % (p.lookup_key, key, self.rturl(rt)))
-#            self._ann_person(ts, rt, p, "keyring logs report change from {} to removed".format(p.status, const.STATUS_REMOVED_DD), keyring_status=const.STATUS_REMOVED_DD,
-#                             shasum=shasum, **info)
-#
-#    #@keyring_log_matcher(r"^\s*\*\s+(?P<line>.*0x[0-9A-F]+.+)", fallback=True)
-#    #def do_fallback(self, d, line):
-#    #    # We get a line that contains at least one key id
-#    #    keys = re.findall(r"0x(?P<key>[0-9A-F]+)", line)
-#    #    rtmo = re.search(r"RT #(?P<rt>\d+)", line)
-#    #    if rtmo:
-#    #        rt = int(rtmo.group("rt"))
-#    #    else:
-#    #        rt = None
-#
-#    #    # Log the line in all relevant bits found
-#    #    for key in keys:
-#    #        p = self.person_for_key_id(key)
-#    #        if p is not None:
-#    #            self._ann_person(d, rt, p, "relevant but unparsed log entry: \"{}\"".format(line))
-#    #            continue
-#
-#    #        fpr, ktype = self.hk.keyrings.resolve_keyid(key)
-#    #        if fpr is not None:
-#    #            self._ann_fpr(d, rt, fpr, "relevant but unparsed log entry: \"{}\"".format(line))
-
-    def _fetch_url(self, url):
-        bundle="/etc/ssl/ca-debian/ca-certificates.crt"
-        if os.path.exists(bundle):
-            return requests.get(url, verify=bundle)
-        else:
-            return requests.get(url)
-
-    def _get_author(self, state):
-        """
-        Get the author person entry from a keyring maint commit state
-        """
-        email = state["author_email"]
-        author = self.hk.keyring_maint.persons.get(email, None)
-        return author
-
-    def _get_dm_info(self, state, operation):
-        """
-        Dig all information from a commit body that we can use to create a new
-        DM
-        """
-        commit = state.get("commit", None)
-        ts = state.get("ts", None)
-        if ts is None:
-            log.warn("ts field not found in state for commit %s", commit)
-            return None
-        ts = datetime.datetime.utcfromtimestamp(ts)
-
-        fpr = operation.get("New-key", None)
-        if fpr is None:
-            log.warn("New-key field not found in commit %s", commit)
-            return None
-
-        fn = operation.get("Subject", None)
-        if fn is None:
-            log.warn("Subject field not found in commit %s", commit)
-            return None
-        # Arbitrary split of full name into cn, mn, sn
-        fn = fn.split()
-        if len(fn) == 1:
-            cn = fn[0]
-            mn = ""
-            sn = ""
-        elif len(fn) == 2:
-            cn = fn[0]
-            mn = ""
-            sn = fn[1]
-        elif len(fn) == 3:
-            cn, mn, sn = fn
-        else:
-            middle = len(fn) // 2
-            cn = " ".join(fn[:middle])
-            mn = ""
-            sn = " ".join(fn[middle:])
-
-        rt = operation.get("RT-Ticket", None)
-
-        # To get the email, we need to go and scan the agreement post from the
-        # list archives
-        email = None
-        agreement_url = operation.get("Agreement", None)
-        if agreement_url is not None:
-            r = self._fetch_url(agreement_url.strip())
-            if r.status_code == 200:
-                mo = re.search(r'<link rev="made" href="mailto:([^"]+)">', r.text)
-                if mo:
-                    email = mo.group(1)
-
-        if email is None:
-            log.warn("Email not found in commit %s", commit)
-            return None
-
-        return {
-            # Dummy username used to avoid unique entry conflicts
-            "username": "{}@example.org".format(fpr),
-            "fpr": fpr,
-            "cn": cn,
-            "mn": mn,
-            "sn": sn,
-            "rt": rt,
-            "email": email,
-            "status": const.STATUS_DM,
-            "status_changed": ts,
-        }
-
-    def do_add(self, state, operation):
-        commit = state.get("commit", None)
-        author = self._get_author(state)
-        if author is None:
-            log.warn("author not found for commit %s", commit)
-            return False
-
-        role = operation.get("Role", None)
-        if role is None:
-            log.warn("role not found for commit %s", commit)
-            return False
-
-        if role == "DM":
-            info = self._get_dm_info(state, operation)
-            info["audit_author"] = author
-            return self.do_add_dm(commit, info)
-        else:
-            log.warn("Unhandled add action in commit %s", commit)
-
-        #import json
-        #print("ADD", json.dumps(dict(state), indent=1), json.dumps(dict(operation), indent=1))
-
-    def do_add_dm(self, commit, info):
-        # Check for existing records in the database
-        try:
-            fpr_person = bmodels.Person.objects.get(fpr=info["fpr"])
-        except bmodels.Person.DoesNotExist:
-            fpr_person = None
-        try:
-            email_person = bmodels.Person.objects.get(fpr=info["email"])
-        except bmodels.Person.DoesNotExist:
-            email_person = None
-
-        # If it is all new, create and we are done
-        if fpr_person is None and email_person is None:
-            rt = info.pop("rt", None)
-            if rt:
-                info["audit_notes"] = "Created DM entry, RT #{}".format(rt)
-            else:
-                info["audit_notes"] = "Created DM entry, RT unknown"
-            bmodels.Person.objects.create_user(**info)
-            return True
-
-        # Otherwise, see if we are unambiguously referring to a record that we
-        # can update
-        if fpr_person == email_person:
-            person = fpr_person
-        elif fpr_person is None:
-            person = email_person
-        elif email_person is None:
-            person = fpr_person
-        else:
-            log.warn("commit %s has a new DM with email and fingerprints corresponding to two different users: email %s is %s and fpr %s is %s",
-                     commit, info["email"], self.hk.link(email_person), info["fpr"], self.hk.link(fpr_person))
-            return False
-
-        if person.status in (const.STATUS_DM, const.STATUS_DM_GA):
-            # Already a DM, nothing to do
-            return True
-        elif person.status in (
-                const.STATUS_DD_U, const.STATUS_DD_NU, const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD,
-                const.STATUS_EMERITUS_DM, const.STATUS_REMOVED_DM):
-            log.warn("commit %s has a new DM, but it corresponds to person %s which has status %s",
-                     commit, self.hk.link(person), person.status)
-            return False
-        else:
-            if person.status == const.STATUS_DC_GA:
-                person.status = const.STATUS_DM_GA
-            else:
-                person.status = const.STATUS_DM
-            person.status_changed = info["status_changed"]
-
-            if info.get("rt", None):
-                audit_notes = "Set status to {}, RT #{}".format(const.ALL_STATUS_DESCS[person.status], info["rt"])
-            else:
-                audit_notes = "Set status to {}, RT unknown".format(const.ALL_STATUS_DESCS[person.status])
-
-            person.save(
-                audit_author=info["audit_author"],
-                audit_notes=audit_notes)
-            return True
-
-    def do_remove(self, state, operation):
-        commit = state.get("commit", None)
-        author = self._get_author(state)
-        if author is None:
-            log.warn("author not found for commit %s", commit)
-            return False
-
-        role = operation.get("Role", None)
-        if role is None:
-            log.warn("role not found for commit %s", commit)
-            return False
-
-        log.warn("Unhandled remove action in commit %s", commit)
-        #import json
-        #print("REMOVE", json.dumps(dict(state), indent=1), json.dumps(dict(operation), indent=1))
-        #pass
-
-    def do_replace(self, state, operation):
-        commit = state.get("commit", None)
-        author = self._get_author(state)
-        if author is None:
-            log.warn("author not found for commit %s", commit)
-            return False
-
-        role = operation.get("Role", None)
-        if role is None:
-            log.warn("role not found for commit %s", commit)
-            return False
-
-        old_key = operation.get("Old-key", None)
-        if old_key is None:
-            log.warn("Old-key not found for commit %s", commit)
-            return False
-        new_key = operation.get("New-key", None)
-        if new_key is None:
-            log.warn("New-key not found for commit %s", commit)
-            return False
-
-        try:
-            old_person = bmodels.Person.objects.get(fpr=old_key)
-        except bmodels.Person.DoesNotExist:
-            old_person = None
-
-        try:
-            new_person = bmodels.Person.objects.get(fpr=new_key)
-        except bmodels.Person.DoesNotExist:
-            new_person = None
-
-        rt = operation.get("RT-Ticket", None)
-
-        if old_person is None and new_person is None:
-            log.warn("Unhandled replace in commit %s", commit)
-            return False
-#            # No before or after match with our records
-#            fpr1, ktype1 = self.hk.keyrings.resolve_keyid(key1)
-#            fpr2, ktype2 = self.hk.keyrings.resolve_keyid(key2)
-#            if fpr1 is not None:
-#                if fpr2 is not None:
-#                    # Before and after keyrings known
-#                    if ktype1 != ktype2:
-#                        # Keyring moved
-#                        self._ann_fpr(ts, rt, fpr1,
-#                                      "keyring logs report that this key has been replaced with {}, and moved from the {} to the {} keyring".format(fpr2, ktype1, ktype2),
-#                                      keyring_status=ktype2,
-#                                      keyring_fpr=fpr2,
-#                                      shasum=shasum, **info)
-#                    else:
-#                        # Same keyring
-#                        self._ann_fpr(ts, rt, fpr1,
-#                                      "keyring logs report that this key has been replaced with {} in the {} keyring".format(fpr2, ktype2),
-#                                      keyring_status=ktype2,
-#                                      keyring_fpr=fpr2,
-#                                      shasum=shasum, **info)
-#                else:
-#                    # Only 'before' keyring known
-#                    self._ann_fpr(ts, rt, fpr1,
-#                                  "keyring logs report that this key has been replaced with unkonwn key {}".format(key2),
-#                                  keyring_status=ktype1,
-#                                  shasum=shasum, **info)
-#            else:
-#                if fpr2 is not None:
-#                    # Only 'after' keyring known
-#                    self._ann_fpr(ts, rt, fpr2,
-#                                  "keyring logs report that this key has replaced unknown key {} in the {} keyring".format(key1, ktype2),
-#                                  keyring_status=ktype2,
-#                                  shasum=shasum, **info)
-#                else:
-#                    # Neither before nor after are known
-#                    pass
-#                    # print("! Replaced %s with %s (none of which are in the database!) %s" % (key1, key2, self.rturl(rt)))
-        elif old_person is None and new_person is not None:
-            # Already replaced
-            return True
-        elif old_person is not None and new_person is None:
-            old_person.fpr = new_key
-            if rt is not None:
-                audit_notes = "GPG key changed, RT #{}".format(rt)
-            else:
-                audit_notes = "GPG key changed, RT unknown".format(rt)
-            old_person.save(
-                audit_author=author,
-                audit_notes=audit_notes)
-#            fpr, ktype = self.hk.keyrings.resolve_keyid(key2)
-#            if fpr is None:
-#                self._ann_person(ts, rt, p1, "key changed to unknown key {}".format(key2), shasum=shasum, **info)
-#                # print("! %s replaced key %s with %s but could not find %s in keyrings %s" % (p.lookup_key, key1, key2, key2, self.rturl(rt)))
-#            else:
-#                # Keyring-maint is authoritative on key changes
-#                p1.fpr = fpr
-#                p1.save()
-#                log.info("%s: %s key replaced with %s (RT #%s, shasum %s)", self.IDENTIFIER, self.hk.link(p1), fpr, rt, shasum)
-            return True
-        else:
-            log.warn("commit %s reports a key change from %s to %s, but the keys belong to two different people (%s and %s)",
-                     commit, old_key, new_key, self.hk.link(old_person), self.hk.link(new_person))
-            return False
-
     def run_main(self, stage):
         """
         Parse changes from changelog entries after the given date (non inclusive).
         """
+        importer = KeyringMaintImport(self.hk.keyring_maint.persons, self.hk.link)
         gk = self.hk.keyring_git.keyring
         parser = gk.get_changelog_parser()
-        start_shasum = "8c647266cc46c6ecd0155a0f341f7edac7d119ea"
-        for state, operation in parser.parse_git(start_shasum + "..remotes/origin/master"):
+        for state, operation in parser.parse_git("keyring_maint_import..remotes/origin/master"):
             sig_status = state.get("sig_status", None)
             # %G?: show "G" for a Good signature, "B" for a Bad signature, "U" for a good, untrusted signature and "N" for no signature
             if sig_status not in "GU":
@@ -747,51 +330,21 @@ class CheckKeyringLogs(hk.Task):
                 continue
 
             if operation['action'] == 'add':
-                self.do_add(state, operation)
-            #    if 'rt-ticket' in operation:
-            #        self.out.write("# Commit " + state['commit'] + "\n")
-            #        if role_is_dd(operation['role']):
-            #            self.out.write("rt edit ticket/" + operation['rt-ticket'] +
-            #                    " set queue=DSA\n")
-            #        elif operation['role'] == 'DM':
-            #            self.out.write("rt correspond -s resolved -m " +
-            #                "'This key has now been added to the active DM keyring.' " +
-            #                operation['rt-ticket'] + "\n")
-            #        else:
-            #            self.out.write("rt correspond -s resolved -m " +
-            #                "'This key has now been added to the " +
-            #                operation['role'] + " keyring.' " +
-            #                operation['rt-ticket'] + "\n")
+                processed = importer.do_add(state, operation)
             elif operation['action'] == 'remove':
-                self.do_remove(state, operation)
-            #    if 'rt-ticket' in operation:
-            #        self.out.write("# Commit " + state['commit'] + "\n")
-            #        if role_is_dd(operation['role']):
-            #            self.out.write("rt edit ticket/" + operation['rt-ticket'] +
-            #                    " set queue=DSA\n")
-            #        else:
-            #            self.out.write("rt edit ticket/" + operation['rt-ticket'] +
-            #                    " set queue=Keyring\n" +
-            #                    "rt correspond -s resolved -m "+
-            #                    "'This key has now been removed from the active DM keyring.' " +
-            #                    operation['rt-ticket'] + "\n")
+                processed = importer.do_remove(state, operation)
             elif operation['action'] == 'replace':
-                self.do_replace(state, operation)
-            #    self.out.write("# Commit " + state['commit'] + "\n")
-            #    if role_is_dd(operation['role']):
-            #        self.out.write("rt edit ticket/" + operation['rt-ticket'] +
-            #                " set queue=Keyring\n" +
-            #                "rt correspond -s resolved -m " +
-            #                "'Your key has been replaced in the active keyring and LDAP updated with the new fingerprint.' " +
-            #                operation['rt-ticket'] + "\n")
-            #    else:
-            #        self.out.write("rt edit ticket/" + operation['rt-ticket'] +
-            #                " set queue=Keyring\n" +
-            #                "rt correspond -s resolved -m "+
-            #                "'Your key has been replaced in the active DM keyring.' " +
-            #                operation['rt-ticket'] + "\n")
+                processed = importer.do_replace(state, operation)
             else:
-                print("UNKNOWN", repr(state), repr(operation))
+                log.warn("Unknown action %s in commit %s", operation["action"], state["commit"])
+                processed = False
+
+            if processed:
+                # Update our bookmark
+                gk.run_git("update-ref", "keyring_maint_import", state["commit"])
+                log.info("Updating ref keyring_maint_import to commit %s", state["commit"])
+            else:
+                break
 
         #start_date = datetime.datetime.utcnow() - datetime.timedelta(days=360)
         #gk = kmodels.GitKeyring()
