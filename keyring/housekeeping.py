@@ -311,14 +311,13 @@ class CheckKeyringLogs(hk.Task):
     """
     Show entries that do not match between keyrings and our DB
     """
-#    DEPENDS = [MakeLink, Inconsistencies, Keyrings, KeyringGit]
     DEPENDS = [MakeLink, KeyringMaint, KeyringGit]
 
     def run_main(self, stage):
         """
         Parse changes from changelog entries after the given date (non inclusive).
         """
-        importer = KeyringMaintImport(self.hk.keyring_maint.persons, self.hk.link)
+        importer = KeyringMaintImport(self.IDENTIFIER, self.hk.keyring_maint.persons, self.hk.link)
         gk = self.hk.keyring_git.keyring
         parser = gk.get_changelog_parser()
         actions = list(parser.parse_git("keyring_maint_import..remotes/origin/master"))
@@ -326,8 +325,8 @@ class CheckKeyringLogs(hk.Task):
             sig_status = state.get("sig_status", None)
             # %G?: show "G" for a Good signature, "B" for a Bad signature, "U" for a good, untrusted signature and "N" for no signature
             if sig_status not in "GU":
-                log.info("Skipping commit %s: sig_status: %s, author: %s",
-                         state.get("commit", "(unknown)"), sig_status, state.get("author_email", "(unknown)"))
+                log.info("%s: Skipping commit %s: sig_status: %s, author: %s",
+                         self.IDENTIFIER, state.get("commit", "(unknown)"), sig_status, state.get("author_email", "(unknown)"))
                 continue
 
             if operation['action'] == 'add':
@@ -337,13 +336,13 @@ class CheckKeyringLogs(hk.Task):
             elif operation['action'] == 'replace':
                 processed = importer.do_replace(state, operation)
             else:
-                log.warn("Unknown action %s in commit %s", operation["action"], state["commit"])
+                log.warn("%s: Unknown action %s in commit %s", self.IDENTIFIER, operation["action"], state["commit"])
                 processed = False
 
             if processed:
                 # Update our bookmark
                 gk.run_git("update-ref", "refs/heads/keyring_maint_import", state["commit"])
-                log.info("Updating ref keyring_maint_import to commit %s", state["commit"])
+                log.info("%s: Updating ref keyring_maint_import to commit %s", self.IDENTIFIER, state["commit"])
             else:
                 break
 

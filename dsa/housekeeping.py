@@ -105,7 +105,7 @@ class NewGuestAccountsFromDSA(hk.Task):
                 audit_author=self.hk.housekeeper.user,
                 audit_notes="created new guest account entry from LDAP",
             )
-            log.info("%s (guest account only) imported from LDAP", self.hk.link(p))
+            log.info("%s: %s (guest account only) imported from LDAP", self.IDENTIFIER, self.hk.link(p))
 
 class CheckLDAPConsistency(hk.Task):
     """

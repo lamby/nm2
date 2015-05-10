@@ -32,7 +32,8 @@ import logging
 log = logging.getLogger(__name__)
 
 class KeyringMaintImport(object):
-    def __init__(self, persons, person_link):
+    def __init__(self, logtag, persons, person_link):
+        self.logtag = logtag
         # Ref to [housekeeping].keyring_maint.persons
         self.persons = persons
         # Ref to [housekeeping].link
@@ -79,18 +80,18 @@ class KeyringMaintImport(object):
         commit = state.get("commit", None)
         ts = state.get("ts", None)
         if ts is None:
-            log.warn("ts field not found in state for commit %s", commit)
+            log.warn("%s: ts field not found in state for commit %s", self.logtag, commit)
             return None
         ts = datetime.datetime.utcfromtimestamp(ts)
 
         fpr = operation.get("New-key", None)
         if fpr is None:
-            log.warn("New-key field not found in commit %s", commit)
+            log.warn("%s: New-key field not found in commit %s", self.logtag, commit)
             return None
 
         fn = operation.get("Subject", None)
         if fn is None:
-            log.warn("Subject field not found in commit %s", commit)
+            log.warn("%s: Subject field not found in commit %s", self.logtag, commit)
             return None
         cn, mn, sn = self._split_subject(fn)
 
@@ -108,7 +109,7 @@ class KeyringMaintImport(object):
                     email = mo.group(1)
 
         if email is None:
-            log.warn("Email not found in commit %s", commit)
+            log.warn("%s: Email not found in commit %s", self.logtag, commit)
             return None
 
         return {
@@ -132,18 +133,18 @@ class KeyringMaintImport(object):
         commit = state.get("commit", None)
         ts = state.get("ts", None)
         if ts is None:
-            log.warn("ts field not found in state for commit %s", commit)
+            log.warn("%s: ts field not found in state for commit %s", self.logtag, commit)
             return None
         ts = datetime.datetime.utcfromtimestamp(ts)
 
         fpr = operation.get("New-key", None)
         if fpr is None:
-            log.warn("New-key field not found in commit %s", commit)
+            log.warn("%s: New-key field not found in commit %s", self.logtag, commit)
             return None
 
         fn = operation.get("Subject", None)
         if fn is None:
-            log.warn("Subject field not found in commit %s", commit)
+            log.warn("%s: Subject field not found in commit %s", self.logtag, commit)
             return None
         cn, mn, sn = self._split_subject(fn)
 
@@ -151,7 +152,7 @@ class KeyringMaintImport(object):
 
         uid = operation.get("Username", None)
         if uid is None:
-            log.warn("Username field not found in commit %s", commit)
+            log.warn("%s: Username field not found in commit %s", self.logtag, commit)
             return None
 
         return {
@@ -172,12 +173,12 @@ class KeyringMaintImport(object):
         commit = state.get("commit", None)
         author = self._get_author(state)
         if author is None:
-            log.warn("author not found for commit %s", commit)
+            log.warn("%s: author not found for commit %s", self.logtag, commit)
             return False
 
         role = operation.get("Role", None)
         if role is None:
-            log.warn("role not found for commit %s", commit)
+            log.warn("%s: role not found for commit %s", self.logtag, commit)
             return False
 
         if role == "DM":
@@ -191,7 +192,7 @@ class KeyringMaintImport(object):
             info["audit_author"] = author
             return self.do_add_dd(commit, role, info)
         else:
-            log.warn("Unhandled add action in commit %s", commit)
+            log.warn("%s: Unhandled add action in commit %s", self.logtag, commit)
             return False
 
         #import json
@@ -231,7 +232,7 @@ class KeyringMaintImport(object):
             else:
                 info["audit_notes"] = "Created DM entry, RT unknown"
             p = bmodels.Person.objects.create_user(**info)
-            log.info("%s: %s", self.person_link(p), info["audit_notes"])
+            log.info("%s: %s: %s", self.logtag, self.person_link(p), info["audit_notes"])
             return True
 
         # Otherwise, see if we are unambiguously referring to a record that we
@@ -243,19 +244,19 @@ class KeyringMaintImport(object):
         elif email_person is None:
             person = fpr_person
         else:
-            log.warn("commit %s has a new DM with email and fingerprints corresponding to two different users: email %s is %s and fpr %s is %s",
-                     commit, info["email"], self.person_link(email_person), info["fpr"], self.person_link(fpr_person))
+            log.warn("%s: commit %s has a new DM with email and fingerprints corresponding to two different users: email %s is %s and fpr %s is %s",
+                     self.logtag, commit, info["email"], self.person_link(email_person), info["fpr"], self.person_link(fpr_person))
             return False
 
         if person.status in (const.STATUS_DM, const.STATUS_DM_GA):
             # Already a DM, nothing to do
-            log.info("%s is already a DM: skipping duplicate entry", self.person_link(person))
+            log.info("%s: %s is already a DM: skipping duplicate entry", self.logtag, self.person_link(person))
             return True
         elif person.status in (
                 const.STATUS_DD_U, const.STATUS_DD_NU, const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD,
                 const.STATUS_EMERITUS_DM, const.STATUS_REMOVED_DM):
-            log.warn("commit %s has a new DM, but it corresponds to person %s which has status %s",
-                     commit, self.person_link(person), person.status)
+            log.warn("%s: commit %s has a new DM, but it corresponds to person %s which has status %s",
+                     self.logtag, commit, self.person_link(person), person.status)
             return False
         else:
             if person.status == const.STATUS_DC_GA:
@@ -272,7 +273,7 @@ class KeyringMaintImport(object):
             person.save(
                 audit_author=info["audit_author"],
                 audit_notes=audit_notes)
-            log.info("%s: %s", self.person_link(person), audit_notes)
+            log.info("%s: %s: %s", self.logtag, self.person_link(person), audit_notes)
             return True
 
     def do_add_dd(self, commit, role, info):
@@ -288,15 +289,15 @@ class KeyringMaintImport(object):
         # If it is all new, keyring has a DD that DAM does not know about:
         # yell.
         if fpr_person is None and uid_person is None:
-            log.warn("commit %s has new DD %s %s that we do not know about",
-                     commit, info["uid"], info["fpr"])
+            log.warn("%s: commit %s has new DD %s %s that we do not know about",
+                     self.logtag, commit, info["uid"], info["fpr"])
             return False
 
         # Otherwise, see if we are unambiguously referring to a record that we
         # can work with
         if fpr_person is not None and uid_person is not None and fpr_person.pk != uid_person.pk:
-            log.warn("commit %s has a new DD with uid and fingerprints corresponding to two different users: uid %s is %s and fpr %s is %s",
-                     commit, info["uid"], self.person_link(uid_person), info["fpr"], self.person_link(fpr_person))
+            log.warn("%s: commit %s has a new DD with uid and fingerprints corresponding to two different users: uid %s is %s and fpr %s is %s",
+                     self.logtag, commit, info["uid"], self.person_link(uid_person), info["fpr"], self.person_link(fpr_person))
             return False
 
         if uid_person.fpr != info["fpr"]:
@@ -307,7 +308,7 @@ class KeyringMaintImport(object):
                 audit_notes = "Set fingerprint to {}, RT unknown".format(info["fpr"])
             uid_person.fpr = info["fpr"]
             uid_person.save(audit_author=info["audit_author"], audit_notes=audit_notes)
-            log.info("%s: %s", self.person_link(uid_person), audit_notes)
+            log.info("%s: %s: %s", self.logtag, self.person_link(uid_person), audit_notes)
             # Do not return yet, we still need to check the status
 
         role_status_map = {
@@ -317,7 +318,7 @@ class KeyringMaintImport(object):
 
         if uid_person.status == role_status_map[role]:
             # Status already matches
-            log.info("%s is already %s: skipping duplicate entry", self.person_link(uid_person), const.ALL_STATUS_DESCS[uid_person.status])
+            log.info("%s: %s is already %s: skipping duplicate entry", self.logtag, self.person_link(uid_person), const.ALL_STATUS_DESCS[uid_person.status])
             return True
         else:
             found = False
@@ -329,29 +330,29 @@ class KeyringMaintImport(object):
                 if not bmodels.Log.objects.filter(process=p, changed_by=info["audit_author"], logdate=info["ts"], logtext=logtext).exists():
                     l = bmodels.Log.for_process(p, changed_by=info["audit_author"], logdate=info["ts"], logtext=logtext)
                     l.save()
-                log.info("%s has an open process to become %s, keyring added them as %s",
-                         self.person_link(uid_person), const.ALL_STATUS_DESCS[p.applying_for], role)
+                log.info("%s: %s has an open process to become %s, keyring added them as %s",
+                         self.logtag, self.person_link(uid_person), const.ALL_STATUS_DESCS[p.applying_for], role)
                 found = True
             if found:
                 return True
             else:
-                log.warn("%s: keyring added them as %s, but we have no relevant active process for this change",
-                         self.person_link(uid_person), role)
+                log.warn("%s: %s: keyring added them as %s, but we have no relevant active process for this change",
+                         self.logtag, self.person_link(uid_person), role)
                 return False
 
     def do_remove(self, state, operation):
         commit = state.get("commit", None)
         author = self._get_author(state)
         if author is None:
-            log.warn("author not found for commit %s", commit)
+            log.warn("5s: author not found for commit %s", self.logtag, commit)
             return False
 
         role = operation.get("Role", None)
         if role is None:
-            log.warn("role not found for commit %s", commit)
+            log.warn("5s: role not found for commit %s", self.logtag, commit)
             return False
 
-        log.warn("Unhandled remove action in commit %s", commit)
+        log.warn("%s: Unhandled remove action in commit %s", self.logtag, commit)
         return False
         #import json
         #print("REMOVE", json.dumps(dict(state), indent=1), json.dumps(dict(operation), indent=1))
@@ -372,21 +373,21 @@ class KeyringMaintImport(object):
         commit = state.get("commit", None)
         author = self._get_author(state)
         if author is None:
-            log.warn("author not found for commit %s", commit)
+            log.warn("%s: author not found for commit %s", self.logtag, commit)
             return False
 
         role = operation.get("Role", None)
         if role is None:
-            log.warn("role not found for commit %s", commit)
+            log.warn("%s: role not found for commit %s", self.logtag, commit)
             return False
 
         old_key = operation.get("Old-key", None)
         if old_key is None:
-            log.warn("Old-key not found for commit %s", commit)
+            log.warn("%s: Old-key not found for commit %s", self.logtag, commit)
             return False
         new_key = operation.get("New-key", None)
         if new_key is None:
-            log.warn("New-key not found for commit %s", commit)
+            log.warn("%s: New-key not found for commit %s", self.logtag, commit)
             return False
 
         try:
@@ -402,7 +403,7 @@ class KeyringMaintImport(object):
         rt = operation.get("RT-Ticket", None)
 
         if old_person is None and new_person is None:
-            log.warn("Unhandled replace in commit %s", commit)
+            log.warn("%s: Unhandled replace in commit %s", self.logtag, commit)
             return False
 #            # No before or after match with our records
 #            fpr1, ktype1 = self.hk.keyrings.resolve_keyid(key1)
@@ -443,7 +444,7 @@ class KeyringMaintImport(object):
 #                    # print("! Replaced %s with %s (none of which are in the database!) %s" % (key1, key2, self.rturl(rt)))
         elif old_person is None and new_person is not None:
             # Already replaced
-            log.info("%s already has the new key: skipping key replace", self.person_link(new_person))
+            log.info("%s: %s already has the new key: skipping key replace", self.logtag, self.person_link(new_person))
             return True
         elif old_person is not None and new_person is None:
             old_person.fpr = new_key
@@ -463,11 +464,11 @@ class KeyringMaintImport(object):
 #                p1.fpr = fpr
 #                p1.save()
 #                log.info("%s: %s key replaced with %s (RT #%s, shasum %s)", self.IDENTIFIER, self.hk.link(p1), fpr, rt, shasum)
-            log.info("%s: %s", self.person_link(old_person, audit_notes))
+            log.info("%s: %s: %s", self.logtag, self.person_link(old_person, audit_notes))
             return True
         else:
-            log.warn("commit %s reports a key change from %s to %s, but the keys belong to two different people (%s and %s)",
-                     commit, old_key, new_key, self.person_link(old_person), self.person_link(new_person))
+            log.warn("%s: commit %s reports a key change from %s to %s, but the keys belong to two different people (%s and %s)",
+                     self.logtag, commit, old_key, new_key, self.person_link(old_person), self.person_link(new_person))
             return False
 
             #    self.out.write("# Commit " + state['commit'] + "\n")
