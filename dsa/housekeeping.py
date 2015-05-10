@@ -101,6 +101,7 @@ class NewGuestAccountsFromDSA(hk.Task):
                 uid=entry.uid,
                 fpr=entry.single("keyFingerPrint"),
                 status=const.STATUS_DC_GA,
+                username="{}@invalid.example.org".format(entry.uid),
                 audit_author=self.hk.housekeeper.user,
                 audit_notes="created new guest account entry from LDAP",
             )
