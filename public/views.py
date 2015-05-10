@@ -475,6 +475,7 @@ def make_findperson_form(request, visitor):
     includes = ["cn", "mn", "sn", "email", "uid", "fpr", "status"]
 
     if visitor and visitor.is_admin:
+        includes.append("username")
         includes.append("fd_comment")
 
     class FindpersonForm(forms.ModelForm):
