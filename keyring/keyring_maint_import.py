@@ -151,9 +151,6 @@ class KeyringMaintImport(object):
         rt = operation.get("RT-Ticket", None)
 
         uid = operation.get("Username", None)
-        if uid is None:
-            log.warn("%s: Username field not found in commit %s", self.logtag, commit)
-            return None
 
         return {
             # Dummy username used to avoid unique entry conflicts
@@ -281,9 +278,12 @@ class KeyringMaintImport(object):
             fpr_person = bmodels.Person.objects.get(fpr=info["fpr"])
         except bmodels.Person.DoesNotExist:
             fpr_person = None
-        try:
-            uid_person = bmodels.Person.objects.get(uid=info["uid"])
-        except bmodels.Person.DoesNotExist:
+        if info["uid"]:
+            try:
+                uid_person = bmodels.Person.objects.get(uid=info["uid"])
+            except bmodels.Person.DoesNotExist:
+                uid_person = None
+        else:
             uid_person = None
 
         # If it is all new, keyring has a DD that DAM does not know about:
