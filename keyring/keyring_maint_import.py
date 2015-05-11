@@ -295,20 +295,22 @@ class KeyringMaintImport(object):
 
         # Otherwise, see if we are unambiguously referring to a record that we
         # can work with
-        if fpr_person is not None and uid_person is not None and fpr_person.pk != uid_person.pk:
+        if fpr_person and uid_person and fpr_person.pk != uid_person.pk:
             log.warn("%s: commit %s has a new DD with uid and fingerprints corresponding to two different users: uid %s is %s and fpr %s is %s",
                      self.logtag, commit, info["uid"], self.person_link(uid_person), info["fpr"], self.person_link(fpr_person))
             return False
 
-        if uid_person.fpr != info["fpr"]:
+        person = uid_person if uid_person else fpr_person
+
+        if person.fpr != info["fpr"]:
             # Keyring-maint added a different key: sync with them
             if info.get("rt", None):
                 audit_notes = "Set fingerprint to {}, RT #{}".format(info["fpr"], info["rt"])
             else:
                 audit_notes = "Set fingerprint to {}, RT unknown".format(info["fpr"])
-            uid_person.fpr = info["fpr"]
-            uid_person.save(audit_author=info["audit_author"], audit_notes=audit_notes)
-            log.info("%s: %s: %s", self.logtag, self.person_link(uid_person), audit_notes)
+            person.fpr = info["fpr"]
+            person.save(audit_author=info["audit_author"], audit_notes=audit_notes)
+            log.info("%s: %s: %s", self.logtag, self.person_link(person), audit_notes)
             # Do not return yet, we still need to check the status
 
         role_status_map = {
@@ -316,13 +318,13 @@ class KeyringMaintImport(object):
             "DN": const.STATUS_DD_NU,
         }
 
-        if uid_person.status == role_status_map[role]:
+        if person.status == role_status_map[role]:
             # Status already matches
-            log.info("%s: %s is already %s: skipping duplicate entry", self.logtag, self.person_link(uid_person), const.ALL_STATUS_DESCS[uid_person.status])
+            log.info("%s: %s is already %s: skipping duplicate entry", self.logtag, self.person_link(person), const.ALL_STATUS_DESCS[person.status])
             return True
         else:
             found = False
-            for p in [x for x in uid_person.active_processes if x.applying_for == role_status_map[role]]:
+            for p in [x for x in person.active_processes if x.applying_for == role_status_map[role]]:
                 if info.get("rt", None):
                     logtext = "Added to %s keyring, RT #{}".format(role, info["rt"])
                 else:
@@ -331,13 +333,13 @@ class KeyringMaintImport(object):
                     l = bmodels.Log.for_process(p, changed_by=info["audit_author"], logdate=info["ts"], logtext=logtext)
                     l.save()
                 log.info("%s: %s has an open process to become %s, keyring added them as %s",
-                         self.logtag, self.person_link(uid_person), const.ALL_STATUS_DESCS[p.applying_for], role)
+                         self.logtag, self.person_link(person), const.ALL_STATUS_DESCS[p.applying_for], role)
                 found = True
             if found:
                 return True
             else:
                 log.warn("%s: %s: keyring added them as %s, but we have no relevant active process for this change",
-                         self.logtag, self.person_link(uid_person), role)
+                         self.logtag, self.person_link(person), role)
                 return False
 
     def do_remove(self, state, operation):
