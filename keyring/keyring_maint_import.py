@@ -338,6 +338,8 @@ class KeyringMaintImport(object):
             if found:
                 return True
             else:
+                # f3d1c1ee92bba3ebe05f584b7efea0cfd6e4ebe4 is an example commit
+                # that triggers this
                 log.warn("%s: %s: keyring added them as %s in commit %s, but we have no relevant active process for this change",
                          self.logtag, self.person_link(person), role, commit)
                 return False

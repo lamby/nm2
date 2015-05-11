@@ -261,7 +261,7 @@ class KeyringMaint(hk.Task):
         {
             "uid": "dkg",
             "fpr": "0EE5BE979282D80B9F7540F1CCD2ED94D21739E9",
-            "email": ["dkg@openflows.com"],
+            "email": ["dkg@openflows.com", "dkg@fifthhorseman.net"],
         },
     ]
 
