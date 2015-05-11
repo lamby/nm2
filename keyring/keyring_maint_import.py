@@ -220,7 +220,7 @@ class KeyringMaintImport(object):
         except bmodels.Person.DoesNotExist:
             fpr_person = None
         try:
-            email_person = bmodels.Person.objects.get(fpr=info["email"])
+            email_person = bmodels.Person.objects.get(email=info["email"])
         except bmodels.Person.DoesNotExist:
             email_person = None
 
@@ -282,7 +282,7 @@ class KeyringMaintImport(object):
         except bmodels.Person.DoesNotExist:
             fpr_person = None
         try:
-            uid_person = bmodels.Person.objects.get(fpr=info["uid"])
+            uid_person = bmodels.Person.objects.get(uid=info["uid"])
         except bmodels.Person.DoesNotExist:
             uid_person = None
 
@@ -344,30 +344,67 @@ class KeyringMaintImport(object):
         commit = state.get("commit", None)
         author = self._get_author(state)
         if author is None:
-            log.warn("5s: author not found for commit %s", self.logtag, commit)
+            log.warn("%s: author not found for commit %s", self.logtag, commit)
             return False
 
         role = operation.get("Role", None)
         if role is None:
-            log.warn("5s: role not found for commit %s", self.logtag, commit)
+            log.warn("%s: role not found for commit %s", self.logtag, commit)
             return False
 
-        log.warn("%s: Unhandled remove action in commit %s", self.logtag, commit)
-        return False
-        #import json
-        #print("REMOVE", json.dumps(dict(state), indent=1), json.dumps(dict(operation), indent=1))
-        #pass
-            #    if 'rt-ticket' in operation:
-            #        self.out.write("# Commit " + state['commit'] + "\n")
-            #        if role_is_dd(operation['role']):
-            #            self.out.write("rt edit ticket/" + operation['rt-ticket'] +
-            #                    " set queue=DSA\n")
-            #        else:
-            #            self.out.write("rt edit ticket/" + operation['rt-ticket'] +
-            #                    " set queue=Keyring\n" +
-            #                    "rt correspond -s resolved -m "+
-            #                    "'This key has now been removed from the active DM keyring.' " +
-            #                    operation['rt-ticket'] + "\n")
+        if role == "DD":
+            uid = operation.get("Username", None)
+            if uid is None:
+                log.warn("%s: Username not found for commit %s", self.logtag, commit)
+                return False
+
+            fpr = operation.get("Key", None)
+            if fpr is None:
+                log.warn("%s: Key not found for commit %s", self.logtag, commit)
+                return False
+
+            try:
+                uid_person = bmodels.Person.objects.get(uid=uid)
+            except bmodels.Person.DoesNotExist:
+                uid_person = None
+
+            try:
+                fpr_person = bmodels.Person.objects.get(fpr=fpr)
+            except bmodels.Person.DoesNotExist:
+                fpr_person = None
+
+            if uid_person and fpr_person and uid_person.pk != fpr_person.pk:
+                # Example case: e958b577c9ff22648baa6553a123ba553ae21e0b which
+                # has uid 'joey' instead of 'joeyh'. A full fingerprint is
+                # harder to mistype while still generating a conflict with
+                # another existing one.
+                log.warn("%s: commit %s references two records in the database: by uid %s: %s, and by fingerprint %s: %s: Assuming a typo in the uid",
+                         self.logtag, commit, fpr, self.person_link(fpr_person), uid, self.person_link(uid_person))
+                person = fpr_person
+            else:
+                person = uid_person if uid_person else fpr_person
+
+            if not person:
+                log.warn("%s: commit %s references a person that is not known to the database", self.logtag, commit)
+
+            if person.status in (const.STATUS_DD_U, const.STATUS_DD_NU):
+                rt = operation.get("RT-Ticket", None)
+                if rt:
+                    audit_notes = "Moved to emeritus keyring, RT #{}".format(rt)
+                else:
+                    audit_notes = "Moved to emeritus keyring, RT unknown"
+
+                person.status = const.STATUS_EMERITUS_DD
+                person.save(audit_author=author, audit_notes=audit_notes)
+                log.info("%s: %s: %s", self.logtag, self.person_link(person), audit_notes)
+                return True
+            elif person.status == const.STATUS_EMERITUS_DD:
+                # Already moved to DD
+                log.info("%s: %s is already emeritus: skipping key removal", self.logtag, self.person_link(person))
+                return True
+        else:
+            log.warn("%s: Unhandled remove action in commit %s", self.logtag, commit)
+            return False
 
     def do_replace(self, state, operation):
         commit = state.get("commit", None)
