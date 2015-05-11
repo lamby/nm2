@@ -338,8 +338,8 @@ class KeyringMaintImport(object):
             if found:
                 return True
             else:
-                log.warn("%s: %s: keyring added them as %s, but we have no relevant active process for this change",
-                         self.logtag, self.person_link(person), role)
+                log.warn("%s: %s: keyring added them as %s in commit %s, but we have no relevant active process for this change",
+                         self.logtag, self.person_link(person), role, commit)
                 return False
 
     def do_remove(self, state, operation):
