@@ -21,7 +21,7 @@ from __future__ import division
 from __future__ import unicode_literals
 import django_housekeeping as hk
 from django.db import transaction
-from backend.housekeeping import MakeLink, Inconsistencies, Housekeeper
+from backend.housekeeping import MakeLink, Housekeeper
 from . import models as dmodels
 from backend import const
 import backend.models as bmodels
@@ -66,7 +66,7 @@ class NewGuestAccountsFromDSA(hk.Task):
     """
     Create new Person entries for guest accounts created by DSA
     """
-    DEPENDS = [MakeLink, Inconsistencies]
+    DEPENDS = [MakeLink]
 
     @transaction.atomic
     def run_main(self, stage):
@@ -146,7 +146,7 @@ class CheckLDAPConsistency(hk.Task):
     """
     Show entries that do not match between LDAP and our DB
     """
-    DEPENDS = [MakeLink, Inconsistencies, Housekeeper]
+    DEPENDS = [MakeLink, Housekeeper]
 
     def run_main(self, stage):
         # Prefetch people and index them by uid
@@ -156,17 +156,13 @@ class CheckLDAPConsistency(hk.Task):
             people_by_uid[p.uid] = p
 
         for entry in dmodels.list_people():
-            try:
-                person = bmodels.Person.objects.get(uid=entry.uid)
-            except bmodels.Person.DoesNotExist:
-                person = None
+            person = people_by_uid.get(entry.uid, None)
 
             if person is None:
                 fpr = entry.single("keyFingerPrint")
                 if fpr:
-                    self.hk.inconsistencies.log_fingerprint(self, fpr,
-                                                               "is in LDAP as {} but not in our db".format(entry.uid),
-                                                               ldap_uid=entry.uid)
+                    log.warn("%s: %s has fingerprint %s and gid %d in LDAP, but is not in our db",
+                             self.IDENTIFIER, entry.uid, fpr, entry.single("gidNumber"))
                 else:
                     args = {
                         "cn": entry.single("cn"),
@@ -191,9 +187,8 @@ class CheckLDAPConsistency(hk.Task):
             else:
                 if entry.single("gidNumber") == "800" and entry.single("keyFingerPrint") is not None:
                     if person.status not in (const.STATUS_DD_U, const.STATUS_DD_NU):
-                        self.hk.inconsistencies.log_person(self, person,
-                                                            "has gidNumber 800 and a key, but the db has state {}".format(person.status),
-                                                            dsa_status="dd")
+                        log.warn("%s: %s has gidNumber 800 and fingerprint %s in LDAP, but in our db the state is %s",
+                                 self.IDENTIFIER, self.hk.link(person), entry.single("keyFingerPrint"), const.ALL_STATUS_DESCS[person.status])
 
                 email = entry.single("emailForward")
                 if email != person.email:
