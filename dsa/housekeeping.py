@@ -161,7 +161,7 @@ class CheckLDAPConsistency(hk.Task):
             if person is None:
                 fpr = entry.single("keyFingerPrint")
                 if fpr:
-                    log.warn("%s: %s has fingerprint %s and gid %d in LDAP, but is not in our db",
+                    log.warn("%s: %s has fingerprint %s and gid %s in LDAP, but is not in our db",
                              self.IDENTIFIER, entry.uid, fpr, entry.single("gidNumber"))
                 else:
                     args = {

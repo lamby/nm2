@@ -22,7 +22,7 @@ from __future__ import division
 from __future__ import unicode_literals
 import django_housekeeping as hk
 from django.conf import settings
-from backend.housekeeping import MakeLink, Inconsistencies
+from backend.housekeeping import MakeLink
 import backend.models as bmodels
 from backend import const
 from . import models as kmodels
@@ -123,7 +123,7 @@ class CheckKeyringConsistency(hk.Task):
     """
     Show entries that do not match between keyrings and our DB
     """
-    DEPENDS = [Keyrings, MakeLink, Inconsistencies]
+    DEPENDS = [Keyrings, MakeLink]
 
     def run_main(self, stage):
         # Prefetch people and index them by fingerprint
@@ -155,16 +155,14 @@ class CheckKeyringConsistency(hk.Task):
             found = False
             for status, keyring in keyring_by_status.iteritems():
                 if fpr in keyring:
-                    self.hk.inconsistencies.log_person(self, p,
-                                                                "has status {} but is in {} keyring".format(p.status, status),
-                                                                keyring_status=status)
+                    log.warn("%s: %s has status %s in the database, but the key is in %s keyring",
+                             self.IDENTIFIER, self.hk.link(p), const.ALL_STATUS_DESCS[p.status], status)
                     self.count += 1
                     found = True
                     break
             if not found and p.status != const.STATUS_REMOVED_DD:
-                self.hk.inconsistencies.log_person(self, p,
-                                                      "has status {} but is not in any keyring".format(p.status),
-                                                      keyring_status=None)
+                log.warn("%s: %s has status %s in the database, but the key is not in any keyring",
+                         self.IDENTIFIER, self.hk.link(p), const.ALL_STATUS_DESCS[p.status])
                 self.count += 1
 
         # Spot fingerprints not in our DB
@@ -174,13 +172,12 @@ class CheckKeyringConsistency(hk.Task):
             if status == const.STATUS_REMOVED_DD: continue
             for fpr in keyring:
                 if fpr not in people_by_fpr:
-                    self.hk.inconsistencies.log_fingerprint(self, fpr,
-                                                               "is in {} keyring but not in our db".format(status),
-                                                               keyring_status=status)
+                    log.warn("%s: key %s is in %s keyring, but not in our db",
+                             self.IDENTIFIER, fpr, status)
                     self.count += 1
 
     def log_stats(self):
-        log.info("%s: %d mismatches between keyring and nm.debian.org databases",
+        log.warn("%s: %d mismatches between keyring and nm.debian.org databases",
                     self.IDENTIFIER, self.count)
 
     #@transaction.atomic
