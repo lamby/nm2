@@ -150,7 +150,6 @@ INSTALLED_APPS = (
     'minechangelogs',
     'api',
     'contributors',
-    'inconsistencies',
 )
 
 TEMPLATE_CONTEXT_PROCESSORS = global_settings.TEMPLATE_CONTEXT_PROCESSORS + (
