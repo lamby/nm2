@@ -29,17 +29,17 @@ g = globals()
 
 # Status of a person in Debian
 ALL_STATUS = (
-    # TODO: could become DC
-    Status("STATUS_DC",          "dc",     "DC",            "Debian Contributor"),
-    Status("STATUS_DC_GA",       "dc_ga",  "DC+account",    "Debian Contributor, with guest account"),
-    Status("STATUS_DM",          "dm",     "DM",            "Debian Maintainer"),
-    Status("STATUS_DM_GA",       "dm_ga",  "DM+account",    "Debian Maintainer, with guest account"),
-    Status("STATUS_DD_U",        "dd_u",   "DD, upl.",      "Debian Developer, uploading"),
-    Status("STATUS_DD_NU",       "dd_nu",  "DD, non-upl.",  "Debian Developer, non-uploading"),
-    Status("STATUS_EMERITUS_DD", "dd_e",   "DD, emeritus",  "Debian Developer, emeritus"),
-    Status("STATUS_EMERITUS_DM", "dm_e",   "DM, emeritus",  "Debian Maintainer, emeritus"),
-    Status("STATUS_REMOVED_DD",  "dd_r",   "DD, removed",   "Debian Developer, removed"),
-    Status("STATUS_REMOVED_DM",  "dm_r",   "DM, removed",   "Debian Maintainer, removed"),
+    Status("STATUS_DC",            "dc",      "DC",              "Debian Contributor"),
+    Status("STATUS_DC_GA",         "dc_ga",   "DC+account",      "Debian Contributor, with guest account"),
+    Status("STATUS_DM",            "dm",      "DM",              "Debian Maintainer"),
+    Status("STATUS_DM_GA",         "dm_ga",   "DM+account",      "Debian Maintainer, with guest account"),
+    Status("STATUS_DD_U",          "dd_u",    "DD, upl.",        "Debian Developer, uploading"),
+    Status("STATUS_DD_NU",         "dd_nu",   "DD, non-upl.",    "Debian Developer, non-uploading"),
+    Status("STATUS_EMERITUS_DD",   "dd_e",    "DD, emeritus",    "Debian Developer, emeritus"),
+    Status("STATUS_EMERITUS_DM",   "dm_e",    "DM, emeritus",    "Debian Maintainer, emeritus"),
+    Status("STATUS_REMOVED_DD",    "dd_r",    "DD, removed",     "Debian Developer, removed"),
+    Status("STATUS_REMOVED_DM",    "dm_r",    "DM, removed",     "Debian Maintainer, removed"),
+    Status("STATUS_REMOVED_DC_GA", "dc_ga_r", "DC+closed acct.", "Debian Contributor, with closed guest account"),
 )
 ALL_STATUS_DESCS = dict((x.tag, x.ldesc) for x in ALL_STATUS)
 ALL_STATUS_BYTAG = dict((x.tag, x) for x in ALL_STATUS)
