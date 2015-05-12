@@ -8,6 +8,12 @@ class PersonAdmin(admin.ModelAdmin):
     exclude = ("user",)
     search_fields = ("cn", "sn", "email", "uid")
 
+    def save_model(self, request, obj, form, change):
+        """
+        Given a model instance save it to the database.
+        """
+        obj.save(audit_author=request.user, audit_notes="edited from admin")
+
 admin.site.register(bmodels.Person, PersonAdmin)
 
 class AMAdmin(admin.ModelAdmin):
