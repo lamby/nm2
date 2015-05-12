@@ -159,32 +159,51 @@ class CheckLDAPConsistency(hk.Task):
             try:
                 person = bmodels.Person.objects.get(uid=entry.uid)
             except bmodels.Person.DoesNotExist:
+                person = None
+
+            if person is None:
                 fpr = entry.single("keyFingerPrint")
                 if fpr:
                     self.hk.inconsistencies.log_fingerprint(self, fpr,
                                                                "is in LDAP as {} but not in our db".format(entry.uid),
                                                                ldap_uid=entry.uid)
                 else:
-                    log.warning("%s: person %s exists (without fingerprint) in LDAP, but not in our db", self.IDENTIFIER, entry.uid)
-                continue
+                    args = {
+                        "cn": entry.single("cn"),
+                        "mn": entry.single("mn") or "",
+                        "sn": entry.single("sn") or "",
+                        "email": entry.single("emailForward"),
+                        "uid": entry.uid,
+                        "fpr": "FIXME-REMOVED-" + entry.uid,
+                        "username": "{}@invalid.example.org".format(entry.uid),
+                        "audit_author": self.hk.housekeeper.user,
+                    }
+                    if entry.single("gidNumber") == "800":
+                        args["status"] = const.STATUS_REMOVED_DD
+                        args["audit_notes"] = "created to mirror a removed guest account from LDAP",
+                    else:
+                        args["status"] = const.STATUS_REMOVED_DC_GA
+                        args["audit_notes"] = "created to mirror a removed DD account from LDAP",
+                    person = bmodels.Person.objects.create_user(**args)
+                    log.warn("%s: %s: %s", self.IDENTIFIER, self.hk.link(person), args["audit_notes"])
+            else:
+                if entry.single("gidNumber") == "800" and entry.single("keyFingerPrint") is not None:
+                    if person.status not in (const.STATUS_DD_U, const.STATUS_DD_NU):
+                        self.hk.inconsistencies.log_person(self, person,
+                                                            "has gidNumber 800 and a key, but the db has state {}".format(person.status),
+                                                            dsa_status="dd")
 
-            if entry.single("gidNumber") == "800" and entry.single("keyFingerPrint") is not None:
-                if person.status not in (const.STATUS_DD_U, const.STATUS_DD_NU):
-                    self.hk.inconsistencies.log_person(self, person,
-                                                          "has gidNumber 800 and a key, but the db has state {}".format(person.status),
-                                                          dsa_status="dd")
-
-            email = entry.single("emailForward")
-            if email != person.email:
-                if email is not None:
-                    log.info("%s: %s changing email from %s to %s (source: LDAP)",
-                             self.IDENTIFIER, self.hk.link(person), person.email, email)
-                    person.email = email
-                    person.save(audit_author=self.hk.housekeeper.user, audit_notes="updated email from LDAP")
-                # It gives lots of errors when run outside of the debian.org
-                # network, since emailForward is not exported there, and it has
-                # no use case I can think of so far
-                #
-                # else:
-                #     log.info("%s: %s has email %s but emailForward is empty in LDAP",
-                #              self.IDENTIFIER, self.hk.link(person), person.email)
+                email = entry.single("emailForward")
+                if email != person.email:
+                    if email is not None:
+                        log.info("%s: %s changing email from %s to %s (source: LDAP)",
+                                self.IDENTIFIER, self.hk.link(person), person.email, email)
+                        person.email = email
+                        person.save(audit_author=self.hk.housekeeper.user, audit_notes="updated email from LDAP")
+                    # It gives lots of errors when run outside of the debian.org
+                    # network, since emailForward is not exported there, and it has
+                    # no use case I can think of so far
+                    #
+                    # else:
+                    #     log.info("%s: %s has email %s but emailForward is empty in LDAP",
+                    #              self.IDENTIFIER, self.hk.link(person), person.email)
