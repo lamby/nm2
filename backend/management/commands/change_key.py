@@ -23,6 +23,7 @@ import optparse
 import sys
 import os
 import re
+import readline
 import logging
 import datetime
 from backend import models as bmodels
@@ -42,6 +43,16 @@ def lookup_person(s):
         return bmodels.Person.objects.get(fpr__endswith=s)
     else:
         return bmodels.Person.lookup(s)
+
+def ask(prompt, prefill=None):
+    if prefill:
+        readline.set_startup_hook(lambda: readline.insert_text(prefill))
+        try:
+            return raw_input(prompt)
+        finally:
+            readline.set_startup_hook()
+    else:
+        return raw_input(prompt)
 
 
 class Command(BaseCommand):
@@ -85,7 +96,7 @@ class Command(BaseCommand):
 
         # RT number
         if not rt:
-            rt = raw_input("RT issue number: ")
+            rt = ask("RT issue number: ")
             if not rt:
                 rt = None
             else:
@@ -97,7 +108,7 @@ class Command(BaseCommand):
 
         # Author
         if not author:
-            author = raw_input("Author: ")
+            author = ask("Author: ")
         author = lookup_person(author)
         log.info("Author: %s", author.lookup_key)
 
@@ -111,6 +122,7 @@ class Command(BaseCommand):
                 audit_notes = "Key replaced, rt#{}".format(rt)
             else:
                 audit_notes = "Key replaced, rt unknown".format(rt)
+        audit_notes = ask("Audit notes: ", audit_notes)
 
         person.fpr = fpr
         person.save(audit_author=author, audit_notes=audit_notes)
