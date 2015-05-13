@@ -33,6 +33,7 @@ import datetime
 import cookielib
 import urllib
 import urllib2
+import io
 import rfc822
 import tempfile
 import subprocess
@@ -190,7 +191,7 @@ class Command(BaseCommand):
 
             # Read back
             info = dict()
-            with open(outfd.name) as fd:
+            with io.open(outfd.name, "rt", encoding="utf-8") as fd:
                 for line in fd:
                     line = line.strip()
                     if not line: continue
