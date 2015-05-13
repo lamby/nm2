@@ -68,16 +68,20 @@ class Command(BaseCommand):
         log.info("Person: %s", person.lookup_key)
 
         # New fingerprint
-        fpr = fpr.replace(" ", "")
-        fpr = fpr.upper()
-        if len(fpr) != 40:
-            log.error("Fingerprint %s is not 40 characters long", fpr)
-            sys.exit(1)
+        if fpr == "revoked":
+            fpr = None
+            log.info("Key has been revoked.")
+        else:
+            fpr = fpr.replace(" ", "")
+            fpr = fpr.upper()
+            if len(fpr) != 40:
+                log.error("Fingerprint %s is not 40 characters long", fpr)
+                sys.exit(1)
 
-        if not re.match("^[0-9A-F]+", fpr):
-            log.error("Fingerprint %s contains invalid characters", fpr)
-            sys.exit(1)
-        log.info("New fingerprint: %s", fpr)
+            if not re.match("^[0-9A-F]+", fpr):
+                log.error("Fingerprint %s contains invalid characters", fpr)
+                sys.exit(1)
+            log.info("New fingerprint: %s", fpr)
 
         # RT number
         if not rt:
@@ -97,10 +101,16 @@ class Command(BaseCommand):
         author = lookup_person(author)
         log.info("Author: %s", author.lookup_key)
 
-        if rt:
-            audit_notes = "Key replaced, rt#{}".format(rt)
+        if fpr is None:
+            if rt:
+                audit_notes = "Key revoked, rt#{}".format(rt)
+            else:
+                audit_notes = "Key revoked"
         else:
-            audit_notes = "Key replaced, rt unknown".format(rt)
+            if rt:
+                audit_notes = "Key replaced, rt#{}".format(rt)
+            else:
+                audit_notes = "Key replaced, rt unknown".format(rt)
 
         person.fpr = fpr
         person.save(audit_author=author, audit_notes=audit_notes)
