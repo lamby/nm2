@@ -212,6 +212,7 @@ class Command(BaseCommand):
             email=info["email"],
             status=const.STATUS_DM,
             status_changed=ticket_closed,
+            username="rt-{}@example.org".format(rt_id),
         )
         if info.get("mn", ""): p.mn = info["mn"]
         if info.get("sn", ""): p.mn = info["sn"]
