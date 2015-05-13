@@ -30,15 +30,29 @@ from backend import const
 
 log = logging.getLogger(__name__)
 
+def lookup_person(s):
+    if '@' in s:
+        return bmodels.Person.objects.get(email=s)
+    elif re.match(r"(?:0x)?[A-F0-9]{16}", s):
+        if s.startswith("0x"): s = s[2:]
+        return bmodels.Person.objects.get(fpr__endswith=s)
+    elif re.match(r"[A-F0-9]{40}", s):
+        return bmodels.Person.objects.get(fpr__endswith=s)
+    else:
+        return bmodels.Person.lookup(s)
+
+
 class Command(BaseCommand):
     help = 'Change the fingerprint of a person'
     args = "person_key new_fpr"
 
     option_list = BaseCommand.option_list + (
         optparse.make_option("--quiet", action="store_true", dest="quiet", default=None, help="Disable progress reporting"),
+        optparse.make_option("--rt", action="store", default=None, help="RT ticket number"),
+        optparse.make_option("--author", action="store", default=None, help="Author"),
     )
 
-    def handle(self, person_key, fpr, **opts):
+    def handle(self, person, fpr, rt=None, author=None, **opts):
         FORMAT = "%(asctime)-15s %(levelname)s %(message)s"
         if opts["quiet"]:
             logging.basicConfig(level=logging.WARNING, stream=sys.stderr, format=FORMAT)
@@ -46,14 +60,14 @@ class Command(BaseCommand):
             logging.basicConfig(level=logging.INFO, stream=sys.stderr, format=FORMAT)
 
         # Validate input
-        p = bmodels.Person.lookup(person_key)
-        if p is None:
-            log.error("Person with key %s does not exist", person_key)
-            sys.exit(1)
 
+        # Person
+        person = lookup_person(person)
+        log.info("Person: %s", person.lookup_key)
+
+        # New fingerprint
         fpr = fpr.replace(" ", "")
         fpr = fpr.upper()
-
         if len(fpr) != 40:
             log.error("Fingerprint %s is not 40 characters long", fpr)
             sys.exit(1)
@@ -61,8 +75,31 @@ class Command(BaseCommand):
         if not re.match("^[0-9A-F]+", fpr):
             log.error("Fingerprint %s contains invalid characters", fpr)
             sys.exit(1)
+        log.info("New fingerprint: %s", fpr)
 
-        p.fpr = fpr
-        p.save()
+        # RT number
+        if not rt:
+            rt = raw_input("RT issue number: ")
+            if not rt:
+                rt = None
+            else:
+                rt = rt.lstrip("#")
+        if not rt:
+            log.info("RT: not specificed")
+        else:
+            log.info("RT: #%s", rt)
 
-        # TODO: log something somewhere?
+        # Author
+        if not author:
+            author = raw_input("Author: ")
+        author = lookup_person(author)
+        log.info("Author: %s", author.lookup_key)
+
+        if rt:
+            audit_notes = "Key replaced, rt#{}".format(rt)
+        else:
+            audit_notes = "Key replaced, rt unknown".format(rt)
+
+        person.fpr = fpr
+        person.save(audit_author=author, audit_notes=audit_notes)
+        log.info("Saved")
