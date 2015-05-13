@@ -31,7 +31,9 @@ from backend import const
 log = logging.getLogger(__name__)
 
 def lookup_person(s):
-    if '@' in s:
+    if s.endswith("@debian.org"):
+        return bmodels.Person.objects.get(uid=s[:-11])
+    elif '@' in s:
         return bmodels.Person.objects.get(email=s)
     elif re.match(r"(?:0x)?[A-F0-9]{16}", s):
         if s.startswith("0x"): s = s[2:]
