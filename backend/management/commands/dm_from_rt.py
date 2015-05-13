@@ -16,6 +16,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
 from django.core.management.base import BaseCommand, CommandError
 import django.db
 from django.db import connection, transaction
@@ -164,17 +168,19 @@ class Command(BaseCommand):
                     #Date: Tue, 03 Jul 2012 03:07:04 +0000
                     #BTS: http://bugs.debian.org/679157
                     #Agreement: http://lists.debian.org/debian-newmaint/2012/06/msg00057.html
-                    #Advocates: 
+                    #Advocates:
                     #    piotr - http://lists.debian.org/debian-newmaint/2012/06/msg00058.html
 
         # Print out info for review
         outfd = tempfile.NamedTemporaryFile()
         try:
-            print >>outfd, "# https://rt.debian.org/%d" % rt_id
-            print >>outfd, "# Delete everything to abort"
-            print >>outfd
+            print("# https://rt.debian.org/%d" % rt_id, file=outfd)
+            print("# Delete everything to abort", file=outfd)
+            print(file=outfd)
             for fld in ("cn", "mn", "sn", "email", "fpr"):
-                print >>outfd, "%s: %s" % (fld, info.get(fld, ""))
+                print("%s: %s" % (fld, info.get(fld, "")), file=outfd)
+            print("audit_author: noodles", file=outfd)
+            print("audit_notes: created from RT#{}".format(rt_id), file=outfd)
             outfd.flush()
 
             # Call up an editor for review
@@ -197,6 +203,9 @@ class Command(BaseCommand):
         finally:
             outfd.close()
 
+        audit_author = bmodels.Person.lookup(info.pop("audit_author"))
+        audit_notes = info.pop("audit_notes")
+
         p = bmodels.Person(
             cn=info["cn"],
             fpr=info["fpr"],
@@ -206,7 +215,7 @@ class Command(BaseCommand):
         )
         if info.get("mn", ""): p.mn = info["mn"]
         if info.get("sn", ""): p.mn = info["sn"]
-        p.save()
+        p.save(audit_author=audit_author, audit_notes=audit_notes)
 
         log.info("Record created.")
 
