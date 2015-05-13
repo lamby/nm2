@@ -112,7 +112,7 @@ class Command(BaseCommand):
         #optparse.make_option("--uid", action="store", help="Set Debian uid"),
         optparse.make_option("--fpr", action="store", help="Set OpenPGP key fingerprint"),
         optparse.make_option("--status", action="store", help="Set status"),
-        optparse.make_option("--status-changed", action="store", help="Set date when the status last changed"),
+        optparse.make_option("-t", "--status-changed", action="store", help="Set date when the status last changed"),
         #optparse.make_option("--fd-comment", action="store", help="Set FD comment"),
         #optparse.make_option("--created", action="store", help="Set date when the person record was created"),
         optparse.make_option("--rt", action="store", help="RT issue number"),
