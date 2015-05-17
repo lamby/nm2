@@ -814,7 +814,7 @@ class AM(models.Model):
         return cur, self.slots, hold, done
 
     @classmethod
-    def list_free(cls):
+    def list_available(cls, free_only=False):
         """
         Get a list of active AMs with free slots, ordered by uid.
 
@@ -839,14 +839,15 @@ class AM(models.Model):
             stats[amid] = (active, held)
 
         res = []
-        for a in cls.objects.filter(id__in=stats.keys()).order_by("person__uid"):
+        for a in cls.objects.filter(id__in=stats.keys()):
             active, held = stats.get(a.id, (0, 0, 0))
             a.stats_active = active
             a.stats_held = held
             a.stats_free = a.slots - active
-            if a.stats_free <= 0:
+            if free_only and a.stats_free <= 0:
                 continue
             res.append(a)
+        res.sort(key=lambda x: (-x.stats_free, x.stats_active))
         return res
 
     @property

@@ -43,7 +43,7 @@ class AMMain(VisitorTemplateView):
         from django.db.models import Min, Max
         ctx = super(AMMain, self).get_context_data(**kw)
 
-        ctx["am_available"] = bmodels.AM.list_free()
+        ctx["am_available"] = bmodels.AM.list_available(free_only=True)
 
         if self.visitor.am.is_fd or self.visitor.am.is_dam:
             DISPATCH = {
@@ -519,7 +519,7 @@ class AssignAM(VisitorTemplateView):
             raise PermissionDenied
 
         # List free AMs
-        ams = bmodels.AM.list_free()
+        ams = bmodels.AM.list_available(free_only=False)
 
         ctx.update(
             process=process,
