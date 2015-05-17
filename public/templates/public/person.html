@@ -93,7 +93,7 @@
     {{bio_html|safe}}
   </div>
   <div class="collapsed">
-    {{person.bio|truncatechars:128}} <span class="expander">(expand)</span>
+    {{person.bio|truncatechars:128}}{% if person.bio|length > 128 %} <span class="expander">(expand)</span>{% endif %}
   </div>
 {% else %}
   (missing)
