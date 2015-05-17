@@ -50,11 +50,6 @@ def seq_progress(value):
 def seq_status(value):
     return const.SEQ_STATUS.get(value, -1)
 
-@register.filter
-def editable_by(value, arg):
-    perms = value.permissions_of(arg).perms
-    return "edit_bio" in perms or "edit_ldap" in perms
-
 def _splitfp(val):
     for i in range(10):
         yield val[i*4:(i+1)*4]

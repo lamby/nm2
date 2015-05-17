@@ -81,11 +81,10 @@
 
 {% include "public/personinfo.html" with person=person only %}
 
-{% if person|editable_by:visitor %}
+{% if "edit_bio" in vperms.perms or "edit_ldap" in vperms.perms %}
 <a href="{% url 'restricted_person' key=person.lookup_key %}">edit</a>
 {% endif %}
 
-{% if person.bio or person|editable_by:visitor %}
 <h2>Short Biography</h2>
 
 <div class="personbio">
@@ -100,7 +99,6 @@
   (missing)
 {% endif %}
 </div>
-{% endif %}
 
 <h2>Personal history</h2>
 
