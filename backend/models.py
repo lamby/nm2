@@ -766,6 +766,7 @@ class AM(models.Model):
     is_am_ctte = models.BooleanField("NM CTTE member", null=False, default=False)
     # null=True because we currently do not have the info for old entries
     created = models.DateTimeField("AM record created", null=True, default=datetime.datetime.utcnow)
+    fd_comment = models.TextField("Front Desk comments", null=False, blank=True, default="")
 
     def __unicode__(self):
         return u"%s %c%c%c" % (

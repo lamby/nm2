@@ -52,6 +52,7 @@ $(main);
       <th>Active</th>
       <th>Hold</th>
       <th>Free</th>
+      <th>Comments</th>
       <th>Action</th>
     </tr>
   </thead>
@@ -64,6 +65,7 @@ $(main);
     <td>{{am.stats_active}}</td>
     <td>{{am.stats_held}}</td>
     <td>{{am.stats_free}}</td>
+    <td>{{am.fd_comment}}</td>
     <td>
       <form action="{% url 'assign_am' key=process.lookup_key %}" method="post">{% csrf_token %}
         <input type="hidden" name="am" value="{{am.lookup_key}}">

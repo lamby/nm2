@@ -122,29 +122,32 @@ class AMMain(VisitorTemplateView):
 
         return ctx
 
-def make_am_form(editor):
-    includes = ["slots"]
-
-    if editor.is_fd:
-        includes.append("is_fd")
-    if editor.is_dam:
-        includes.append("is_dam")
-
-    class AMForm(forms.ModelForm):
-        class Meta:
-            model = bmodels.AM
-            fields = includes
-    return AMForm
-
 class AMProfile(VisitPersonTemplateView):
     require_visitor = "am"
     template_name = "restricted/amprofile.html"
 
+    def make_am_form(self):
+        includes = ["slots"]
+        visitor_am = self.visitor.am
+
+        if visitor_am.is_fd:
+            includes.append("is_fd")
+        if visitor_am.is_dam:
+            includes.append("is_dam")
+        if visitor_am.is_admin:
+            includes.append("fd_comment")
+
+        class AMForm(forms.ModelForm):
+            class Meta:
+                model = bmodels.AM
+                fields = includes
+        return AMForm
+
     def get_context_data(self, **kw):
         ctx = super(AMProfile, self).get_context_data(**kw)
         from django.db.models import Min
+        AMForm = self.make_am_form()
         am = self.person.am
-        AMForm = make_am_form(am)
         form = AMForm(instance=am)
         processes = bmodels.Process.objects.filter(manager=am).annotate(started=Min("log__logdate")).order_by("-started")
         ctx.update(
@@ -158,9 +161,8 @@ class AMProfile(VisitPersonTemplateView):
         if self.person.pk != self.visitor.pk and not self.visitor.is_admin:
             raise PermissionDenied
 
-        am = self.person.am
-        AMForm = make_am_form(self.visitor.am)
-        form = AMForm(request.POST, instance=am)
+        AMForm = self.make_am_form()
+        form = AMForm(request.POST, instance=self.person.am)
         if form.is_valid():
             form.save()
             # TODO: message that it has been saved
