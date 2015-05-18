@@ -182,7 +182,7 @@ class Parser(object):
                 return operation
             else:
                 #print("TODO : Add with no RT ticket")
-                return (None, "")
+                return None
         elif operation['action'] == 'remove':
             if 'rt-ticket' in operation:
                 return operation
