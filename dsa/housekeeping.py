@@ -33,7 +33,7 @@ class ProgressFinalisationsOnAccountsCreated(hk.Task):
     """
     Update pending dm_ga processes after the account is created
     """
-    DEPENDS = [MakeLink]
+    DEPENDS = [MakeLink, Housekeeper]
 
     @transaction.atomic
     def run_main(self, stage):
@@ -58,7 +58,7 @@ class ProgressFinalisationsOnAccountsCreated(hk.Task):
 
             if finalised_msg is not None:
                 old_status = proc.person.status
-                proc.finalize(finalised_msg)
+                proc.finalize(finalised_msg, audit_author=self.hk.housekeeper.user, audit_notes="DSA created the account: finalising process")
                 log.info("%s: %s finalised: %s changes status %s->%s",
                          self.IDENTIFIER, self.hk.link(proc), proc.person.uid, old_status, proc.person.status)
 

@@ -1128,7 +1128,7 @@ class Process(models.Model):
         for k, v in s.iteritems():
             setattr(self, k, v)
 
-    def finalize(self, logtext, tstamp=None):
+    def finalize(self, logtext, tstamp=None, audit_author=None, audit_notes=None):
         """
         Bring the process to completion, by setting its progress to DONE,
         adding a log entry and updating the person status.
@@ -1152,7 +1152,7 @@ class Process(models.Model):
         )
         l.save()
         self.save()
-        self.person.save()
+        self.person.save(audit_author=audit_author, audit_notes=audit_notes)
 
 
 class Log(models.Model):
