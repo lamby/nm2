@@ -431,6 +431,15 @@ class KeyringMaintImport(object):
             log.warn("%s: New-key not found for commit %s", self.logtag, commit)
             return False
 
+        uid = operation.get("Username", None)
+        if uid is not None:
+            try:
+                uid_person = bmodels.Person.objects.get(uid=uid)
+            except bmodels.Person.DoesNotExist:
+                uid_person = None
+        else:
+            uid_person = None
+
         try:
             old_person = bmodels.Person.objects.get(fpr=old_key)
         except bmodels.Person.DoesNotExist:
@@ -443,88 +452,59 @@ class KeyringMaintImport(object):
 
         rt = operation.get("RT-Ticket", None)
 
-        if old_person is None and new_person is None:
-            log.warn("%s: Unhandled replace in commit %s", self.logtag, commit)
+        if old_person is None and new_person is None and uid_person is None:
+            log.warn("%s: cannot find existing person for key replace in commit %s", self.logtag, commit)
             return False
-#            # No before or after match with our records
-#            fpr1, ktype1 = self.hk.keyrings.resolve_keyid(key1)
-#            fpr2, ktype2 = self.hk.keyrings.resolve_keyid(key2)
-#            if fpr1 is not None:
-#                if fpr2 is not None:
-#                    # Before and after keyrings known
-#                    if ktype1 != ktype2:
-#                        # Keyring moved
-#                        self._ann_fpr(ts, rt, fpr1,
-#                                      "keyring logs report that this key has been replaced with {}, and moved from the {} to the {} keyring".format(fpr2, ktype1, ktype2),
-#                                      keyring_status=ktype2,
-#                                      keyring_fpr=fpr2,
-#                                      shasum=shasum, **info)
-#                    else:
-#                        # Same keyring
-#                        self._ann_fpr(ts, rt, fpr1,
-#                                      "keyring logs report that this key has been replaced with {} in the {} keyring".format(fpr2, ktype2),
-#                                      keyring_status=ktype2,
-#                                      keyring_fpr=fpr2,
-#                                      shasum=shasum, **info)
-#                else:
-#                    # Only 'before' keyring known
-#                    self._ann_fpr(ts, rt, fpr1,
-#                                  "keyring logs report that this key has been replaced with unkonwn key {}".format(key2),
-#                                  keyring_status=ktype1,
-#                                  shasum=shasum, **info)
-#            else:
-#                if fpr2 is not None:
-#                    # Only 'after' keyring known
-#                    self._ann_fpr(ts, rt, fpr2,
-#                                  "keyring logs report that this key has replaced unknown key {} in the {} keyring".format(key1, ktype2),
-#                                  keyring_status=ktype2,
-#                                  shasum=shasum, **info)
-#                else:
-#                    # Neither before nor after are known
-#                    pass
-#                    # print("! Replaced %s with %s (none of which are in the database!) %s" % (key1, key2, self.rturl(rt)))
-        elif old_person is None and new_person is not None:
+
+        if uid_person is not None:
+            if old_person is not None and uid_person.pk != old_person.pk:
+                log.warn("%s: commit %s matches person %s by uid %s and person %s by old fingerprint %s",
+                        self.logtag, commit,
+                        self.person_link(uid_person), uid_person.uid,
+                        self.person_link(old_person), old_person.fpr)
+                return False
+            if new_person is not None and uid_person.pk != new_person.pk:
+                log.warn("%s: commit %s matches person %s by uid %s and person %s by new fingerprint %s",
+                        self.logtag, commit,
+                        self.person_link(uid_person), uid_person.uid,
+                        self.person_link(new_person), new_person.fpr)
+                return False
+
+        # Now, if uid_person is set, it can either:
+        #  - match old_person
+        #  - match new_person
+        #  - identify the old person when old_person is None and new_person is None
+
+        if old_person is not None and new_person is not None:
+            if old_person.pk != new_person.pk:
+                log.warn("%s: commit %s reports a key change from %s to %s, but the keys belong to two different people (%s and %s)",
+                        self.logtag, commit, old_key, new_key, self.person_link(old_person), self.person_link(new_person))
+                return False
+            else:
+                log.warn("%s: commit %s reports a key change from %s to %s, but both fingerprints mysteriously match person %s",
+                        self.logtag, commit, old_key, new_key, self.person_link(new_person))
+                return False
+
+        # Now either old_person is set or new_person is set, or both are unset
+        # and uid_person is set
+
+        if new_person is not None:
             # Already replaced
             log.info("%s: %s already has the new key: skipping key replace", self.logtag, self.person_link(new_person))
             return True
-        elif old_person is not None and new_person is None:
-            old_person.fpr = new_key
+        else:
+            # Perform replace
+            person = old_person if old_person is not None else uid_person
+            person.fpr = new_key
             if rt is not None:
                 audit_notes = "GPG key changed, RT #{}".format(rt)
             else:
                 audit_notes = "GPG key changed, RT unknown".format(rt)
-            old_person.save(
+            person.save(
                 audit_author=author,
                 audit_notes=audit_notes)
-#            fpr, ktype = self.hk.keyrings.resolve_keyid(key2)
-#            if fpr is None:
-#                self._ann_person(ts, rt, p1, "key changed to unknown key {}".format(key2), shasum=shasum, **info)
-#                # print("! %s replaced key %s with %s but could not find %s in keyrings %s" % (p.lookup_key, key1, key2, key2, self.rturl(rt)))
-#            else:
-#                # Keyring-maint is authoritative on key changes
-#                p1.fpr = fpr
-#                p1.save()
-#                log.info("%s: %s key replaced with %s (RT #%s, shasum %s)", self.IDENTIFIER, self.hk.link(p1), fpr, rt, shasum)
-            log.info("%s: %s: %s", self.logtag, self.person_link(old_person), audit_notes)
+            log.info("%s: %s: %s", self.logtag, self.person_link(person), audit_notes)
             return True
-        else:
-            log.warn("%s: commit %s reports a key change from %s to %s, but the keys belong to two different people (%s and %s)",
-                     self.logtag, commit, old_key, new_key, self.person_link(old_person), self.person_link(new_person))
-            return False
-
-            #    self.out.write("# Commit " + state['commit'] + "\n")
-            #    if role_is_dd(operation['role']):
-            #        self.out.write("rt edit ticket/" + operation['rt-ticket'] +
-            #                " set queue=Keyring\n" +
-            #                "rt correspond -s resolved -m " +
-            #                "'Your key has been replaced in the active keyring and LDAP updated with the new fingerprint.' " +
-            #                operation['rt-ticket'] + "\n")
-            #    else:
-            #        self.out.write("rt edit ticket/" + operation['rt-ticket'] +
-            #                " set queue=Keyring\n" +
-            #                "rt correspond -s resolved -m "+
-            #                "'Your key has been replaced in the active DM keyring.' " +
-            #                operation['rt-ticket'] + "\n")
 
 #    def person_for_key_id(self, kid):
 #        """

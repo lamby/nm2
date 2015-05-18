@@ -306,7 +306,7 @@ class KeyringGit(hk.Task):
 
 class CheckKeyringLogs(hk.Task):
     """
-    Show entries that do not match between keyrings and our DB
+    Import changes from the signed parts of the keyring git log
     """
     DEPENDS = [MakeLink, KeyringMaint, KeyringGit]
 
@@ -342,33 +342,3 @@ class CheckKeyringLogs(hk.Task):
                 log.info("%s: Updating ref keyring_maint_import to commit %s", self.IDENTIFIER, state["commit"])
             else:
                 break
-
-        #start_date = datetime.datetime.utcnow() - datetime.timedelta(days=360)
-        #gk = kmodels.GitKeyring()
-        #gk.run_git("fetch")
-        #for shasum, ts in gk.get_valid_shasums("--since", start_date.strftime("%Y-%m-%d")):
-        #    c = gk.get_commit_message(shasum)
-        #    if c is None: continue
-        #    action = c.get("Action", None)
-        #    if action is None:
-        #        continue
-        #    elif action == "add":
-        #        role = c.get("Role", None)
-        #        if role == "DM":
-        #            self.do_add_dm(shasum, ts, c)
-        #        elif role == "DD":
-        #            self.do_add_dd(shasum, ts, c)
-        #        else:
-        #            log.warning("Unsupported role %s for %s action in %s", role, action, shasum)
-        #    elif action == "replace":
-        #        self.do_replace(shasum, ts, c)
-        #    elif action == "FIXME-move":
-        #        target = c.get("Target", None)
-        #        if target == "emeritus":
-        #            self.do_move_to_emeritus(shasum, ts, c)
-        #        elif target == "removed":
-        #            self.do_move_to_removed(shasum, ts, c)
-        #        else:
-        #            log.warning("Unsupported target %s for %s action in %s", target, action, shasum)
-        #    else:
-        #        log.warning("Unsupported action %s in %s", action, shasum)
