@@ -99,6 +99,15 @@ def validate_new_status(status):
         sys.exit(1)
     return status
 
+def current_user():
+    """
+    Get the Person object for the user running this command
+    """
+    user = os.environ.get("SUDO_USER", None)
+    if user is None:
+        user = os.environ.get("USER", None)
+    return bmodels.Person.lookup(user)
+
 class Command(BaseCommand):
     help = 'Change information about a person (use an empty string to set to NULL)'
     args = "person"
@@ -153,6 +162,31 @@ class Command(BaseCommand):
                 status_changed = ask("Status change date[time]: ", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             new_status_changed = parse_datetime(status_changed)
 
+        # RT number
+        if not rt and not force:
+            rt = ask("RT issue number: ")
+            if not rt:
+                rt = None
+            else:
+                rt = rt.lstrip("#")
+
+        # Audit notes
+        if rt:
+            audit_notes = "RT #{}".format(rt)
+        else:
+            audit_notes = "Manual database update"
+        if not force:
+            audit_notes = ask("Audit notes: ", audit_notes)
+
+        # Current time
+        now = datetime.datetime.utcnow()
+
+        # Person running this command
+        invoker = current_user()
+        log.info("User running the comand: %s", invoker.uid)
+
+        # Perform changes
+
         changed = False
 
         if person.fpr != new_fpr:
@@ -162,27 +196,47 @@ class Command(BaseCommand):
 
         if person.status != new_status:
             log.info("Changing status from %s to %s, in date %s", person.status, new_status, new_status_changed)
+
+            # Ensure no process is open
+            if person.active_processes:
+                log.error("%s already has an active process, to become %s", person.fullname, ", ".join(x.active_processes.applying_for for x in person.active_processes))
+                sys.exit(1)
+
+            # Create a process
+            pr = bmodels.Process(
+                person=person,
+                applying_as=person.status,
+                applying_for=status,
+                progress=const.PROGRESS_DONE,
+                is_active=False)
+            pr.save()
+
+            # Add a log entry with the custom message
+            l = bmodels.Log(
+                changed_by=author,
+                process=pr,
+                progress=const.PROGRESS_DAM_OK,
+                logdate=new_status_changed,
+                logtext=audit_notes,
+            )
+            l.save()
+
+            # Add a log entry about when the change really happened
+            l = bmodels.Log(
+                changed_by=invoker,
+                process=pr,
+                progress=const.PROGRESS_DONE,
+                logdate=now,
+                logtext="Status change performed manually via command line",
+            )
+            l.save()
+
+            # Change the Person record
             person.status = new_status
             person.status_changed = new_status_changed
             changed = True
 
         if changed:
-            # RT number
-            if not rt and not force:
-                rt = ask("RT issue number: ")
-                if not rt:
-                    rt = None
-                else:
-                    rt = rt.lstrip("#")
-
-            # Audit notes
-            if rt:
-                audit_notes = "RT #{}".format(rt)
-            else:
-                audit_notes = "Manual database update"
-            if not force:
-                audit_notes = ask("Audit notes: ", audit_notes)
-
             person.save(audit_author=author, audit_notes=audit_notes)
             log.info("Saved")
         else:
