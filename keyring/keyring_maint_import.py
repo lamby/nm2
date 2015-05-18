@@ -505,7 +505,7 @@ class KeyringMaintImport(object):
 #                p1.fpr = fpr
 #                p1.save()
 #                log.info("%s: %s key replaced with %s (RT #%s, shasum %s)", self.IDENTIFIER, self.hk.link(p1), fpr, rt, shasum)
-            log.info("%s: %s: %s", self.logtag, self.person_link(old_person, audit_notes))
+            log.info("%s: %s: %s", self.logtag, self.person_link(old_person), audit_notes)
             return True
         else:
             log.warn("%s: commit %s reports a key change from %s to %s, but the keys belong to two different people (%s and %s)",
