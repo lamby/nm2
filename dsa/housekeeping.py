@@ -107,6 +107,7 @@ class NewGuestAccountsFromDSA(hk.Task):
 
             if not person:
                 # New DC_GA
+                audit_notes = "created new guest account entry from LDAP"
                 person = bmodels.Person.objects.create_user(
                     cn=entry.single("cn"),
                     mn=entry.single("mn") or "",
@@ -117,9 +118,9 @@ class NewGuestAccountsFromDSA(hk.Task):
                     status=const.STATUS_DC_GA,
                     username="{}@invalid.example.org".format(entry.uid),
                     audit_author=self.hk.housekeeper.user,
-                    audit_notes="created new guest account entry from LDAP",
+                    audit_notes=audit_notes,
                 )
-                log.info("%s: %s (guest account only) imported from LDAP", self.IDENTIFIER, self.hk.link(person))
+                log.warn("%s: %s %s", self.IDENTIFIER, self.hk.link(person), audit_notes)
             else:
                 if person.status in (const.STATUS_DC_GA, const.STATUS_DM_GA):
                     # We already know about it: nothing to do
