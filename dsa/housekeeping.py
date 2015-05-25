@@ -74,36 +74,24 @@ class NewGuestAccountsFromDSA(hk.Task):
             # Skip DDs
             if entry.single("gidNumber") == "800" and entry.single("keyFingerPrint") is not None: continue
 
-            # Skip people we already know of
-            if bmodels.Person.objects.filter(uid=entry.uid).exists(): continue
+            fpr = entry.single("keyFingerPrint")
 
             # Skip people without fingerprints
-            if entry.single("keyFingerPrint") is None: continue
+            if fpr is None: continue
+
+            email = entry.single("emailForward")
 
             # Skip entries without emails (happens when running outside of the Debian network)
-            if entry.single("emailForward") is None: continue
+            if email is None: continue
 
-            try:
-                fpr_person = bmodels.Person.objects.get(fpr=entry.single("keyFingerPrint"))
-            except bmodels.Person.DoesNotExist:
-                fpr_person = None
-
-            try:
-                email_person = bmodels.Person.objects.get(email=entry.single("emailForward"))
-            except bmodels.Person.DoesNotExist:
-                email_person = None
-
-            if fpr_person and email_person and fpr_person.pk != email_person.pk:
-                log.warn("%s: LDAP has new uid %s which corresponds to two different users in our db: %s (by fingerprint %s) and %s (by email %s)",
-                         self.IDENTIFIER, entry.uid,
-                         self.hk.link(fpr_person), entry.single("keyFingerPrint"),
-                         self.hk.link(email_person), entry.single("emailForward"))
-                continue
-
-            # Now we either have fpr_person or email_person or none of them, or
-            # both and they are the same: from now on we can work with only one
-            # person
-            person = fpr_person if fpr_person else email_person
+            # Find the corresponding person in our database
+            person = bmodels.Person.objects.get_from_other_db(
+                "LDAP",
+                uid=entry.uid,
+                fpr=fpr,
+                email=email,
+                format_person=self.hk.link,
+            )
 
             if not person:
                 # New DC_GA
@@ -112,9 +100,9 @@ class NewGuestAccountsFromDSA(hk.Task):
                     cn=entry.single("cn"),
                     mn=entry.single("mn") or "",
                     sn=entry.single("sn") or "",
-                    email=entry.single("emailForward"),
+                    email=email,
                     uid=entry.uid,
-                    fpr=entry.single("keyFingerPrint"),
+                    fpr=fpr,
                     status=const.STATUS_DC_GA,
                     username="{}@invalid.example.org".format(entry.uid),
                     audit_author=self.hk.housekeeper.user,

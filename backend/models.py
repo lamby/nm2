@@ -415,6 +415,66 @@ class PersonManager(BaseUserManager):
         other_fields["is_superuser"] = True
         return self.create_user(email, **other_fields)
 
+    def get_or_none(self, *args, **kw):
+        """
+        Same as get(), but returns None instead of raising DoesNotExist if the
+        object cannot be found
+        """
+        try:
+            return self.get(*args, **kw)
+        except self.model.DoesNotExist:
+            return None
+
+    def get_from_other_db(self, other_db_name, uid=None, email=None, fpr=None, username=None, format_person=lambda x:unicode(x)):
+        """
+        Get one Person entry matching the informations that another database
+        has about a person.
+
+        One or more of uid, email, fpr and username must be provided, and the
+        function will ensure consistency in the results. That is, only one
+        person will be returned, and it will raise an exception if the data
+        provided match different Person entries in our database.
+
+        other_db_name is the name of the database where the parameters come
+        from, to use in generating exception messages.
+
+        It returns None if nothing is matched.
+        """
+        candidates = []
+        if uid is not None:
+            p = self.get_or_none(uid=uid)
+            if p is not None:
+                candidates.append((p, "uid", uid))
+        if email is not None:
+            p = self.get_or_none(email=email)
+            if p is not None:
+                candidates.append((p, "email", email))
+        if fpr is not None:
+            p = self.get_or_none(fpr=fpr)
+            if p is not None:
+                candidates.append((p, "fingerprint", fpr))
+        if username is not None:
+            p = self.get_or_none(username=username)
+            if p is not None:
+                candidates.append((p, "SSO username", username))
+
+        # No candidates, nothing was found
+        if not candidates:
+            return None
+
+        candidate = candidates[0]
+
+        # Check for conflicts in the database
+        for person, match_type, match_value in candidates[1:]:
+            if candidate[0].pk != person.pk:
+                raise self.model.MultipleObjectsReturned(
+                    "{} has {} {}, which corresponds to two different users in our db: {} (by {} {}) and {} (by {} {})".format(
+                        other_db_name, match_type, match_value,
+                        format_person(candidate[0]), candidate[1], candidate[2],
+                        format_person(person), match_type, match_value))
+
+        return candidate[0]
+
 
 class Person(PermissionsMixin, models.Model):
     """
