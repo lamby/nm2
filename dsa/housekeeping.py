@@ -110,18 +110,47 @@ class NewGuestAccountsFromDSA(hk.Task):
                 )
                 log.warn("%s: %s %s", self.IDENTIFIER, self.hk.link(person), audit_notes)
             else:
+                # Validate fields
+                if person.uid is not None and person.uid != entry.uid:
+                    log.warn("%s: LDAP has uid %s for person %s, but uid is %s in our database",
+                             self.IDENTIFIER, entry.uid, self.hk.link(person), person.uid)
+                    continue
+
+                if person.fpr is not None and person.fpr != fpr:
+                    log.warn("%s: LDAP has fingerprint %s for person %s, but fingerprint is %s in our database",
+                             self.IDENTIFIER, fpr, self.hk.link(person), person.fpr)
+                    continue
+
+                audit_notes = ["entry found in LDAP"]
+
+                # Ignore differences in email forward: they are caught by
+                # CheckLDAPConsistency
+
                 if person.status in (const.STATUS_DC_GA, const.STATUS_DM_GA):
                     # We already know about it: nothing to do
                     pass
                 if person.status in (const.STATUS_DC, const.STATUS_DM):
                     if person.status == const.STATUS_DM:
                         # DM that becomes DM_GA (acquires uid)
-                        person.status = const.STATUS_DM_GA
+                        new_status = const.STATUS_DM_GA
                     else:
                         # DC that becomes DC_GA (acquires uid)
-                        person.status = const.STATUS_DC_GA
-                    person.uid = entry.uid
+                        new_status = const.STATUS_DC_GA
                     audit_notes = "entry found in LDAP, adding 'guest account' status"
+
+                    bmodels.Process.objects.create_instant_process(
+                        person, new_status, [
+                            # Add a log entry documenting what is happening
+                            bmodels.Log(
+                                changed_by=self.hk.housekeeper.user,
+                                progress=const.PROGRESS_DONE,
+                                logtext=audit_notes,
+                            ),
+                        ])
+
+                    person.uid = entry.uid
+                    person.status = new_status
+
                     person.save(audit_author=self.hk.housekeeper.user, audit_notes=audit_notes)
                     log.info("%s: %s %s", self.IDENTIFIER, self.hk.link(person), audit_notes)
                 else:

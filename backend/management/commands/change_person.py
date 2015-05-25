@@ -203,33 +203,23 @@ class Command(BaseCommand):
                 sys.exit(1)
 
             # Create a process
-            pr = bmodels.Process(
-                person=person,
-                applying_as=person.status,
-                applying_for=status,
-                progress=const.PROGRESS_DONE,
-                is_active=False)
-            pr.save()
-
-            # Add a log entry with the custom message
-            l = bmodels.Log(
-                changed_by=author,
-                process=pr,
-                progress=const.PROGRESS_DAM_OK,
-                logdate=new_status_changed,
-                logtext=audit_notes,
-            )
-            l.save()
-
-            # Add a log entry about when the change really happened
-            l = bmodels.Log(
-                changed_by=invoker,
-                process=pr,
-                progress=const.PROGRESS_DONE,
-                logdate=now,
-                logtext="Status change performed manually via command line",
-            )
-            l.save()
+            bmodels.Process.objects.create_instant_process(
+                person, status, [
+                    # Add a log entry with the custom message
+                    bmodels.Log(
+                        changed_by=author,
+                        progress=const.PROGRESS_DAM_OK,
+                        logdate=new_status_changed,
+                        logtext=audit_notes,
+                    ),
+                    # Add a log entry about when the change really happened
+                    bmodels.Log(
+                        changed_by=invoker,
+                        progress=const.PROGRESS_DONE,
+                        logdate=now,
+                        logtext="Status change performed manually via command line",
+                    ),
+                ])
 
             # Change the Person record
             person.status = new_status

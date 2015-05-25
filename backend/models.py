@@ -934,6 +934,37 @@ class AM(models.Model):
             return res
         raise Http404
 
+class ProcessManager(models.Manager):
+    def create_instant_process(self, person, new_status, steps):
+        """
+        Create a process for the given person to get new_status, with the given
+        log entries. The 'process' field of the log entries in steps will be
+        filled by this function.
+
+        Return the newly created Process instance.
+        """
+        if not steps:
+            raise ValueError("steps should not be empty")
+
+        if not all(isinstance(s, Log) for s in steps):
+            raise ValueError("all entries of steps must be instances of Log")
+
+        # Create a process
+        pr = Process(
+            person=person,
+            applying_as=person.status,
+            applying_for=new_status,
+            progress=steps[-1].progress,
+            is_active=steps[-1].progress in (const.PROGRESS_DONE, const.PROGRESS_CANCELLED),
+        )
+        pr.save()
+
+        # Save all log entries
+        for l in steps:
+            l.process = pr
+            l.save()
+
+        return pr
 
 class Process(models.Model):
     """
@@ -944,6 +975,9 @@ class Process(models.Model):
     """
     class Meta:
         db_table = "process"
+
+    # Custom manager
+    objects = ProcessManager()
 
     person = models.ForeignKey(Person, related_name="processes")
     # 1.3-only: person = models.ForeignKey(Person, related_name="processes", on_delete=models.CASCADE)
@@ -966,7 +1000,6 @@ class Process(models.Model):
     is_active = models.BooleanField(null=False, default=False)
 
     archive_key = models.CharField("mailbox archive key", max_length=128, null=False, unique=True)
-
 
     def save(self, *args, **kw):
         if not self.archive_key:
