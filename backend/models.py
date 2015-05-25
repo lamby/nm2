@@ -955,7 +955,7 @@ class ProcessManager(models.Manager):
             applying_as=person.status,
             applying_for=new_status,
             progress=steps[-1].progress,
-            is_active=steps[-1].progress in (const.PROGRESS_DONE, const.PROGRESS_CANCELLED),
+            is_active=steps[-1].progress not in (const.PROGRESS_DONE, const.PROGRESS_CANCELLED),
         )
         pr.save()
 
