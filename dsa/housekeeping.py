@@ -129,7 +129,7 @@ class NewGuestAccountsFromDSA(hk.Task):
                 if person.status in (const.STATUS_DC_GA, const.STATUS_DM_GA):
                     # We already know about it: nothing to do
                     pass
-                if person.status in (const.STATUS_DC, const.STATUS_DM):
+                elif person.status in (const.STATUS_DC, const.STATUS_DM):
                     if person.status == const.STATUS_DM:
                         # DM that becomes DM_GA (acquires uid)
                         new_status = const.STATUS_DM_GA
