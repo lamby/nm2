@@ -53,10 +53,6 @@ class DACSRemoteUserMiddleware(django.contrib.auth.middleware.RemoteUserMiddlewa
                 auth.logout(request)
             return
 
-        if "enrico" in dacs_user:
-            auth.logout(request)
-            return
-
         request.sso_username = _clean_dacs_username(dacs_user)
 
         # If the user is already authenticated and that user is the user we are
