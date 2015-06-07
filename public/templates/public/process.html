@@ -37,140 +37,23 @@ $(function() {
     //   logtext: button sets log text to this value
     //   hook: function to execute on button press
     var macros = [
-{% if process.applying_for == STATUS_DC_GA or process.applying_for == STATUS_DM_GA %}
-    {
-        admin: true,
-        label: "Approve",
-        prog_if: [ PROGRESS_APP_NEW ],
-        prog_to: PROGRESS_DAM_OK,
-        hook: function() { dam_mail.show(); },
-    }
-{% endif %}
-
-{% if process.applying_for == STATUS_DD_U or process.applying_for == STATUS_DD_NU %}
-    {
-        label: "Confirm assignment",
-        prog_if: [ PROGRESS_AM_RCVD ],
-        prog_to: PROGRESS_AM,
-    }, {
-        label: "ID check ok",
-        prog_if: [ PROGRESS_AM ],
-        prog_to: PROGRESS_AM,
-        logtext: "ID check passed",
-    }, {
-        label: "P&P ok",
-        prog_if: [ PROGRESS_AM ],
-        prog_to: PROGRESS_AM,
-        logtext: "P&P check passed",
-    }, {
-        label: "T&S ok",
-        prog_if: [ PROGRESS_AM ],
-        prog_to: PROGRESS_AM,
-        logtext: "T&S check passed",
-    }, {
-        label: "Approve applicant",
-        prog_if: [ PROGRESS_AM ],
-        prog_to: PROGRESS_AM_OK,
-        logtext: "Please enter personal comment about applicant for the process log.\nMake sure all your communication with the NM has been Cc'ed or forwarded to the archive mailbox.\nOn submitting, the system will announce the approval in a summary message including the applicant's bio to nm@debian.org.",
-        hook: function() { am_mail.show(); },
-    }, {
-        label: "On hold",
-        prog_if: [ PROGRESS_AM ],
-        prog_to: PROGRESS_AM_HOLD,
-        logtext: "Please enter reason for hold",
-    }, {
-        label: "Back from hold",
-        prog_if: [ PROGRESS_AM_HOLD ],
-        prog_to: PROGRESS_AM,
-    }, {
-        label: "Unassign",
-        prog_if: [ PROGRESS_AM_RCVD, PROGRESS_AM, PROGRESS_AM_HOLD ],
-        prog_to: PROGRESS_APP_OK,
-{% if visitor.am.is_fd or visitor.am.is_dam %}
-        logtext: "Unassigned from {{process.manager.person.uid}} [TODO: please enter a reason]",
-{% else %}
-        logtext: "Handing applicant back to Front Desk. [TODO: please enter a reason] [TODO: please send the mailbox with all your conversation so far to nm@debian.org]",
-{% endif %}
-    }, {
-        admin: true,
-        label: "Hold",
-        prog_if: [ PROGRESS_ADV_RCVD ],
-        prog_to: PROGRESS_APP_HOLD,
-        logtext: "Please enter reason for hold",
-    }, {
-        admin: true,
-        label: "Advocacies ok",
-        prog_if: [ PROGRESS_ADV_RCVD ],
-        prog_to: PROGRESS_POLL_SENT,
-    }, {
-        admin: true,
-        label: "Activity poll answer received",
-        prog_if: [ PROGRESS_POLL_SENT ],
-        prog_to: PROGRESS_APP_OK,
-    }, {
-        admin: true,
-        label: "Unhold",
-        prog_if: [ PROGRESS_APP_HOLD ],
-        prog_to: PROGRESS_ADV_RCVD,
-{% comment %}
-TODO: assign AM, field with uid and macros to fill it with a list of free ones
-      ("PROGRESS_APP_OK",    "app_ok",    "Advocacies have been approved"),
-{% endcomment %}
-    }, {
-        admin: true,
-        label: "FD hold",
-        prog_if: [ PROGRESS_AM_OK ],
-        prog_to: PROGRESS_FD_HOLD,
-        logtext: "Please enter reason for hold",
-    }, {
-        admin: true,
-        label: "FD approve",
-        prog_if: [ PROGRESS_AM_OK ],
-        prog_to: PROGRESS_FD_OK,
-    }, {
-        admin: true,
-        label: "Unhold",
-        prog_if: [ PROGRESS_FD_OK ],
-        prog_to: PROGRESS_AM_OK,
-    }, {
-        dam: true,
-        label: "DAM hold",
-        prog_if: [ PROGRESS_FD_OK ],
-        prog_to: PROGRESS_DAM_HOLD,
-        logtext: "Please enter reason for hold",
-    }, {
-        dam: true,
-        label: "DAM approve",
-        prog_if: [ PROGRESS_FD_OK ],
-        prog_to: PROGRESS_DAM_OK,
-        hook: function() { dam_mail.show(); },
-    }, {
-        dam: true,
-        label: "Unhold",
-        prog_if: [ PROGRESS_DAM_HOLD ],
-        prog_to: PROGRESS_FD_OK,
-    }
-{% endif %}
+    {% for w in wizards %}
+      { label: "{{w.label|escapejs}}", prog_to: "{{w.prog_to}}", logtext: "{{w.logtext|escapejs}}", mail_template: "{{w.mail_template}}" },
+    {% endfor %}
     ];
 
     // Add available shortcuts to the page
     var shortcuts = $("#shortcut_buttons");
     var shortcuts_found = false;
     $.each(macros, function(idx, m) {
-        // Check the right user level
-        if (m.admin && ! is_admin) return;
-        if (m.dam && ! is_dam) return;
-
-        // Filter out macros not for the current progress
-        if ($.inArray(cur_progress, m.prog_if) == -1) return;
-
         // Create button
         var b = $("<button>").text(m.label);
         b.click(function(ev) {
             reset_fields();
             prog.val(m.prog_to);
             if (m.logtext) text.val(m.logtext);
-            if (m.hook) m.hook();
+            if (m.mail_template == "am") am_mail.show();
+            if (m.mail_template == "dam") dam_mail.show();
             ev.preventDefault();
         });
 

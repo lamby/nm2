@@ -211,6 +211,126 @@ class Process(VisitorTemplateView):
         ctx["steps"] = steps
         ctx["curstep_idx"] = curstep_idx
 
+        # Wizards for next actions
+        wizards = []
+        if process.applying_for == const.STATUS_DC_GA or process.applying_for == const.STATUS_DM_GA:
+            if self.visitor.is_admin and process.progress == const.PROGRESS_APP_NEW:
+                wizards.append({
+                    "label": "Approve",
+                    "prog_to": const.PROGRESS_DAM_OK,
+                    "show_dam_mail": True,
+                    "mail_template": "dam",
+                })
+
+        if process.applying_for == const.STATUS_DD_U or process.applying_for == const.STATUS_DD_NU:
+            if process.progress == const.PROGRESS_AM_RCVD:
+                wizards.append({
+                    "label": "Confirm assignment",
+                    "prog_to": const.PROGRESS_AM,
+                })
+            if process.progress == const.PROGRESS_AM:
+                wizards.append({
+                    "label": "ID check ok",
+                    "prog_to": const.PROGRESS_AM,
+                    "logtext": "ID check passed",
+                })
+                wizards.append({
+                    "label": "P&P ok",
+                    "prog_to": const.PROGRESS_AM,
+                    "logtext": "P&P check passed",
+                })
+                wizards.append({
+                    "label": "T&S ok",
+                    "prog_to": const.PROGRESS_AM,
+                    "logtext": "T&S check passed",
+                })
+                wizards.append({
+                    "label": "Approve applicant",
+                    "prog_to": const.PROGRESS_AM_OK,
+                    "logtext": "Please enter personal comment about applicant for the process log.\nMake sure all your communication with the NM has been Cc'ed or forwarded to the archive mailbox.\nOn submitting, the system will announce the approval in a summary message including the applicant's bio to nm@debian.org.",
+                    "mail_template": "am",
+                })
+                wizards.append({
+                    "label": "On hold",
+                    "prog_to": const.PROGRESS_AM_HOLD,
+                    "logtext": "Please enter reason for hold",
+                })
+            if process.progress == const.PROGRESS_AM_HOLD:
+                wizards.append({
+                    "label": "Back from hold",
+                    "prog_to": const.PROGRESS_AM,
+                })
+            if process.progress in [const.PROGRESS_AM_RCVD, const.PROGRESS_AM, const.PROGRESS_AM_HOLD]:
+                w = {
+                    "label": "Unassign",
+                    "prog_to": const.PROGRESS_APP_OK,
+                }
+                if self.visitor.is_admin:
+                    w["logtext"] = "Unassigned from {} [TODO: please enter a reason]".format(process.manager.person.uid)
+                else:
+                    w["logtext"] = "Handing applicant back to Front Desk. [TODO: please enter a reason] [TODO: please send the mailbox with all your conversation so far to nm@debian.org]"
+                wizards.append(w)
+            if self.visitor.is_admin:
+                if process.progress == const.PROGRESS_ADV_RCVD:
+                    wizards.append({
+                        "label": "Hold",
+                        "prog_to": const.PROGRESS_APP_HOLD,
+                        "logtext": "Please enter reason for hold",
+                    })
+                    wizards.append({
+                        "label": "Advocacies ok",
+                        "prog_to": const.PROGRESS_POLL_SENT,
+                    })
+                if process.progress == const.PROGRESS_POLL_SENT:
+                    wizards.append({
+                        "label": "Activity poll answer received",
+                        "prog_to": const.PROGRESS_APP_OK,
+                    })
+                if process.progress == const.PROGRESS_APP_HOLD:
+                    wizards.append({
+                        "label": "Unhold",
+                        "prog_to": const.PROGRESS_ADV_RCVD,
+                    })
+                    #TODO: assign AM, field with uid and macros to fill it with a list of free ones
+                    #    ("PROGRESS_APP_OK",    "app_ok",    "Advocacies have been approved"),
+                if process.progress == const.PROGRESS_AM_OK:
+                    wizards.append({
+                        "label": "FD hold",
+                        "prog_to": const.PROGRESS_FD_HOLD,
+                        "logtext": "Please enter reason for hold",
+                    })
+                    wizards.append({
+                        "label": "FD approve",
+                        "prog_to": const.PROGRESS_FD_OK,
+                    })
+                if process.progress == const.PROGRESS_FD_OK:
+                    wizards.append({
+                        "label": "Unhold",
+                        "prog_to": const.PROGRESS_AM_OK,
+                    })
+                if self.visitor.am.is_dam:
+                    if process.progress == const.PROGRESS_FD_OK:
+                        wizards.append({
+                            "label": "DAM hold",
+                            "prog_to": const.PROGRESS_DAM_HOLD,
+                            "logtext": "Please enter reason for hold",
+                        })
+                        wizards.append({
+                            "label": "DAM approve",
+                            "prog_to": const.PROGRESS_DAM_OK,
+                            "mail_template": "dam",
+                        })
+                    if process.progress == const.PROGRESS_DAM_HOLD:
+                        wizards.append({
+                            "label": "Unhold",
+                            "prog_to": const.PROGRESS_FD_OK,
+                        })
+        # TODO: add a wizard for free-form action
+        # TODO: for each wizard, generate a form, which may or may not have a
+        # "next status" field (generally not), and can have a default text in
+        # the text area. Also, (pre)generate the template emails.
+        ctx["wizards"] = wizards
+
         return ctx
 
     def post(self, request, key, *args, **kw):
