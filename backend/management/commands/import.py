@@ -68,6 +68,8 @@ class Importer(object):
             email=info["email"],
             uid=info["uid"],
             fpr=info["fpr"],
+            is_staff=info.get("is_staff", False),
+            is_superuser=info.get("is_superuser", False),
             status=info["status"],
             status_changed=parse_datetime(info["status_changed"]),
             created=parse_datetime(info["created"]),
