@@ -20,7 +20,6 @@ import django.db
 from django.db import connection, transaction
 from django.conf import settings
 import optparse
-import os
 import re
 import sys
 import logging
@@ -51,7 +50,7 @@ def lookup_person(s):
 class Importer(object):
     def __init__(self, author):
         # Audit author
-        self.author = lookup_person(author)
+        self.author = author
         # Key->Person mapping
         self.people = dict()
         # Key->AM mapping
@@ -74,7 +73,10 @@ class Importer(object):
             created=parse_datetime(info["created"]),
             fd_comment=info["fd_comment"],
         )
-        p.save(audit_author=self.author, audit_notes="imported from json database export")
+        if self.author:
+            p.save(audit_author=self.author, audit_notes="imported from json database export")
+        else:
+            p.save(audit_skip=True)
         self.people[key] = p
 
         aminfo = info["am"]
@@ -167,7 +169,7 @@ class Command(BaseCommand):
     option_list = BaseCommand.option_list + (
         optparse.make_option("--quiet", action="store_true", dest="quiet", default=None, help="Disable progress reporting"),
         optparse.make_option("--ldap", action="store", default="ldap://db.debian.org", help="LDAP server to use. Default: %default"),
-        optparse.make_option("--author", action="store", default=os.environ("USER"), help="user to use as author for the import. Default: %default"),
+        optparse.make_option("--author", action="store", default=None, help="user to use as author for the import. Default: %default"),
         #l = ldap.initialize("ldap://localhost:3389")
     )
 
@@ -182,7 +184,15 @@ class Command(BaseCommand):
             print >>sys.stderr, "please provide a JSON dump file name"
             sys.exit(1)
 
-        importer = Importer(author=opts["author"])
+        if opts["author"]:
+            author = lookup_person(opts["author"])
+            if not author:
+                print >>sys.stderr, "Author {} not found".format(opts["author"])
+                sys.exit(1)
+        else:
+            author = None
+
+        importer = Importer(author=author)
         for fname in fnames:
             with open(fname) as fd:
                 stats = importer.import_people(json.load(fd))
