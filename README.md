@@ -12,6 +12,12 @@ Debian NM Front Desk web application
       (you can either build the package from it or symlink the module directory
       into the contributors.debian.org sources)
 
+    # build the package
+    fakeroot debian/rules clean build install binary
+
+    # install the package
+    dpkg -i ../python3-django-housekeeping_0.1-1_all.deb  ../python-django-housekeeping_0.1-1_all.deb
+
     # https://github.com/jsocol/django-ratelimit
     git clone https://github.com/jsocol/django-ratelimit.git
       (you can either build the package from it or symlink the module directory
@@ -22,13 +28,15 @@ Debian NM Front Desk web application
 
 ### Configuration
 
+    cd nm2
     mkdir data # required by default settings
+    cd nm2
     ln -s local_settings.py.devel local_settings.py
     edit local_settings.py as needed
 
 ### First setup
     
-    ./manage.py syncdb --migrate
+    ./manage.py migrate
 
 ### Fill in data
 Visit https://nm.debian.org/am/db-export to download nm-mock.json; for privacy,
