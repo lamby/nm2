@@ -101,6 +101,9 @@ def send_nonce(template_name, person, nonce=None, encrypted_nonce=None):
 def get_mbox_as_dicts(filename):
     try:  ## we are reading, have not to flush with close
         for message in mailbox.mbox(filename, create=False):
-            yield dict(Body=message.get_payload(), **dict(message))
+            if(message.is_multipart()):
+                yield dict(Body=message.get_payload(0), **dict(message))
+            else:
+                yield dict(Body=message.get_payload(), **dict(message))
     except mailbox.NoSuchMailboxError:
         return
