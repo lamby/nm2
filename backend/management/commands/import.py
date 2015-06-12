@@ -20,6 +20,8 @@ import django.db
 from django.db import connection, transaction
 from django.conf import settings
 import optparse
+import os
+import re
 import sys
 import logging
 import json
@@ -33,8 +35,23 @@ def parse_datetime(s):
     if s is None: return None
     return datetime.datetime.strptime(s, "%Y-%m-%d %H:%M:%S")
 
+def lookup_person(s):
+    if s.endswith("@debian.org"):
+        return bmodels.Person.objects.get(uid=s[:-11])
+    elif '@' in s:
+        return bmodels.Person.objects.get(email=s)
+    elif re.match(r"(?:0x)?[A-F0-9]{16}", s):
+        if s.startswith("0x"): s = s[2:]
+        return bmodels.Person.objects.get(fpr__endswith=s)
+    elif re.match(r"[A-F0-9]{40}", s):
+        return bmodels.Person.objects.get(fpr__endswith=s)
+    else:
+        return bmodels.Person.lookup(s)
+
 class Importer(object):
-    def __init__(self):
+    def __init__(self, author):
+        # Audit author
+        self.author = lookup_person(author)
         # Key->Person mapping
         self.people = dict()
         # Key->AM mapping
@@ -57,7 +74,7 @@ class Importer(object):
             created=parse_datetime(info["created"]),
             fd_comment=info["fd_comment"],
         )
-        p.save()
+        p.save(audit_author=self.author, audit_notes="imported from json database export")
         self.people[key] = p
 
         aminfo = info["am"]
@@ -150,6 +167,7 @@ class Command(BaseCommand):
     option_list = BaseCommand.option_list + (
         optparse.make_option("--quiet", action="store_true", dest="quiet", default=None, help="Disable progress reporting"),
         optparse.make_option("--ldap", action="store", default="ldap://db.debian.org", help="LDAP server to use. Default: %default"),
+        optparse.make_option("--author", action="store", default=os.environ("USER"), help="user to use as author for the import. Default: %default"),
         #l = ldap.initialize("ldap://localhost:3389")
     )
 
@@ -164,7 +182,7 @@ class Command(BaseCommand):
             print >>sys.stderr, "please provide a JSON dump file name"
             sys.exit(1)
 
-        importer = Importer()
+        importer = Importer(author=opts["author"])
         for fname in fnames:
             with open(fname) as fd:
                 stats = importer.import_people(json.load(fd))
