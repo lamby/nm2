@@ -71,7 +71,7 @@ class Importer(object):
             status=info["status"],
             status_changed=parse_datetime(info["status_changed"]),
             created=parse_datetime(info["created"]),
-            fd_comment=info["fd_comment"],
+            fd_comment=info["fd_comment"] or "",
         )
         if self.author:
             p.save(audit_author=self.author, audit_notes="imported from json database export")
