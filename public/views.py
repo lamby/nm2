@@ -212,7 +212,17 @@ class Process(VisitorTemplateView):
         ctx["curstep_idx"] = curstep_idx
 
         # Wizards for next actions
+        if self.visitor:
+            ctx["wizards"] = self.build_wizards(process)
+
+        return ctx
+
+    def build_wizards(self, process):
         wizards = []
+        # TODO: add a wizard for free-form action
+        # TODO: for each wizard, generate a form, which may or may not have a
+        # "next status" field (generally not), and can have a default text in
+        # the text area. Also, (pre)generate the template emails.
         if process.applying_for == const.STATUS_DC_GA or process.applying_for == const.STATUS_DM_GA:
             if self.visitor.is_admin and process.progress == const.PROGRESS_APP_NEW:
                 wizards.append({
@@ -325,13 +335,7 @@ class Process(VisitorTemplateView):
                             "label": "Unhold",
                             "prog_to": const.PROGRESS_FD_OK,
                         })
-        # TODO: add a wizard for free-form action
-        # TODO: for each wizard, generate a form, which may or may not have a
-        # "next status" field (generally not), and can have a default text in
-        # the text area. Also, (pre)generate the template emails.
-        ctx["wizards"] = wizards
-
-        return ctx
+        return wizards
 
     def post(self, request, key, *args, **kw):
         process = bmodels.Process.lookup_or_404(key)
