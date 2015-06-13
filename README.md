@@ -28,8 +28,8 @@ Debian NM Front Desk web application
 
 ### Configuration
 
-    cd nm2
     mkdir data # required by default settings
+    cd nm2
     ln -s local_settings.py.devel local_settings.py
     edit local_settings.py as needed
 
