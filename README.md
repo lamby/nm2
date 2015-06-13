@@ -13,7 +13,7 @@ Debian NM Front Desk web application
       into the contributors.debian.org sources)
 
     # build the package
-    fakeroot debian/rules clean build install binary
+    fakeroot debian/rules clean binary
 
     # install the package
     dpkg -i ../python3-django-housekeeping_0.1-1_all.deb  ../python-django-housekeeping_0.1-1_all.deb
@@ -30,7 +30,6 @@ Debian NM Front Desk web application
 
     cd nm2
     mkdir data # required by default settings
-    cd nm2
     ln -s local_settings.py.devel local_settings.py
     edit local_settings.py as needed
 
