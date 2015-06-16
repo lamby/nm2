@@ -131,10 +131,20 @@ def send_nonce(template_name, person, nonce=None, encrypted_nonce=None):
         raise
         log.debug("failed to sent mail for person %s", person)
 
+def decode_header(val):
+    res = []
+    for buf, charset in email.header.decode_header(val):
+        if charset is None:
+           res.append(buf)
+        elif charset == "unknown-8bit":
+           res.append(buf.decode("utf-8"))
+        else:
+           res.append(buf.decode(charset))
+    return "".join(res)
 
 def get_mbox_as_dicts(filename):
     try:  ## we are reading, have not to flush with close
         for message in mailbox.mbox(filename, create=False):
-            yield dict(Body=get_body(message), **dict(message))
+            yield dict(From_=decode_header(message.get("From")), Body=get_body(message), **dict(message))
     except mailbox.NoSuchMailboxError:
         return

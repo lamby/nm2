@@ -60,7 +60,7 @@ $(function() {
     {% for m in mails %}
     <tr>
         <td>{{m.Date}}</td>
-        <td>{{m.From}}</td>
+        <td>{{m.From_}}</td>
         <td>{{m.Subject}}</td>
     </tr>
     <tr class="showable"><td colspan="3">{{m.Body|linebreaks}}</tr>
