@@ -145,6 +145,6 @@ def decode_header(val):
 def get_mbox_as_dicts(filename):
     try:  ## we are reading, have not to flush with close
         for message in mailbox.mbox(filename, create=False):
-            yield dict(From_=decode_header(message.get("From")), Body=get_body(message), **dict(message))
+            yield dict(clean_From=decode_header(message.get("From")), Body=get_body(message), **dict(message))
     except mailbox.NoSuchMailboxError:
         return
