@@ -5,12 +5,46 @@ from django.template.loader import render_to_string
 from django.utils.log import getLogger
 import email
 import email.utils
+from email.Iterators import typed_subpart_iterator
 import mailbox
 from . import const
 
 log = getLogger(__name__)
 
 EMAIL_PRIVATE_ANNOUNCES = getattr(settings, "EMAIL_PRIVATE_ANNOUNCES", "nm@debian.org")
+
+def get_charset(message, default="ascii"):
+    """Get the message charset"""
+
+    if message.get_content_charset():
+        return message.get_content_charset()
+
+    if message.get_charset():
+        return message.get_charset()
+
+    return default
+
+def get_body(message):
+    """Get the body of the email message"""
+    if message.is_multipart():
+        #get the plain text version only
+        text_parts = [part
+                      for part in typed_subpart_iterator(message,
+                                                         'text',
+                                                         'plain')]
+        body = []
+        for part in text_parts:
+            charset = get_charset(part, get_charset(message))
+            body.append(unicode(part.get_payload(decode=True),
+                                charset,
+                                "replace"))
+        return u"\n".join(body).strip()
+    else: # if it is not multipart, the payload will be a string
+          # representing the message body
+        body = unicode(message.get_payload(decode=True),
+                       get_charset(message),
+                       "replace")
+        return body.strip()
 
 def parse_recipient_list(s):
     """
@@ -101,9 +135,6 @@ def send_nonce(template_name, person, nonce=None, encrypted_nonce=None):
 def get_mbox_as_dicts(filename):
     try:  ## we are reading, have not to flush with close
         for message in mailbox.mbox(filename, create=False):
-            if(message.is_multipart()):
-                yield dict(Body=message.get_payload(0), **dict(message))
-            else:
-                yield dict(Body=message.get_payload(), **dict(message))
+            yield dict(Body=get_body(message), **dict(message))
     except mailbox.NoSuchMailboxError:
         return
