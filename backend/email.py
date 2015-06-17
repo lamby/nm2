@@ -140,7 +140,7 @@ def decode_header(val):
            res.append(buf.decode("utf-8", errors="replace"))
         else:
            res.append(buf.decode(charset, errors="replace"))
-    return "".join(res)
+    return " ".join(res)
 
 def get_mbox_as_dicts(filename):
     try:  ## we are reading, have not to flush with close
