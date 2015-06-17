@@ -137,14 +137,17 @@ def decode_header(val):
         if charset is None:
            res.append(buf)
         elif charset == "unknown-8bit":
-           res.append(buf.decode("utf-8"))
+           res.append(buf.decode("utf-8", errors="replace"))
         else:
-           res.append(buf.decode(charset))
+           res.append(buf.decode(charset, errors="replace"))
     return "".join(res)
 
 def get_mbox_as_dicts(filename):
     try:  ## we are reading, have not to flush with close
         for message in mailbox.mbox(filename, create=False):
-            yield dict(clean_From=decode_header(message.get("From")), Body=get_body(message), **dict(message))
+            msg_dict = {'Body': get_body(message)}
+            for hkey, hval in message.items():
+                msg_dict[hkey] = decode_header(hval)
+            yield msg_dict
     except mailbox.NoSuchMailboxError:
         return
