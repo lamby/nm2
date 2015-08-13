@@ -16,7 +16,7 @@ Debian NM Front Desk web application
     fakeroot debian/rules clean binary
 
     # install the package
-    dpkg -i ../python3-django-housekeeping_0.1-1_all.deb  ../python-django-housekeeping_0.1-1_all.deb
+    dpkg -i  ../python-django-housekeeping_0.1-1_all.deb
 
     # https://github.com/jsocol/django-ratelimit
     git clone https://github.com/jsocol/django-ratelimit.git
