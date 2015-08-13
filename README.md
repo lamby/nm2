@@ -70,5 +70,5 @@ fields:
 
 
 ## Development
-Development targets Django 1.5, although the codebase has been created with
+Development targets Django 1.7, although the codebase has been created with
 Django 1.2 and it still shows in some places. Feel free to cleanup.
