@@ -26,6 +26,7 @@ class LogInline(admin.TabularInline):
 class ProcessAdmin(admin.ModelAdmin):
     raw_id_fields = ('manager',)
     filter_horizontal = ("advocates",)
+    search_fields = ("person__cn", "person__sn", "person__email", "person__uid")
 admin.site.register(bmodels.Process, ProcessAdmin)
 
 class LogAdmin(admin.ModelAdmin):
