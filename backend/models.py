@@ -485,8 +485,8 @@ class Person(PermissionsMixin, models.Model):
 
     objects = PersonManager()
 
-    # Link to Django web user information
-    username = models.CharField(max_length=255, unique=True)
+    # Standard Django user fields
+    username = models.CharField(max_length=255, unique=True, help_text=_("Debian SSO username"))
     last_login = models.DateTimeField(_('last login'), default=now)
     date_joined = models.DateTimeField(_('date joined'), default=now)
     is_staff = models.BooleanField(default=False)
@@ -504,6 +504,8 @@ class Person(PermissionsMixin, models.Model):
     # @sgran> enrico: please
     #  enrico> sgran: ack
 
+    # Most user fields mirror Debian LDAP fields
+
     # First/Given name, or only name in case of only one name
     cn = models.CharField("first name", max_length=250, null=False)
     mn = models.CharField("middle name", max_length=250, null=False, blank=True, default="")
@@ -515,6 +517,8 @@ class Person(PermissionsMixin, models.Model):
     uid = CharNullField("Debian account name", max_length=32, null=True, unique=True, blank=True)
     # OpenPGP fingerprint, NULL until one has been provided
     fpr = FingerprintField("OpenPGP key fingerprint", max_length=40, null=True, unique=True, blank=True)
+
+    # Membership status
     status = models.CharField("current status in the project", max_length=20, null=False,
                               choices=[(x.tag, x.ldesc) for x in const.ALL_STATUS])
     status_changed = models.DateTimeField("when the status last changed", null=False, default=datetime.datetime.utcnow)
