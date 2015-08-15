@@ -25,23 +25,23 @@ from backend import models as bmodels
 from backend import const
 import email.utils
 import mailbox
+import datetime
 import time
 import json
 import os
-import pprint
+import numpy
 
 log = logging.getLogger(__name__)
 
-pp = pprint.PrettyPrinter(indent=2)
 
 class Interaction(object):
     data = {'emails': {}, 'process': {}}
     unsort_data = []
 
     @classmethod
-    def _add_email(cls, data, date_diff):
-        if data['From'] not in cls.data['emails']:
-            cls.data['emails'][data['From']] = {
+    def _add_data(cls, key, data_key, data, date_diff):
+        if data[data_key] not in cls.data[key]:
+            cls.data[key][data[data_key]] = {
                 'num_mails': 1,
                 'date_first': data['date'],
                 'date_last': data['date'],
@@ -50,7 +50,7 @@ class Interaction(object):
                 'response_time': []
             }
         else:
-            d = cls.data['emails'][data['From']]
+            d = cls.data[key][data[data_key]]
             d['num_mails'] = d['num_mails'] + 1
             d['date_last'] = data['date']
             d['date_last_orig'] = data['date_orig']
@@ -60,33 +60,23 @@ class Interaction(object):
     @classmethod
     def _add(cls, data):
         if data['process'] not in cls.data['process']:
-            cls.data['process'][data['process']] = {
-                'num_mails': 1,
-                'date_first': data['date'],
-                'date_last': data['date'],
-                'date_last_orig': data['date_orig'],
-                'date_first_orig': data['date_orig'],
-                'response_time': []
-            }
             date_diff = None
+            cls._add_data('process', 'process', data, date_diff)
             log.debug("%s skiped. First mail" % data['date_orig'])
-            cls._add_email(data, date_diff)
+            cls._add_data('emails', 'From', data, date_diff)
         else:
             d = cls.data['process'][data['process']]
-            d['num_mails'] = d['num_mails'] + 1
             date_diff = data['date'] - d['date_last']
+            cls._add_data('process', 'process', data, date_diff)
             log.debug("%s - %s -> %s" % (data['date_orig'],
-                d['date_last_orig'], date_diff))
-            d['date_last'] = data['date']
-            d['date_last_orig'] = data['date_orig']
-            if(date_diff>0):
-                d['response_time'].append(date_diff)
-                cls._add_email(data, date_diff)
+                                         d['date_last_orig'], date_diff))
+            if(date_diff > 0):
+                cls._add_data('emails', 'From', data, date_diff)
             else:
                 log.warn("date_diff: %s skiped!!" % date_diff)
 
     def add(self, process_key, msg):
-        d = { 'process': process_key }
+        d = {'process': process_key}
         d['date'] = time.mktime(email.utils.parsedate(msg["Date"]))
         d['date_orig'] = msg["Date"]
         t, d['From'] = email.utils.parseaddr(msg["From"].lower())
@@ -94,18 +84,55 @@ class Interaction(object):
             d['From'] = d['From'] + "@debian.org"
         self.unsort_data.append(d)
 
+    @classmethod
+    def _average(cls, process_key):
+        if process_key is not None:
+            if process_key in cls.data['process']:
+                d = cls.data['process'][process_key]
+                log.debug("response_time: %s" % d['response_time'])
+                d['mean'] = numpy.mean(d['response_time'])
+                d['mean_fancy'] = "%s" % datetime.timedelta(seconds=numpy.int_(d['mean']))
+                log.info( "%s -> mean: %s[%s]" % \
+                    (process_key, d['mean'], d['mean_fancy']))
+        else:
+            for k, d in cls.data['emails'].iteritems():
+                if d['num_mails'] > 1:
+                    d['mean'] = numpy.mean(d['response_time'])
+                    d['mean_fancy'] = "%s" % datetime.timedelta(seconds=numpy.int_(d['mean']))
+
+    @classmethod
+    def _median(cls, process_key):
+        if process_key is not None:
+            if process_key in cls.data['process']:
+                d = cls.data['process'][process_key]
+                log.debug("response_time: %s" % d['response_time'])
+                d['median'] = numpy.median(d['response_time'])
+                d['median_fancy'] = "%s" % datetime.timedelta(seconds=numpy.int_(d['median']))
+                log.info( "%s -> median: %s[%s]" % \
+                    (process_key, d['median'], d['median_fancy']))
+        else:
+            for k, d in cls.data['emails'].iteritems():
+                if d['num_mails'] > 1:
+                    d['median'] = numpy.median(d['response_time'])
+                    d['median_fancy'] = "%s" % datetime.timedelta(seconds=numpy.int_(d['median']))
+
     def generate_stats(self, process_key):
-        #log.debug("unsort: %s" % pp.pformat(self.unsort_data))
         self.sort_data = sorted(self.unsort_data,
-            key=lambda x: x['date'], reverse=False)
-        #log.debug("sort: %s" % pp.pformat(self.sort_data))
+                                key=lambda x: x['date'], reverse=False)
         self.unsort_data = []
         for d in self.sort_data:
             self._add(d)
+        self._average(process_key)
+        self._median(process_key)
+
+    def generate_email_stats(self):
+        self._average(None)
+        self._median(None)
 
     def export(self, filename):
         with open(filename, 'w') as outfile:
             json.dump(self.data, outfile)
+
 
 class Command(BaseCommand):
     help = 'Generate stats for Process'
@@ -145,4 +172,5 @@ class Command(BaseCommand):
             else:
                 log.warn("skiped, no mailbox file defined")
 
+        interactions.generate_email_stats()
         interactions.export(os.path.join(settings.DATA_DIR, 'mbox_stats.json'))
