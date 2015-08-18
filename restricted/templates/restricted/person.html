@@ -24,10 +24,14 @@
 
 {% if "edit_ldap" not in vperms.perms %}
 <p>
-{{person.fullname}} already has an LDAP record (<tt>finger
-{{person.uid}}@db.debian.org</tt>), so their name, uid and email cannot be
-changed here. The email address can be changed using the
-<a href="https://db.debian.org/doc-mail.html">db.debian.org LDAP Gateway</a>.
+Name, uid and email cannot be changed here:<br>
+Either {{person.fullname}} already has an LDAP record (<tt>finger
+{{person.uid}}@db.debian.org</tt>): In that case the email address can be
+changed using the
+<a href="https://db.debian.org/doc-mail.html">db.debian.org LDAP Gateway</a>;
+<br>
+Or {{person.fullname}} application progress is past the point where you are
+allowed to change these data from here.
 </p>
 {% endif %}
 
