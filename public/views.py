@@ -227,13 +227,14 @@ class Process(VisitorTemplateView):
 
         stats = stats.get("process", {})
         stats = stats.get(process.lookup_key, {})
-        stats["date_first_py"] = datetime.datetime.fromtimestamp(stats["date_first"])
-        stats["date_last_py"] = datetime.datetime.fromtimestamp(stats["date_last"])
-        if "median" not in stats or stats["median"] is None:
-            stats["median_py"] = None
-        else:
-            stats["median_py"] = datetime.timedelta(seconds=stats["median"])
-            stats["median_hours"] = stats["median_py"].seconds // 3600
+        if stats:
+            stats["date_first_py"] = datetime.datetime.fromtimestamp(stats["date_first"])
+            stats["date_last_py"] = datetime.datetime.fromtimestamp(stats["date_last"])
+            if "median" not in stats or stats["median"] is None:
+                stats["median_py"] = None
+            else:
+                stats["median_py"] = datetime.timedelta(seconds=stats["median"])
+                stats["median_hours"] = stats["median_py"].seconds // 3600
         ctx["mbox_stats"] = stats
         return ctx
 

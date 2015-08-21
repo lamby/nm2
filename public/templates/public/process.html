@@ -154,6 +154,7 @@ See: <a href="http://lists.debian.org/debian-project/2010/09/msg00026.html">hand
             {% endif %}
         </td>
     </tr>
+    {% if mbox_stats %}
     <tr><th>Mailbox stats</th>
         <td>{{mbox_stats.date_first_py|date:"Y-m-d"}} to {{mbox_stats.date_last_py|date:"Y-m-d"}},
             {{mbox_stats.num_mails}} mails,
@@ -164,6 +165,7 @@ See: <a href="http://lists.debian.org/debian-project/2010/09/msg00026.html">hand
             <span class="mbox_sparkline" values="{{mbox_stats.response_time|join:","}}"></span>
         </td>
     </tr>
+    {% endif %}
     {% endif %}
 </table>
 {% if "edit_bio" in vperms.perms or "edit_ldap" in vperms.perms %}
