@@ -16,13 +16,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from django.core.management.base import BaseCommand, CommandError
-import django.db
 from django.conf import settings
 import optparse
 import sys
 import logging
 from backend import models as bmodels
-from backend import const
 import email.utils
 import mailbox
 import datetime
@@ -152,7 +150,7 @@ class Command(BaseCommand):
             if opts["debug"]:
                 level = logging.DEBUG
             else:
-                level = loggin.INFO
+                level = logging.INFO
             logging.basicConfig(
                 level=level, stream=sys.stderr, format=FORMAT)
 
@@ -170,7 +168,7 @@ class Command(BaseCommand):
                 interactions.generate_stats(key)
                 log.info("%s processed", mailbox_file)
             else:
-                log.warn("skiped, no mailbox file defined")
+                log.warn("skipped, no mailbox file defined")
 
         interactions.generate_email_stats()
         interactions.export(os.path.join(settings.DATA_DIR, 'mbox_stats.json'))
