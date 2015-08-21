@@ -157,8 +157,9 @@ See: <a href="http://lists.debian.org/debian-project/2010/09/msg00026.html">hand
     <tr><th>Mailbox stats</th>
         <td>{{mbox_stats.date_first_py|date:"Y-m-d"}} to {{mbox_stats.date_last_py|date:"Y-m-d"}},
             {{mbox_stats.num_mails}} mails,
+            <br>
             {% if mbox_stats.median_py %}
-              {% if mbox_stats.median_py.days %}{{mbox_stats.median_py.days}}d {% endif %}{{mbox_stats.median_hours}}h
+              {% if mbox_stats.median_py.days %}{{mbox_stats.median_py.days}}d {% endif %}{{mbox_stats.median_hours}}h median response time
             {% endif %}
             <span class="mbox_sparkline" values="{{mbox_stats.response_time|join:","}}"></span>
         </td>
