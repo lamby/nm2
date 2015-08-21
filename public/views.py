@@ -21,6 +21,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 from django import http, forms
+from django.conf import settings
 from django.shortcuts import redirect, render, get_object_or_404
 from django.core.urlresolvers import reverse
 from django.core.exceptions import PermissionDenied
@@ -35,6 +36,7 @@ from backend.mixins import VisitorMixin, VisitorTemplateView, VisitPersonTemplat
 from .email_stats import mailbox_get_gaps
 import markdown
 import datetime
+import os
 import json
 
 def lookup_or_404(dict, key):
@@ -215,6 +217,24 @@ class Process(VisitorTemplateView):
         if self.visitor:
             ctx["wizards"] = self.build_wizards(process)
 
+        # Mailbox statistics
+        # TODO: move saving per-process stats into a JSON field in Process
+        try:
+            with open(os.path.join(settings.DATA_DIR, 'mbox_stats.json'), "rt") as infd:
+                stats = json.load(infd)
+        except OSError:
+            stats = {}
+
+        stats = stats.get("process", {})
+        stats = stats.get(process.lookup_key, {})
+        stats["date_first_py"] = datetime.datetime.fromtimestamp(stats["date_first"])
+        stats["date_last_py"] = datetime.datetime.fromtimestamp(stats["date_last"])
+        if "median" not in stats or stats["median"] is None:
+            stats["median_py"] = None
+        else:
+            stats["median_py"] = datetime.timedelta(seconds=stats["median"])
+            stats["median_hours"] = stats["median_py"].seconds // 3600
+        ctx["mbox_stats"] = stats
         return ctx
 
     def build_wizards(self, process):

@@ -4,7 +4,7 @@
 
 {% block head_resources %}
 {{block.super}}
-{% jsinclude "nm" %}
+{% jsinclude "nm,sparkline" %}
 {% endblock %}
 
 {% block head %}
@@ -61,6 +61,14 @@ $(function() {
         shortcuts_found = true;
     });
     $("#shortcuts").toggle(shortcuts_found);
+
+    $(".mbox_sparkline").sparkline("html", {
+      type: "bar",
+      barColor: "#005382",
+      negBarColor: "#823000",
+      chartRangeMin: 0,
+      chartRangeMax: 30
+    });
 });
 </script>
 {% endblock %}
@@ -145,6 +153,16 @@ See: <a href="http://lists.debian.org/debian-project/2010/09/msg00026.html">hand
             (no mail archive yet)
             {% endif %}
         </td>
+    </tr>
+    <tr><th>Mailbox stats</th>
+        <td>{{mbox_stats.date_first_py|date:"Y-m-d"}} to {{mbox_stats.date_last_py|date:"Y-m-d"}},
+            {{mbox_stats.num_mails}} mails,
+            {% if mbox_stats.median_py %}
+              {% if mbox_stats.median_py.days %}{{mbox_stats.median_py.days}}d {% endif %}{{mbox_stats.median_hours}}h
+            {% endif %}
+            <span class="mbox_sparkline" values="{{mbox_stats.response_time|join:","}}"></span>
+        </td>
+    </tr>
     {% endif %}
 </table>
 {% if "edit_bio" in vperms.perms or "edit_ldap" in vperms.perms %}
