@@ -554,7 +554,7 @@ class MailboxStats(VisitorTemplateView):
             st["person"] = bmodels.Person.lookup_by_email(email)
             st["date_first_py"] = datetime.datetime.fromtimestamp(st["date_first"])
             st["date_last_py"] = datetime.datetime.fromtimestamp(st["date_last"])
-            if "median" not in st:
+            if "median" not in st or st["median"] is None:
                 st["median_py"] = None
             else:
                 st["median_py"] = datetime.timedelta(seconds=st["median"])
