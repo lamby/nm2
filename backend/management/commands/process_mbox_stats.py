@@ -16,11 +16,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from django.core.management.base import BaseCommand, CommandError
+import django.db
 from django.conf import settings
 import optparse
 import sys
 import logging
 from backend import models as bmodels
+from backend import const
 import email.utils
 import mailbox
 import datetime
@@ -89,14 +91,16 @@ class Interaction(object):
                 d = cls.data['process'][process_key]
                 log.debug("response_time: %s" % d['response_time'])
                 d['mean'] = numpy.mean(d['response_time'])
-                d['mean_fancy'] = "%s" % datetime.timedelta(seconds=numpy.int_(d['mean']))
-                log.info( "%s -> mean: %s[%s]" % \
-                    (process_key, d['mean'], d['mean_fancy']))
+                d['mean_fancy'] = "%s" % datetime.timedelta(
+                    seconds=numpy.int_(d['mean']))
+                log.debug("%s -> mean: %s[%s]" %
+                         (process_key, d['mean'], d['mean_fancy']))
         else:
             for k, d in cls.data['emails'].iteritems():
                 if d['num_mails'] > 1:
                     d['mean'] = numpy.mean(d['response_time'])
-                    d['mean_fancy'] = "%s" % datetime.timedelta(seconds=numpy.int_(d['mean']))
+                    d['mean_fancy'] = "%s" % datetime.timedelta(
+                        seconds=numpy.int_(d['mean']))
 
     @classmethod
     def _median(cls, process_key):
@@ -105,14 +109,16 @@ class Interaction(object):
                 d = cls.data['process'][process_key]
                 log.debug("response_time: %s" % d['response_time'])
                 d['median'] = numpy.median(d['response_time'])
-                d['median_fancy'] = "%s" % datetime.timedelta(seconds=numpy.int_(d['median']))
-                log.info( "%s -> median: %s[%s]" % \
-                    (process_key, d['median'], d['median_fancy']))
+                d['median_fancy'] = "%s" % datetime.timedelta(
+                    seconds=numpy.int_(d['median']))
+                log.debug("%s -> median: %s[%s]" %
+                         (process_key, d['median'], d['median_fancy']))
         else:
             for k, d in cls.data['emails'].iteritems():
                 if d['num_mails'] > 1:
                     d['median'] = numpy.median(d['response_time'])
-                    d['median_fancy'] = "%s" % datetime.timedelta(seconds=numpy.int_(d['median']))
+                    d['median_fancy'] = "%s" % datetime.timedelta(
+                        seconds=numpy.int_(d['median']))
 
     def generate_stats(self, process_key):
         self.sort_data = sorted(self.unsort_data,
@@ -168,7 +174,8 @@ class Command(BaseCommand):
                 interactions.generate_stats(key)
                 log.info("%s processed", mailbox_file)
             else:
-                log.warn("skipped, no mailbox file defined")
+                log.warn("%s[%s] skiped, no mailbox file defined" %
+                         (unicode(progress), key))
 
         interactions.generate_email_stats()
         interactions.export(os.path.join(settings.DATA_DIR, 'mbox_stats.json'))

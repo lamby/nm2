@@ -45,4 +45,6 @@ urlpatterns = patterns('restricted.views',
     url(r'^display-mail-archive/(?P<key>[^/]+)$', views.DisplayMailArchive.as_view(), name="display_mail_archive"),
     # Assign AMs to NMs
     url(r'^assign-am/(?P<key>[^/]+)$', views.AssignAM.as_view(), name="assign_am"),
+    # Mailbox stats
+    url(r'^mailbox-stats$', views.MailboxStats.as_view(), name="mailbox_stats"),
 )

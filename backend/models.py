@@ -765,6 +765,23 @@ class Person(PermissionsMixin, models.Model):
             return None
 
     @classmethod
+    def lookup_by_email(cls, addr):
+        """
+        Return the person corresponding to an email address, or None if no such
+        person has been found.
+        """
+        try:
+            return cls.objects.get(email=addr)
+        except cls.DoesNotExist:
+            pass
+        if not addr.endswith("@debian.org"):
+            return None
+        try:
+            return cls.objects.get(uid=addr[:-11])
+        except cls.DoesNotExist:
+            return None
+
+    @classmethod
     def lookup_or_404(cls, key):
         from django.http import Http404
         res = cls.lookup(key)

@@ -1,7 +1,7 @@
 # coding: utf8
 # nm.debian.org AM interaction
 #
-# Copyright (C) 2013--2014  Enrico Zini <enrico@debian.org>
+# Copyright (C) 2013--2015  Enrico Zini <enrico@debian.org>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -20,6 +20,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 from django import http, template, forms
+from django.conf import settings
 from django.shortcuts import render, render_to_response, redirect
 from django.contrib.auth.decorators import login_required
 from django.utils.translation import ugettext as _
@@ -34,6 +35,7 @@ from backend.mixins import VisitorMixin, VisitorTemplateView, VisitPersonTemplat
 import backend.email
 import json
 import datetime
+import os
 
 class AMMain(VisitorTemplateView):
     require_visitor = "am"
@@ -534,3 +536,31 @@ class AssignAM(VisitorTemplateView):
         am = bmodels.AM.lookup_or_404(am_key)
         _assign_am(request, self.visitor, process, am)
         return redirect(process.get_absolute_url())
+
+class MailboxStats(VisitorTemplateView):
+    template_name = "restricted/mailbox-stats.html"
+    require_visitor = "admin"
+
+    def get_context_data(self, **kw):
+        ctx = super(MailboxStats, self).get_context_data(**kw)
+
+        try:
+            with open(os.path.join(settings.DATA_DIR, 'mbox_stats.json'), "rt") as infd:
+                stats = json.load(infd)
+        except OSError:
+            stats = {}
+
+        for email, st in stats["emails"].items():
+            st["person"] = bmodels.Person.lookup_by_email(email)
+            st["date_first_py"] = datetime.datetime.fromtimestamp(st["date_first"])
+            st["date_last_py"] = datetime.datetime.fromtimestamp(st["date_last"])
+            if "median" not in st:
+                st["median_py"] = None
+            else:
+                st["median_py"] = datetime.timedelta(seconds=st["median"])
+                st["median_hours"] = st["median_py"].seconds // 3600
+
+        ctx.update(
+            emails=sorted(stats["emails"].items()),
+        )
+        return ctx
