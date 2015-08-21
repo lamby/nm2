@@ -6,7 +6,7 @@ Debian NM Front Desk web application
     
     apt-get install python-django python-ldap python-psycopg2 python-xapian \
      python-debian python-django-south python-markdown \
-     python-debiancontributors python-numpy
+     python-debiancontributors
 
     # https://github.com/spanezz/django-housekeeping
     git clone https://github.com/spanezz/django-housekeeping

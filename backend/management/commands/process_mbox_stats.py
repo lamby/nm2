@@ -29,9 +29,25 @@ import datetime
 import time
 import json
 import os
-import numpy
 
 log = logging.getLogger(__name__)
+
+
+def median(l):
+    """
+    Compute the median of a sequence of numbers
+    """
+    if not l: return None
+
+    l = sorted(l)
+
+    if len(l) == 1: return l[0]
+    idx, is_odd = divmod(len(l) - 1, 2)
+
+    if is_odd:
+        return l[idx]
+    else:
+        return (l[idx] + l[idx + 1]) / 2.0
 
 
 class Interaction(object):
@@ -85,40 +101,17 @@ class Interaction(object):
         self.unsort_data.append(d)
 
     @classmethod
-    def _average(cls, process_key):
-        if process_key is not None:
-            if process_key in cls.data['process']:
-                d = cls.data['process'][process_key]
-                log.debug("response_time: %s" % d['response_time'])
-                d['mean'] = numpy.mean(d['response_time'])
-                d['mean_fancy'] = "%s" % datetime.timedelta(
-                    seconds=numpy.int_(d['mean']))
-                log.debug("%s -> mean: %s[%s]" %
-                         (process_key, d['mean'], d['mean_fancy']))
-        else:
-            for k, d in cls.data['emails'].iteritems():
-                if d['num_mails'] > 1:
-                    d['mean'] = numpy.mean(d['response_time'])
-                    d['mean_fancy'] = "%s" % datetime.timedelta(
-                        seconds=numpy.int_(d['mean']))
-
-    @classmethod
     def _median(cls, process_key):
         if process_key is not None:
             if process_key in cls.data['process']:
                 d = cls.data['process'][process_key]
                 log.debug("response_time: %s" % d['response_time'])
-                d['median'] = numpy.median(d['response_time'])
-                d['median_fancy'] = "%s" % datetime.timedelta(
-                    seconds=numpy.int_(d['median']))
-                log.debug("%s -> median: %s[%s]" %
-                         (process_key, d['median'], d['median_fancy']))
+                d['median'] = median(d['response_time'])
+                log.debug("%s -> median: %s" % (process_key, d['median']))
         else:
             for k, d in cls.data['emails'].iteritems():
                 if d['num_mails'] > 1:
-                    d['median'] = numpy.median(d['response_time'])
-                    d['median_fancy'] = "%s" % datetime.timedelta(
-                        seconds=numpy.int_(d['median']))
+                    d['median'] = median(d['response_time'])
 
     def generate_stats(self, process_key):
         self.sort_data = sorted(self.unsort_data,
@@ -126,11 +119,9 @@ class Interaction(object):
         self.unsort_data = []
         for d in self.sort_data:
             self._add(d)
-        self._average(process_key)
         self._median(process_key)
 
     def generate_email_stats(self):
-        self._average(None)
         self._median(None)
 
     def export(self, filename):
