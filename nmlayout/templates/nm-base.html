@@ -45,7 +45,7 @@
  {% endif %}
 {% endif %}
 {% if request.sso_username %}
-  <a href="https://sso.debian.org/sso/logout?url={{request.build_absolute_uri}}">logout</a>
+ {% if not request.debsso_uses_certs %}<a href="https://sso.debian.org/sso/logout?url={{request.build_absolute_uri}}">logout</a>{% endif %}
 {% endif %}
 {% comment %}
     <a href="{% url 'search_packages' %}">Search</a>
