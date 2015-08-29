@@ -19,6 +19,7 @@ from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
+import django
 from django.test import TransactionTestCase
 import backend.models as bmodels
 import backend.const as bconst
@@ -223,46 +224,32 @@ class NotificationTest(TransactionTestCase):
         self.assertEqual(mail.outbox[0].to, ['John Smith <doctor@example.com>'])
         self.assertEqual(mail.outbox[0].cc, ['nm@debian.org', 'archive-doctor=example.com@nm.debian.org'])
 
-class SimpleFixtureFingerprintField(object):
-    def __init__(self):
-        bmodels.Person.objects.create_user(
-            username="safanaj-guest@users.alioth.debian.org",
-            cn="Marco", sn="Bardelli", email="safanaj@debian.org", uid="safanaj",
-            status=bconst.STATUS_DC_GA,
-            fpr="A410 5B0A 9F84 97EC AB5F  1683 8D5B 478C F7FE 4DAA",
-            audit_skip=True)
-
-        bmodels.Person.objects.create_user(
-            username="invalid-guest@users.alioth.debian.org",
-            cn="Invalid", sn="FPR", email="invalid@debian.org",
-            uid="invalid_fpr", status=bconst.STATUS_DC, fpr="FIXME: I'll let you know later when I'll have a bit of a clue",
-            audit_skip=True)
-
-        bmodels.Person.objects.create_user(
-            username="empty-guest@users.alioth.debian.org",
-            cn="Empty", sn="FPR", email="empty@debian.org", uid="empty",
-            status=bconst.STATUS_DD_NU, fpr="", audit_skip=True)
-
 class FingerprintTest(TransactionTestCase):
-    def setUp(self):
-        self.fpr = SimpleFixtureFingerprintField()
-
     def test_fpr_field(self):
         from django.db import connection
-        cr = connection.cursor()
-        on_db_valid_fpr = cr.execute("select fpr from person where uid = 'safanaj'").fetchone()[0]
-        self.assertEquals(on_db_valid_fpr, "A4105B0A9F8497ECAB5F16838D5B478CF7FE4DAA")
-        on_db_invalid_fpr = cr.execute("select fpr from person where uid = 'invalid_fpr'").fetchone()[0]
-        self.assertEquals(on_db_invalid_fpr, "FIXME-I-ll-let-you-know-later-when-I-ll-")
-        on_db_empty_fpr = cr.execute("select fpr from person where uid = 'empty'").fetchone()[0]
-        self.assertIsNone(on_db_empty_fpr)
-
-        p = bmodels.Person(cn="Invalid", sn="FPR", email="invalid1@debian.org", uid="invalid_fpr1",
-                       status=bconst.STATUS_DC,
-                       fpr="66B4 Invalid FPR BFAB")
+        p = bmodels.Person(cn="Test", sn="Test", email="test@example.org", uid="test",
+                       status=bconst.STATUS_DC)
         p.save(audit_skip=True)
-        p1 = bmodels.Person.objects.get(uid="invalid_fpr1")
-        self.assertIsNone(p1.fpr)
+
+        # Verify how fingerprints are stored in the DB
+        cr = connection.cursor()
+
+        # Spaces are stripped
+        f = bmodels.Fingerprint.objects.create(fpr="A410 5B0A 9F84 97EC AB5F  1683 8D5B 478C F7FE 4DAA", user=p)
+        db_fpr = cr.execute("select fpr from fingerprints where id='{}'".format(f.id)).fetchone()[0]
+        self.assertEquals(db_fpr, "A4105B0A9F8497ECAB5F16838D5B478CF7FE4DAA")
+
+        # Letters are uppercased
+        f = bmodels.Fingerprint.objects.create(fpr="a410 5b0a 9f84 97ec ab5f1683 8d5b 478c f7fe 4dab", user=p)
+        on_db_valid_fpr = cr.execute("select fpr from fingerprints where id='{}'".format(f.id)).fetchone()[0]
+        self.assertEquals(on_db_valid_fpr, "A4105B0A9F8497ECAB5F16838D5B478CF7FE4DAB")
+
+        # Everything else is discarded
+        with self.assertRaises(django.db.IntegrityError):
+            bmodels.Fingerprint.objects.create(fpr="FIXME: I'll let you know later when I'll have a bit of a clue", user=p)
+
+        with self.assertRaises(django.db.IntegrityError):
+            bmodels.Fingerprint.objects.create(fpr="")
 
 
 class PersonExpires(TransactionTestCase):
