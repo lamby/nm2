@@ -11,6 +11,7 @@ from django.conf import settings
 class Migration(migrations.Migration):
 
     dependencies = [
+        ('auth', '0001_initial'),
     ]
 
     operations = [
@@ -26,7 +27,7 @@ class Migration(migrations.Migration):
                 ('cn', models.CharField(max_length=250, verbose_name='first name')),
                 ('mn', models.CharField(default='', max_length=250, verbose_name='middle name', blank=True)),
                 ('sn', models.CharField(default='', max_length=250, verbose_name='last name', blank=True)),
-                ('email', models.EmailField(unique=True, max_length=254, verbose_name='email address')),
+                ('email', models.EmailField(unique=True, max_length=75, verbose_name='email address')),
                 ('bio', models.TextField(default='', help_text='Please enter here a short biographical information', verbose_name='short biography', blank=True)),
                 ('uid', backend.models.CharNullField(max_length=32, unique=True, null=True, verbose_name='Debian account name', blank=True)),
                 ('fpr', backend.models.FingerprintField(max_length=40, unique=True, null=True, verbose_name='OpenPGP key fingerprint', blank=True)),
@@ -36,12 +37,13 @@ class Migration(migrations.Migration):
                 ('created', models.DateTimeField(default=datetime.datetime.utcnow, null=True, verbose_name='Person record created')),
                 ('expires', models.DateField(default=None, help_text='This person will be deleted after this date if the status is still dc and no Process has started', null=True, verbose_name='Expiration date for the account', blank=True)),
                 ('pending', models.CharField(max_length=255, verbose_name='Nonce used to confirm this pending record', blank=True)),
-                ('groups', models.ManyToManyField(related_query_name='user', related_name='user_set', to='auth.Group', blank=True, help_text='The groups this user belongs to. A user will get all permissions granted to each of their groups.', verbose_name='groups')),
+                ('groups', models.ManyToManyField(related_query_name='user', related_name='user_set', to='auth.Group', blank=True, help_text='The groups this user belongs to. A user will get all permissions granted to each of his/her group.', verbose_name='groups')),
                 ('user_permissions', models.ManyToManyField(related_query_name='user', related_name='user_set', to='auth.Permission', blank=True, help_text='Specific permissions for this user.', verbose_name='user permissions')),
             ],
             options={
                 'db_table': 'person',
             },
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name='AM',
@@ -59,6 +61,7 @@ class Migration(migrations.Migration):
             options={
                 'db_table': 'am',
             },
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name='Log',
@@ -73,6 +76,7 @@ class Migration(migrations.Migration):
             options={
                 'db_table': 'log',
             },
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name='PersonAuditLog',
@@ -84,6 +88,9 @@ class Migration(migrations.Migration):
                 ('author', models.ForeignKey(related_name='+', to=settings.AUTH_USER_MODEL)),
                 ('person', models.ForeignKey(related_name='audit_log', to=settings.AUTH_USER_MODEL)),
             ],
+            options={
+            },
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name='Process',
@@ -101,10 +108,12 @@ class Migration(migrations.Migration):
             options={
                 'db_table': 'process',
             },
+            bases=(models.Model,),
         ),
         migrations.AddField(
             model_name='log',
             name='process',
             field=models.ForeignKey(related_name='log', to='backend.Process'),
+            preserve_default=True,
         ),
     ]
