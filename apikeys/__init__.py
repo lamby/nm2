@@ -19,7 +19,6 @@ from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
-from . import models as amodels
 
 def authenticate(request):
     """
@@ -27,6 +26,7 @@ def authenticate(request):
 
     Returns the User if one was found, else None
     """
+    from . import models as amodels
     value = request.META.get("HTTP_API_KEY", None)
     if value is None: return None
 
