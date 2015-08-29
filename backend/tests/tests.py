@@ -254,8 +254,7 @@ class FingerprintTest(TransactionTestCase):
 
 class PersonExpires(TransactionTestCase):
     def setUp(self):
-        self.person = bmodels.Person(cn="Enrico", sn="Zini", email="enrico@debian.org", uid="enrico",
-                                     status=bconst.STATUS_DC, fpr="66B4DFB68CB24EBBD8650BC4F4B4B0CC797EBFAB")
+        self.person = bmodels.Person(cn="Enrico", sn="Zini", email="enrico@debian.org", uid="enrico", status=bconst.STATUS_DC)
         self.person.save(audit_skip=True)
 
     def test_expires(self):
