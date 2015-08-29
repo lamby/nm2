@@ -770,6 +770,16 @@ class Person(PermissionsMixin, models.Model):
         raise Http404
 
 
+class FingerprintManager(BaseUserManager):
+    def create_user(self, **fields):
+        audit_author = fields.pop("audit_author", None)
+        audit_notes = fields.pop("audit_notes", None)
+        audit_skip = fields.pop("audit_skip", False)
+        res = self.model(**fields)
+        res.save(using=self._db, audit_author=audit_author, audit_notes=audit_notes, audit_skip=audit_skip)
+        return res
+
+
 class Fingerprint(models.Model):
     """
     A fingerprint for a person
@@ -777,10 +787,51 @@ class Fingerprint(models.Model):
     class Meta:
         db_table = "fingerprints"
 
+    objects = FingerprintManager()
+
     user = models.ForeignKey(Person, related_name="fprs")
     fpr = FingerprintField(verbose_name="OpenPGP key fingerprint", max_length=40, unique=True)
     is_active = models.BooleanField(default=False, help_text="whether this key is curently in use")
 
+    def save(self, *args, **kw):
+        """
+        Save, and add an entry to the Person audit log.
+
+        Extra arguments that can be passed:
+
+            audit_author: Person instance of the person doing the change
+            audit_notes: free form text annotations for this change
+            audit_skip: skip audit logging, used only for tests
+
+        """
+        # Extract our own arguments, so that they are not passed to django
+        author = kw.pop("audit_author", None)
+        notes = kw.pop("audit_notes", "")
+        audit_skip = kw.pop("audit_skip", False)
+
+        if audit_skip:
+            changes = None
+        else:
+            # Get the previous version of the Fingerprint object, so that
+            # PersonAuditLog can compute differences
+            if self.pk:
+                existing_fingerprint = Fingerprint.objects.get(pk=self.pk)
+            else:
+                existing_fingerprint = None
+
+            changes = PersonAuditLog.diff_fingerprint(existing_fingerprint, self)
+            if changes and not author:
+                raise RuntimeError("Cannot save a Person instance without providing Author information")
+
+        # Perform the save; if we are creating a new person, this will also
+        # fill in the id/pk field, so that PersonAuditLog can link to us
+        super(Fingerprint, self).save(*args, **kw)
+
+        # Finally, create the audit log entry
+        if changes:
+            if existing_fingerprint is not None and existing_fingerprint.user.pk != self.user.pk:
+                PersonAuditLog.objects.create(person=existing_fingerprint.user, author=author, notes=notes, changes=PersonAuditLog.serialize_changes(changes))
+            PersonAuditLog.objects.create(person=self.user, author=author, notes=notes, changes=PersonAuditLog.serialize_changes(changes))
 
 class PersonAuditLog(models.Model):
     person = models.ForeignKey(Person, related_name="audit_log")
@@ -807,6 +858,26 @@ class PersonAuditLog(models.Model):
                 # Also ignore changes like None -> ""
                 if ov != nv and (ov or nv):
                     changes[k] = [ov, nv]
+        return changes
+
+    @classmethod
+    def diff_fingerprint(cls, existing_fpr, new_fpr):
+        """
+        Compute the changes between two different instances of a Fingerprint model
+        """
+        exclude = []
+        changes = {}
+        if existing_fpr is None:
+            for k, nv in model_to_dict(new_fpr, exclude=exclude).items():
+                changes["fpr:{}:{}".format(new_fpr.fpr, k)] = [None, nv]
+        else:
+            old = model_to_dict(existing_fpr, exclude=exclude)
+            new = model_to_dict(new_fpr, exclude=exclude)
+            for k, nv in new.items():
+                ov = old.get(k, None)
+                # Also ignore changes like None -> ""
+                if ov != nv and (ov or nv):
+                    changes["fpr:{}:{}".format(old.fpr, k)] = [ov, nv]
         return changes
 
     @classmethod

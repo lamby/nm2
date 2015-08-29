@@ -649,7 +649,7 @@ class Findperson(VisitorMixin, FormView):
         person.save(audit_author=self.visitor, audit_notes="user created manually")
         fpr = form.cleaned_data["fpr"]
         if fpr:
-            bmodels.Fingerprint.objects.create(fpr=fpr, user=person)
+            bmodels.Fingerprint.objects.create(fpr=fpr, user=person, is_active=True, audit_author=self.visitor, audit_notes="user created manually")
         return redirect(person.get_absolute_url())
 
 
@@ -833,6 +833,9 @@ class Newnm(VisitorMixin, FormView):
         person.status_changed = now()
         person.make_pending(days_valid=self.DAYS_VALID)
         person.save(audit_author=person, audit_notes="new subscription to the site")
+        fpr = form.cleaned_data["fpr"]
+        bmodels.Fingerprint.objects.create(user=person, fpr=fpr, is_active=True, audit_author=person, audit_notes="new subscription to the site")
+
         # Redirect to the send challenge page
         return redirect("public_newnm_resend_challenge", key=person.lookup_key)
 
