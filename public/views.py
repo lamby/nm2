@@ -789,12 +789,9 @@ YESNO = (
 )
 
 class NewPersonForm(forms.ModelForm):
+    fpr = forms.CharField(label="Fingerprint", min_length=40, widget=forms.TextInput(attrs={"size": 60}))
     sc_ok = forms.ChoiceField(choices=YESNO, widget=forms.RadioSelect(), label="SC and DFSG agreement")
     dmup_ok = forms.ChoiceField(choices=YESNO, widget=forms.RadioSelect(), label="DMUP agreement")
-
-    def __init__(self, *args, **kwargs):
-        super(NewPersonForm, self).__init__(*args, **kwargs)
-        self.fields["fpr"].required = True
 
     def clean_fpr(self):
         return bmodels.FingerprintField.clean_fingerprint(self.cleaned_data['fpr'])
@@ -813,9 +810,8 @@ class NewPersonForm(forms.ModelForm):
 
     class Meta:
         model = bmodels.Person
-        fields = ["cn", "mn", "sn", "email", "bio", "uid", "fpr"]
+        fields = ["cn", "mn", "sn", "email", "bio", "uid"]
         widgets = {
-            "fpr": forms.TextInput(attrs={'size': 60}),
             "bio": forms.Textarea(attrs={'cols': 80, 'rows': 25}),
         }
 

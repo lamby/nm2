@@ -485,8 +485,6 @@ class Person(PermissionsMixin, models.Model):
                         help_text="Please enter here a short biographical information")
     # This is null for people who still have not picked one
     uid = CharNullField("Debian account name", max_length=32, null=True, unique=True, blank=True)
-    # OpenPGP fingerprint, NULL until one has been provided
-    fpr = FingerprintField("OpenPGP key fingerprint", max_length=40, null=True, unique=True, blank=True)
 
     # Membership status
     status = models.CharField("current status in the project", max_length=20, null=False,
@@ -529,6 +527,17 @@ class Person(PermissionsMixin, models.Model):
 
     def has_usable_password(self):
         return False
+
+    @property
+    def fpr(self):
+        """
+        Return the current fingerprint for this Person
+        """
+        # TODO: add a way to tell the current valid fingerprints from
+        # old/revoked ones
+        for f in self.fprs.all():
+            return f.fpr
+        return None
 
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ["cn", "email", "status"]

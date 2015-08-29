@@ -188,7 +188,7 @@ class Person(VisitPersonTemplateView):
         # Build the form to edit the person
         includes = []
         if "edit_ldap" in perms:
-            includes.extend(("cn", "mn", "sn", "email", "uid", "fpr"))
+            includes.extend(("cn", "mn", "sn", "email", "uid"))
         if self.visitor.is_admin:
             includes.extend(("status", "fd_comment", "expires", "pending"))
         if "edit_bio" in perms:
