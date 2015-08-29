@@ -1,0 +1,46 @@
+{% load nm %}
+{% if procs %}
+<table class="proctable tablesorter {{class}}">
+<thead>
+    <tr>
+        <th>Appl date</th>
+        <th>Last change</th>
+        <th>Progress</th>
+        <th>Applying for</th>
+        <th>Applicant</th>
+        <th>Uid</th>
+        <th>Advocate(s)</th>
+        <th>Manager</th>
+        {% if visitor.is_admin %}
+        <th>FD comments</th>
+        {% endif %}
+    </tr>
+</thead>
+<tbody>
+    {% for p in procs %}
+    <tr tag="{{p.progress}}">
+        <td>{{p.started|date:"Y-m-d"}}</td>
+        <td>{{p.last_change|date:"Y-m-d"}}</td>
+        <td val="{{ p.progress|seq_progress }}"><a href="{{ p.get_absolute_url }}">{{p.progress|desc_progress}}</a></td>
+        <td val="{{ p.applying_for|seq_status }}">{{p.applying_for|desc_status}}</td>
+        <td><a href="{{ p.get_absolute_url }}">{{p.person.fullname}}</a></td>
+        <td><a href="{{ p.get_absolute_url }}">{{p.person.uid}}</a></td>
+        <td>
+            {% for a in p.advocates.all %}
+            <a href="{{ a.get_absolute_url }}">{{a.uid}}</a>{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        </td>
+        <td>
+            {% if p.manager %}
+            <a href="{{ p.manager.get_absolute_url }}">{{p.manager.person.uid}}</a>
+            {% endif %}
+        </td>
+        {% if visitor.is_admin %}
+        <td>{{ p.person.fd_comment }}</td>
+        {% endif %}
+    </tr>
+    {% endfor %}
+</tbody>
+</table>
+{% endif %}
+

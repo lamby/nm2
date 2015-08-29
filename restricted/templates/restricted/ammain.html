@@ -1,6 +1,5 @@
 {% extends "restricted/base.html" %}
 {% load js %}
-{% load macros %}
 {% load nm %}
 
 {% block head_resources %}
@@ -31,55 +30,6 @@ $(function() {
 });
 </script>
 {% endblock %}
-
-{% macro process_table progs extras %}
-{% if progs %}
-<table class="proctable tablesorter">
-    <thead>
-        <tr>
-            <th>Started</th>
-            <th>Last</th>
-            <th>Target</th>
-            <th>Applicant</th>
-            <th>Uid</th>
-            <th>Adv.</th>
-            {% if "m" in extras %}
-            <th>Manager</th>
-            {% endif %}
-            <th>Last log</th>
-        </tr>
-    </thead>
-    <tbody>
-    {% for p in progs %}
-    <tr>
-        <td>{{p.started|date:"Y-m-d"}}</td>
-        <td>{{p.last_change|date:"Y-m-d"}}</td>
-        <td>{{p.applying_for|sdesc_status}}</td>
-        <td><a href="{{ p.get_absolute_url }}">{{p.person}}</a></td>
-        <td><a href="{{ p.get_absolute_url }}">{{p.person.uid}}</a></td>
-	<td>
-	    {% for a in p.advocates.all %}
-	    <a href="{{ a.get_absolute_url }}">{{a.uid}}</a>
-	    {% endfor %}
-	</td>
-	{% if "m" in extras %}
-        <td><a href="{{ p.manager.get_absolute_url }}">{{p.manager.person.uid}}</a></td>
-    {% endif %}
-    <td>
-        {% if p.log_last.logtext %}
-        {{ p.log_last.logtext }}
-        {% else %}
-        [{{p.log_last.progress|sdesc_progress}}]
-        {% endif %}
-    </td>
-    </tr>
-    {% endfor %}
-    </tbody>
-</table>
-{% else %}
-<p><i>none</i></p>
-{% endif %}
-{% endmacro %}
 
 {% block breadcrumbs %}{{block.super}} / <a href="{% url 'restricted_ammain' %}">ammain</a>{% endblock %}
 
@@ -121,41 +71,41 @@ $(function() {
 {% endif %}
 
 <p>The following people have applied but have not enough advocates or we did not send the activity poll yet.</p>
-{% usemacro process_table prog_app_new "" %}
+{% include "restricted/process_table.html" with p=p progs=prog_app_new extras="" only %}
 
 <p>The following people have not replied to the activity poll yet.</p>
-{% usemacro process_table prog_poll_sent "" %}
+{% include "restricted/process_table.html" with p=p progs=prog_poll_sent extras="" only %}
 
 <p>The following applicants are waiting for an Application Manager to be
 assigned (first one is oldest).</p>
-{% usemacro process_table prog_app_ok "" %}
+{% include "restricted/process_table.html" with p=p progs=prog_app_ok extras="" only %}
 
 <p>Applicants currently not ready to be assigned to an AM (ordered by hold date):</p>
-{% usemacro process_table prog_app_hold "" %}
+{% include "restricted/process_table.html" with p=p progs=prog_app_hold extras="" only %}
 
 <p>Applicants assigned to AM but AM has not confirmed:</p>
-{% usemacro process_table prog_am_rcvd "m" %}
+{% include "restricted/process_table.html" with p=p progs=prog_am_rcvd extras="m" only %}
 
 <p>The reports of the following applicants approved by their AM need to be
 checked:</p>
-{% usemacro process_table prog_am_ok "m" %}
+{% include "restricted/process_table.html" with p=p progs=prog_am_ok extras="m" only %}
 
 <p>The following applicants have incomplete AM reports (ordered by hold date):</p>
-{% usemacro process_table prog_fd_hold "m" %}
+{% include "restricted/process_table.html" with p=p progs=prog_fd_hold extras="m" only %}
 
 
 <h2>Debian Account Manager</h2>
 
 <p>The following applicants have been approved by the NM committee and the FD
 but a DAM has not fully processed them yet (sorted by FD approval):</p>
-{% usemacro process_table prog_fd_ok "m" %}
+{% include "restricted/process_table.html" with p=p progs=prog_fd_ok extras="m" only %}
 
 <p>Applicants approved by a DAM, but for which no account has been created yet:</p>
-{% usemacro process_table prog_dam_ok "m" %}
+{% include "restricted/process_table.html" with p=p progs=prog_dam_ok extras="m" only %}
 
 <p>These are applications that have been put on hold at the DAM stage
 (sorted by hold date):</p>
-{% usemacro process_table prog_dam_hold "m" %}
+{% include "restricted/process_table.html" with p=p progs=prog_dam_hold extras="m" only %}
 
 {% endif %}
 
@@ -172,25 +122,25 @@ you are the AM for:</p>
 <p>These applicants have been assigned to you by the Front Desk but you have
 not confirmed that you will or will not be their AM (ordered by assignment
 date).</p>
-{% usemacro process_table am_prog_rcvd "" %}
+{% include "restricted/process_table.html" with p=p progs=am_prog_rcvd extras="" only %}
 
 <h3>Applicants to process</h3>
 
 <p>The following applicants you are the AM for (ordered by the date you
 accepted them as NMs):</p>
-{% usemacro process_table am_prog_am "" %}
+{% include "restricted/process_table.html" with p=p progs=am_prog_am extras="" only %}
 
 <h3>Applicants on Hold</h3>
 
 <p>Applicants who make it here have some issue with completing the process but
 are expected to be able to work around that soon (ordered by hold date).</p>
-{% usemacro process_table am_prog_hold "" %}
+{% include "restricted/process_table.html" with p=p progs=am_prog_hold extras="" only %}
 
 <h3>Processed Applicants</h3>
 
 <p>These applicants you have processed through the system and are here for
 historical or informational purposes (ordered by account creation date).</p>
-{% usemacro process_table am_prog_done "" %}
+{% include "restricted/process_table.html" with p=p progs=am_prog_done extras="" only %}
 {% endif %}
 
 {% comment %}
