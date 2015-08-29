@@ -84,15 +84,16 @@ class FingerprintField(models.CharField):
     re_spaces = re.compile(r"\s+")
     re_invalid = re.compile(r"[^0-9A-Fa-f]+")
 
-    def _clean_fingerprint(self, value):
+    @classmethod
+    def clean_fingerprint(cls, value):
         # Refuse all non-strings
         if not isinstance(value, basestring): return None
         # Remove spaces
-        value = self.re_spaces.sub("", value)
+        value = cls.re_spaces.sub("", value)
         # Convert empty strings to None
         if not value: return None
         # Refuse strings with non-hex characters
-        if self.re_invalid.search(value): return None
+        if cls.re_invalid.search(value): return None
         # Refuse hex strings whose length does not match a fingerprint
         if len(value) != 32 and len(value) != 40: return None
         # Uppercase the result
@@ -104,14 +105,14 @@ class FingerprintField(models.CharField):
         Converts a value from the database to a python object
         """
         value = super(FingerprintField, self).to_python(value)
-        return self._clean_fingerprint(value)
+        return self.clean_fingerprint(value)
 
     def get_prep_value(self, value):
         """
         Converts a value from python to the DB
         """
         value = super(FingerprintField, self).get_prep_value(value)
-        return self._clean_fingerprint(value)
+        return self.clean_fingerprint(value)
 
     def formfield(self, **kwargs):
         # bypass our parent to fix "maxlength" attribute in widget: fingerprint

@@ -798,10 +798,7 @@ class NewPersonForm(forms.ModelForm):
         self.fields["fpr"].required = True
 
     def clean_fpr(self):
-        fpr = self.cleaned_data['fpr']
-        if fpr is not None:
-            return fpr.replace(' ', '')
-        return fpr
+        return bmodels.FingerprintField.clean_fingerprint(self.cleaned_data['fpr'])
 
     def clean_sc_ok(self):
         data = self.cleaned_data['sc_ok']
