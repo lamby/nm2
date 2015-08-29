@@ -81,7 +81,7 @@ class People(APIVisitorMixin, View):
             if val: people = people.filter(uid__icontains=val)
 
             val = request.GET.get("fpr", "")
-            if val: people = people.filter(fpr__icontains=val)
+            if val: people = people.filter(fprs__fpr__icontains=val)
 
             val = request.GET.get("status", "")
             if val: people = people.filter(status=val)
