@@ -617,41 +617,40 @@ class Stats(VisitorTemplateView):
 
 
 def make_findperson_form(request, visitor):
-    includes = ["cn", "mn", "sn", "email", "uid", "fpr", "status"]
+    includes = ["cn", "mn", "sn", "email", "uid", "status"]
 
     if visitor and visitor.is_admin:
         includes.append("username")
         includes.append("fd_comment")
 
     class FindpersonForm(forms.ModelForm):
+        fpr = forms.CharField(label="Fingerprint", required=False, min_length=40, widget=forms.TextInput(attrs={"size": 60}))
+
         class Meta:
             model = bmodels.Person
             fields = includes
+
+        def clean_fpr(self):
+            return bmodels.FingerprintField.clean_fingerprint(self.cleaned_data['fpr'])
+
     return FindpersonForm
 
-class Findperson(VisitorTemplateView):
+class Findperson(VisitorMixin, FormView):
     template_name = "public/findperson.html"
 
-    def get_context_data(self, **kw):
-        ctx = super(Findperson, self).get_context_data(**kw)
-        FindpersonForm = make_findperson_form(self.request, self.visitor)
-        form = FindpersonForm()
-        ctx["form"] = form
-        return ctx
+    def get_form_class(self):
+        return make_findperson_form(self.request, self.visitor)
 
-    def post(self, request, *args, **kw):
+    def form_valid(self, form):
         if not self.visitor or not self.visitor.is_admin:
             raise PermissionDenied()
 
-        FindpersonForm = make_findperson_form(request, self.visitor)
-        form = FindpersonForm(request.POST)
-        if form.is_valid():
-            person = form.save(commit=False)
-            person.save(audit_author=self.visitor, audit_notes="user created manually")
-            return redirect(person.get_absolute_url())
-
-        context = self.get_context_data(**kw)
-        return self.render_to_response(context)
+        person = form.save(commit=False)
+        person.save(audit_author=self.visitor, audit_notes="user created manually")
+        fpr = form.cleaned_data["fpr"]
+        if fpr:
+            bmodels.Fingerprint.objects.create(fpr=fpr, user=person)
+        return redirect(person.get_absolute_url())
 
 
 class StatsLatest(VisitorTemplateView):

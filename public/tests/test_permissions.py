@@ -83,6 +83,7 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
                 "cn": "Test",
                 "email": "test@example.org",
                 "status": const.STATUS_DC,
+                "username": "test-guest@users.alioth.debian.org",
             }
             def setUp(self, fixture):
                 super(WhenPost, self).setUp(fixture)

@@ -9,6 +9,9 @@
 
 {% block head %}
 {{block.super}}
+<style type="text/css">
+.errorlist { color: red; }
+</style>
 <script type="text/javascript">
 {% nm_js_support %}
 
@@ -169,8 +172,10 @@ create a new Person record.
 </div>
 
 <form id="search_form" action="{% url 'public_findperson' %}" method="post">{% csrf_token %}
+{% for hidden in form.hidden_fields %} {{hidden}} {% endfor %}
+{{ form.non_field_errors }}
 <table class="personinfo">
-    {% for field in form %}
+    {% for field in form.visible_fields %}
     <tr>
         <th>{{field.label_tag}}</th>
         <td>{{field}} {{field.errors}}</td>
