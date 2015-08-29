@@ -1,0 +1,48 @@
+{% extends "restricted/base.html" %}
+{% load nm %}
+
+{% block head_resources %}
+{{block.super}}
+<style type="text/css">
+.errorlist { color: red; }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}{{block.super}}
+/ <a href="{{ person.get_absolute_url }}">{{person.lookup_key}}</a>
+{% endblock %}
+
+{% block content %}
+
+<h1>Edit fingerprints for {{person.fullname}}</h1>
+
+<form action="{% url 'restricted_person_fingerprints' key=person.lookup_key %}" method="post">{% csrf_token %}
+  {% for hidden in form.hidden_fields %} {{hidden}} {% endfor %}
+  {{ form.non_field_errors }}
+  {% for f in form.visible_fields %}
+    <p>{{f.label_tag}}<br>{{f}}<br><small>{{f.help_text}}</small></p>{{f.errors}}
+  {% endfor %}
+  <input type="submit" value="Add key">
+</form>
+
+<table>
+  <thead>
+    <tr>
+      <th>Key</th>
+      <th>Active</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for fpr in person.fprs.all %}
+  <tr>
+      <td>{{fpr.fpr}}</td>
+      <td>{{fpr.is_active}}</td>
+      <td></td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}
+

@@ -74,6 +74,10 @@ class VisitPersonMixin(VisitorMixin):
     Visit a person record. Adds self.person and self.vperms with the
     permissions the visitor has over the person
     """
+    # Define to "edit_bio" "edit_ldap" or "view_person_audit_log" to raise
+    # PermissionDenied if the given test on the person-visitor fails
+    require_vperms = None
+
     def pre_dispatch(self):
         super(VisitPersonMixin, self).pre_dispatch()
         key = self.kwargs.get("key", None)
@@ -82,6 +86,9 @@ class VisitPersonMixin(VisitorMixin):
         else:
             self.person = bmodels.Person.lookup_or_404(key)
         self.vperms = self.person.permissions_of(self.visitor)
+
+        if self.require_vperms and self.require_vperms not in self.vperms.perms:
+            raise PermissionDenied
 
     def get_context_data(self, **kw):
         ctx = super(VisitPersonMixin, self).get_context_data(**kw)

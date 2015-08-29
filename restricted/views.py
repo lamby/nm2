@@ -27,11 +27,13 @@ from django.utils.translation import ugettext as _
 from django.core.urlresolvers import reverse
 from django.core.exceptions import PermissionDenied
 from django.views.generic import View
+from django.views.generic.edit import FormView
 from django.utils.timezone import now
+from django.db import transaction
 import backend.models as bmodels
 import minechangelogs.models as mmodels
 from backend import const
-from backend.mixins import VisitorMixin, VisitorTemplateView, VisitPersonTemplateView
+from backend.mixins import VisitorMixin, VisitPersonMixin, VisitorTemplateView, VisitPersonTemplateView
 import backend.email
 import json
 import datetime
@@ -564,3 +566,27 @@ class MailboxStats(VisitorTemplateView):
             emails=sorted(stats["emails"].items()),
         )
         return ctx
+
+
+class NewFingerprintForm(forms.ModelForm):
+    class Meta:
+        model = bmodels.Fingerprint
+        fields = ["fpr"]
+
+
+class PersonFingerprints(VisitPersonMixin, FormView):
+    template_name = "restricted/person_fingerprints.html"
+    require_vperms = "edit_ldap"
+    form_class = NewFingerprintForm
+
+    # TODO: add template
+
+    @transaction.atomic
+    def form_valid(self, form):
+        fpr = form.save(commit=False)
+        fpr.user = self.person
+        fpr.is_active = True
+        fpr.save(audit_author=self.visitor, audit_notes="added new fingerprint")
+        # Ensure that only the new fingerprint is the active one
+        self.person.fprs.exclude(pk=fpr.pk).update(is_active=False)
+        return redirect("restricted_person_fingerprints", key=self.person.lookup_key)
