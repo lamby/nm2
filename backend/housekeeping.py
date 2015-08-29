@@ -329,3 +329,16 @@ class DDUsernames(hk.Task):
                         self.IDENTIFIER, self.hk.link(p), p.status, new_username)
             p.username = new_username
             p.save(audit_author=self.hk.housekeeper.user, audit_notes="updated SSO username to @debian.org version")
+
+class CheckOneActiveKeyPerPerson(hk.Task):
+    """
+    Check that one does not have more than one open process at the current time
+    """
+    DEPENDS = [MakeLink]
+
+    def run_main(self, stage):
+        from django.db.models import Count
+        for p in bmodels.Person.objects.filter(fprs__is_active=True) \
+                .annotate(num_fprs=Count("fprs")) \
+                .filter(num_fprs__gt=1):
+            log.warn("%s: %s has %d active keys", self.IDENTIFIER, self.hk.link(p), p.num_fprs)

@@ -533,9 +533,10 @@ class Person(PermissionsMixin, models.Model):
         """
         Return the current fingerprint for this Person
         """
-        # TODO: add a way to tell the current valid fingerprints from
-        # old/revoked ones
-        for f in self.fprs.all():
+        # If there is more than one active fields, return a random one. This
+        # should not happen, and a nightly maintenance task will warn if it
+        # happens.
+        for f in self.fprs.filter(is_active=True):
             return f.fpr
         return None
 
@@ -777,8 +778,8 @@ class Fingerprint(models.Model):
         db_table = "fingerprints"
 
     user = models.ForeignKey(Person, related_name="fprs")
-    # OpenPGP fingerprint, NULL until one has been provided
-    fpr = FingerprintField("OpenPGP key fingerprint", max_length=40, unique=True)
+    fpr = FingerprintField(verbose_name="OpenPGP key fingerprint", max_length=40, unique=True)
+    is_active = models.BooleanField(default=False, help_text="whether this key is curently in use")
 
 
 class PersonAuditLog(models.Model):
