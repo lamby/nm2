@@ -80,18 +80,23 @@ class CharNullField(models.CharField):
            return value
 
 class FingerprintField(models.CharField):
-    description = "CharField that stores NULL but returns '', also strip spaces and upper storing"
+    description = "CharField that holds hex digits, without spaces, in uppercase"
+    re_spaces = re.compile(r"\s+")
+    re_invalid = re.compile(r"[^0-9A-Fa-f]+")
 
     def _clean_fingerprint(self, value):
-        # if the db has a NULL, convert it into the Django-friendly '' string
-        if not value: return None
+        # Refuse all non-strings
         if not isinstance(value, basestring): return None
-        value = value.strip()
+        # Remove spaces
+        value = self.re_spaces.sub("", value)
+        # Convert empty strings to None
         if not value: return None
-        if value.startswith("FIXME"): return re.sub("[^a-zA-Z0-9_-]+", "-", value)[:40]
-        value = value.replace(' ', '').upper()
-        if not re.match(r"^[0-9A-F]{32,40}$", value): return None
-        return value
+        # Refuse strings with non-hex characters
+        if self.re_invalid.search(value): return None
+        # Refuse hex strings whose length does not match a fingerprint
+        if len(value) != 32 and len(value) != 40: return None
+        # Uppercase the result
+        return value.upper()
 
     ## not really useful, because in Person this is blank=True which not cleaned / validated
     def to_python(self, value):
@@ -99,22 +104,18 @@ class FingerprintField(models.CharField):
         Converts a value from the database to a python object
         """
         value = super(FingerprintField, self).to_python(value)
-        value = self._clean_fingerprint(value)
-        if not value: return ""
-        return value
+        return self._clean_fingerprint(value)
 
     def get_prep_value(self, value):
         """
         Converts a value from python to the DB
         """
         value = super(FingerprintField, self).get_prep_value(value)
-        value = self._clean_fingerprint(value)
-        if not value: return None
-        return value
+        return self._clean_fingerprint(value)
 
     def formfield(self, **kwargs):
-        # we want bypass our parent to fix "maxlength" attribute in widget
-        # fingerprint with space are 50 chars to allow easy cut-and-paste
+        # bypass our parent to fix "maxlength" attribute in widget: fingerprint
+        # with spaces are 50 chars to allow easy copy-and-paste
         if 'max_length' not in kwargs:
             kwargs.update({'max_length': 50})
         return super(FingerprintField, self).formfield(**kwargs)
@@ -756,6 +757,18 @@ class Person(PermissionsMixin, models.Model):
         if res is not None:
             return res
         raise Http404
+
+
+class Fingerprint(models.Model):
+    """
+    A fingerprint for a person
+    """
+    class Meta:
+        db_table = "fingerprints"
+
+    user = models.ForeignKey(Person, related_name="fprs")
+    # OpenPGP fingerprint, NULL until one has been provided
+    fpr = FingerprintField("OpenPGP key fingerprint", max_length=40, unique=True)
 
 
 class PersonAuditLog(models.Model):
