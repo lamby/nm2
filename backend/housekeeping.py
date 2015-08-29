@@ -55,7 +55,6 @@ class Housekeeper(hk.Task):
                 email="nm@debian.org",
                 bio="I am the robot that runs the automated tasks in the site",
                 uid=None,
-                fpr=None,
                 status=const.STATUS_DC,
                 audit_skip=True)
 
