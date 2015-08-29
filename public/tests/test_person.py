@@ -23,5 +23,5 @@ class PersonPageTestCase(NMFactoryMixin, TestCase):
         """
         # Check that the new person is listed on the page
         response = self.client.get('/public/people')
-        self.assertContains(response, 'Test User', 1)
-        self.assertContains(response, 'testuser@debian.org', 2)
+        self.assertContains(response, 'Test Test', 1)
+        self.assertContains(response, '>test<', 1)
