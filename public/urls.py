@@ -25,7 +25,7 @@ from django.views.generic import RedirectView
 from . import views
 
 urlpatterns = patterns('public.views',
-    url(r'^$', RedirectView.as_view(url="/"), name="public_index"),
+    url(r'^$', RedirectView.as_view(url="/", permanent=True), name="public_index"),
     url(r'^newnm$', views.Newnm.as_view(), name="public_newnm"),
     url(r'^newnm/resend_challenge/(?P<key>[^/]+)$', 'newnm_resend_challenge', name="public_newnm_resend_challenge"),
     url(r'^newnm/confirm/(?P<nonce>[^/]+)$', 'newnm_confirm', name="public_newnm_confirm"),
