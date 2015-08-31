@@ -21,7 +21,7 @@ from __future__ import division
 from __future__ import unicode_literals
 from django import http, template, forms
 from django.conf import settings
-from django.shortcuts import render, render_to_response, redirect
+from django.shortcuts import render, render_to_response, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.utils.translation import ugettext as _
 from django.core.urlresolvers import reverse
@@ -589,4 +589,26 @@ class PersonFingerprints(VisitPersonMixin, FormView):
         fpr.save(audit_author=self.visitor, audit_notes="added new fingerprint")
         # Ensure that only the new fingerprint is the active one
         self.person.fprs.exclude(pk=fpr.pk).update(is_active=False)
+        return redirect("restricted_person_fingerprints", key=self.person.lookup_key)
+
+
+class SetActiveFingerprint(VisitPersonMixin, View):
+    require_vperms = "edit_ldap"
+
+    @transaction.atomic
+    def post(self, request, key, fpr, *args, **kw):
+        fpr = get_object_or_404(bmodels.Fingerprint, fpr=fpr)
+        if fpr.user.pk != self.person.pk:
+            raise PermissionDenied
+
+        # Set all other fingerprints as not active
+        for f in self.person.fprs.filter(is_active=True).exclude(pk=fpr.pk):
+            f.is_active = False
+            f.save(audit_author=self.visitor, audit_notes="activated fingerprint {}".format(fpr.fpr))
+
+        # Set this fingerprint as active
+        if not fpr.is_active:
+            fpr.is_active = True
+            fpr.save(audit_author=self.visitor, audit_notes="activated fingerprint {}".format(fpr.fpr))
+
         return redirect("restricted_person_fingerprints", key=self.person.lookup_key)

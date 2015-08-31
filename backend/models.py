@@ -771,7 +771,7 @@ class Person(PermissionsMixin, models.Model):
 
 
 class FingerprintManager(BaseUserManager):
-    def create_user(self, **fields):
+    def create(self, **fields):
         audit_author = fields.pop("audit_author", None)
         audit_notes = fields.pop("audit_notes", None)
         audit_skip = fields.pop("audit_skip", False)
@@ -877,7 +877,7 @@ class PersonAuditLog(models.Model):
                 ov = old.get(k, None)
                 # Also ignore changes like None -> ""
                 if ov != nv and (ov or nv):
-                    changes["fpr:{}:{}".format(old.fpr, k)] = [ov, nv]
+                    changes["fpr:{}:{}".format(existing_fpr.fpr, k)] = [ov, nv]
         return changes
 
     @classmethod

@@ -9,6 +9,7 @@ from __future__ import unicode_literals
 from django.test import TestCase, TransactionTestCase
 from backend import const
 from backend.test_common import *
+import backend.models as bmodels
 
 class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
     def setUp(self):
@@ -366,6 +367,74 @@ class PersonFingerprintTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, Transacti
         self.assertVisit(WhenPost(user="am", person="app"), ThenAdded())
         self.assertVisit(WhenPost(user="fd", person="app"), ThenAdded())
         self.assertVisit(WhenPost(user="dam", person="app"), ThenAdded())
+
+        # DDs have key in LDAP, need to manage them via keyring-maint
+        for u in self.users.viewkeys():
+            self.assertVisit(WhenPost(user=u, person="adv"), ThenForbidden())
+        for u in self.users.viewkeys():
+            self.assertVisit(WhenPost(user=u, person="fd"), ThenForbidden())
+        for u in self.users.viewkeys():
+            self.assertVisit(WhenPost(user=u, person="dam"), ThenForbidden())
+
+
+class PersonFingerprintActivateTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TransactionTestCase):
+    def setUp(self):
+        super(PersonFingerprintActivateTestCase, self).setUp()
+        self.app = self.make_user("app", const.STATUS_DC, alioth=True, fd_comment="FD_COMMENTS")
+        self.adv = self.make_user("adv", const.STATUS_DD_NU)
+        self.am = self.make_user("am", const.STATUS_DD_NU)
+        self.proc = self.make_process(self.app, const.STATUS_DD_NU, const.PROGRESS_AM, manager=self.am, advocates=[self.adv])
+
+        for idx, u in enumerate(self.users.values()):
+            bmodels.Fingerprint.objects.create(user=u, fpr="0123456789abcdef00000123456789abcdef{:04}".format(idx), is_active=False, audit_skip=True)
+
+    def test_get(self):
+        class WhenView(NMTestUtilsWhen):
+            url = reverse("restricted_person_fingerprints_activate", kwargs={
+                "key": self.users["app"].lookup_key,
+                "fpr": self.users["app"].fprs.get().fpr,
+            })
+        allowed = frozenset(("app", "adv", "am", "fd", "dam"))
+        self.assertVisit(WhenView(), ThenForbidden())
+        for u in self.users.viewkeys() - allowed:
+            self.assertVisit(WhenView(user=self.users[u]), ThenForbidden())
+        for u in allowed:
+            self.assertVisit(WhenView(user=self.users[u]), ThenMethodNotAllowed())
+
+    def test_post(self):
+        users = self.users
+        class WhenPost(NMTestUtilsWhen):
+            method = "post"
+            def __init__(self, user=None, person=None, **kw):
+                user = users[user] if user else None
+                self.person = users[person]
+                data = {}
+                self.orig_fprs = self.person.fprs
+                super(WhenPost, self).__init__(user=user, data=data, url=reverse("restricted_person_fingerprints_activate", kwargs={
+                    "key": self.person.lookup_key,
+                    "fpr": self.person.fprs.get().fpr,
+                }), **kw)
+            def tearDown(self, fixture):
+                super(WhenPost, self).tearDown(fixture)
+                self.person.fprs.all().update(is_active=False)
+
+        class ThenActive(ThenRedirect):
+            def __call__(self, fixture, response, when, test_client):
+                super(ThenActive, self).__call__(fixture, response, when, test_client)
+                person = bmodels.Person.objects.get(pk=when.person.pk)
+                fixture.assertTrue(person.fprs.get().is_active)
+
+        # Anonymous cannot post to anything
+        for u in self.users.viewkeys():
+            self.assertVisit(WhenPost(person=u), ThenForbidden())
+
+        for u in self.users.viewkeys() - frozenset(("app", "adv", "am", "fd", "dam")):
+            self.assertVisit(WhenPost(user=u, person="app"), ThenForbidden())
+        self.assertVisit(WhenPost(user="app", person="app"), ThenActive())
+        self.assertVisit(WhenPost(user="adv", person="app"), ThenActive())
+        self.assertVisit(WhenPost(user="am", person="app"), ThenActive())
+        self.assertVisit(WhenPost(user="fd", person="app"), ThenActive())
+        self.assertVisit(WhenPost(user="dam", person="app"), ThenActive())
 
         # DDs have key in LDAP, need to manage them via keyring-maint
         for u in self.users.viewkeys():

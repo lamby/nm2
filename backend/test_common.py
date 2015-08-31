@@ -185,6 +185,12 @@ class ThenBadMethod(NMTestUtilsThen):
             fixture.fail("User {} got status code {} instead of a BadMethod when {}".format(
                 when.user, response.status_code, when))
 
+class ThenMethodNotAllowed(NMTestUtilsThen):
+    def __call__(self, fixture, response, when, test_client):
+        if response.status_code != 405:
+            fixture.fail("User {} got status code {} instead of a 405 'Method not allowed' when {}".format(
+                when.user, response.status_code, when))
+
 class ThenNotFound(NMTestUtilsThen):
     def __call__(self, fixture, response, when, test_client):
         if response.status_code != 404:

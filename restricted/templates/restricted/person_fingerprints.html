@@ -43,7 +43,13 @@
   <tr>
       <td>{{fpr.fpr}}</td>
       <td>{{fpr.is_active}}</td>
-      <td></td>
+      <td>
+        {% if not fpr_is_active %}
+        <form action="{% url 'restricted_person_fingerprints_activate' key=person.lookup_key fpr=fpr.fpr %}" method="POST">{% csrf_token %}
+          <button type="submit">Activate</button>
+        </form>
+        {% endif %}
+      </td>
   </tr>
   {% endfor %}
   </tbody>
