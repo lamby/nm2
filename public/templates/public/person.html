@@ -73,7 +73,7 @@
 <a href="{% url 'restricted_person' key=person.lookup_key %}">edit</a>
 {% endif %}
 
-{% if visitor == person or visitor.is_admin %}
+{% if visitor.is_am or visitor.is_admin %}
 <a href="{% url 'restricted_amprofile' key=person.lookup_key %}">edit AM</a>
 {% endif %}
 
