@@ -137,7 +137,7 @@ See: <a href="http://lists.debian.org/debian-project/2010/09/msg00026.html">hand
       {% endif %}
     {% endif %}
     <tr><th>Process</th><td>{{process.applying_as|desc_status}} → {{process.applying_for|desc_status}}</td></tr>
-    <tr><th>Progress</th><td>{{process.progress|desc_progress}}</td></tr>
+    <tr><th>Progress</th><td>{% if process.is_active %}<a href="{% url 'public_progress' progress=process.progress %}">{{process.progress|desc_progress}}</a>{% else %}{{process.progress|desc_progress}}{% endif %}</td></tr>
     <tr><th>Account created</th><td>{% if process.progress == PROGRESS_DONE %}yes{% else %}no{% endif %}</td></tr>
     {% if visitor.is_admin %}
     <tr><th>FD comments</th><td>{{person.fd_comment}}</td></tr>
