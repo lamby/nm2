@@ -213,7 +213,7 @@ class KeyringMaintImport(object):
     def do_add_dm(self, commit, info):
         # Check for existing records in the database
         try:
-            fpr_person = bmodels.Person.objects.get(fpr=info["fpr"])
+            fpr_person = bmodels.Person.objects.get(fprs__fpr=info["fpr"])
         except bmodels.Person.DoesNotExist:
             fpr_person = None
         try:
@@ -308,7 +308,7 @@ class KeyringMaintImport(object):
                 audit_notes = "Set fingerprint to {}, RT #{}".format(info["fpr"], info["rt"])
             else:
                 audit_notes = "Set fingerprint to {}, RT unknown".format(info["fpr"])
-            person.fpr = info["fpr"]
+            fpr = person.fprs.create(fpr=info["fpr"], is_active=True)
             person.save(audit_author=info["audit_author"], audit_notes=audit_notes)
             log.info("%s: %s: %s", self.logtag, self.person_link(person), audit_notes)
             # Do not return yet, we still need to check the status
@@ -373,7 +373,7 @@ class KeyringMaintImport(object):
                 uid_person = None
 
             try:
-                fpr_person = bmodels.Person.objects.get(fpr=fpr)
+                fpr_person = bmodels.Person.objects.get(fprs__fpr=fpr)
             except bmodels.Person.DoesNotExist:
                 fpr_person = None
 
@@ -441,12 +441,12 @@ class KeyringMaintImport(object):
             uid_person = None
 
         try:
-            old_person = bmodels.Person.objects.get(fpr=old_key)
+            old_person = bmodels.Person.objects.get(fprs__fpr=old_key)
         except bmodels.Person.DoesNotExist:
             old_person = None
 
         try:
-            new_person = bmodels.Person.objects.get(fpr=new_key)
+            new_person = bmodels.Person.objects.get(fprs__fpr=new_key)
         except bmodels.Person.DoesNotExist:
             new_person = None
 
@@ -495,7 +495,7 @@ class KeyringMaintImport(object):
         else:
             # Perform replace
             person = old_person if old_person is not None else uid_person
-            person.fpr = new_key
+            person.fprs.create(fpr=new_key, is_active=True)
             if rt is not None:
                 audit_notes = "GPG key changed, RT #{}".format(rt)
             else:
