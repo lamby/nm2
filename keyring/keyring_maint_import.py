@@ -311,7 +311,7 @@ class KeyringMaintImport(object):
                 audit_notes = "Set fingerprint to {}, RT #{}".format(info["fpr"], info["rt"])
             else:
                 audit_notes = "Set fingerprint to {}, RT unknown".format(info["fpr"])
-            fpr = person.fprs.create(fpr=info["fpr"], is_active=True)
+            fpr = person.fprs.create(fpr=info["fpr"], is_active=True, audit_author=info["audit_author"], audit_notes=audit_notes)
             person.save(audit_author=info["audit_author"], audit_notes=audit_notes)
             log.info("%s: %s: %s", self.logtag, self.person_link(person), audit_notes)
             # Do not return yet, we still need to check the status
@@ -498,14 +498,11 @@ class KeyringMaintImport(object):
         else:
             # Perform replace
             person = old_person if old_person is not None else uid_person
-            person.fprs.create(fpr=new_key, is_active=True)
             if rt is not None:
                 audit_notes = "GPG key changed, RT #{}".format(rt)
             else:
                 audit_notes = "GPG key changed, RT unknown".format(rt)
-            person.save(
-                audit_author=author,
-                audit_notes=audit_notes)
+            person.fprs.create(fpr=new_key, is_active=True, audit_author=author, audit_notes=audit_notes)
             log.info("%s: %s: %s", self.logtag, self.person_link(person), audit_notes)
             return True
 
