@@ -41,7 +41,7 @@ class ProgressFinalisationsOnAccountsCreated(hk.Task):
         dm_ga_uids = set()
         dd_uids = set()
         for entry in dmodels.list_people():
-            if entry.single("gidNumber") == "800" and entry.single("keyFingerPrint") is not None:
+            if entry.is_dd and entry.single("keyFingerPrint") is not None:
                 dd_uids.add(entry.uid)
             else:
                 dm_ga_uids.add(entry.uid)
@@ -72,7 +72,7 @@ class NewGuestAccountsFromDSA(hk.Task):
     def run_main(self, stage):
         for entry in dmodels.list_people():
             # Skip DDs
-            if entry.single("gidNumber") == "800" and entry.single("keyFingerPrint") is not None: continue
+            if entry.is_dd and entry.single("keyFingerPrint") is not None: continue
 
             fpr = entry.single("keyFingerPrint")
 
@@ -192,7 +192,7 @@ class CheckLDAPConsistency(hk.Task):
                         "username": "{}@invalid.example.org".format(entry.uid),
                         "audit_author": self.hk.housekeeper.user,
                     }
-                    if entry.single("gidNumber") == "800":
+                    if entry.is_dd:
                         args["status"] = const.STATUS_REMOVED_DD
                         args["audit_notes"] = "created to mirror a removed guest account from LDAP"
                         if not args["email"]: args["email"] = "{}@debian.org".format(entry.uid)
@@ -203,9 +203,9 @@ class CheckLDAPConsistency(hk.Task):
                     person = bmodels.Person.objects.create_user(**args)
                     log.warn("%s: %s: %s", self.IDENTIFIER, self.hk.link(person), args["audit_notes"])
             else:
-                if entry.single("gidNumber") == "800" and entry.single("keyFingerPrint") is not None:
+                if entry.is_dd and entry.single("keyFingerPrint") is not None:
                     if person.status not in (const.STATUS_DD_U, const.STATUS_DD_NU):
-                        log.warn("%s: %s has gidNumber 800 and fingerprint %s in LDAP, but in our db the state is %s",
+                        log.warn("%s: %s has supplementaryGid 'Debian' and fingerprint %s in LDAP, but in our db the state is %s",
                                  self.IDENTIFIER, self.hk.link(person), entry.single("keyFingerPrint"), const.ALL_STATUS_DESCS[person.status])
 
                 email = entry.single("emailForward")

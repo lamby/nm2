@@ -33,6 +33,14 @@ class Entry(object):
             return None
         return val[0]
 
+    @property
+    def is_dd(self):
+        return "Debian" in self.attrs["supplementaryGid"]
+
+    @property
+    def is_guest(self):
+        return "guest" in self.attrs["supplementaryGid"]
+
 def list_people():
     search_base = "dc=debian,dc=org"
     l = ldap.initialize(LDAP_SERVER)
