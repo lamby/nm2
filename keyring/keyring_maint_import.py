@@ -275,7 +275,7 @@ class KeyringMaintImport(object):
 
     def do_add_dd(self, commit, role, info):
         try:
-            fpr_person = bmodels.Person.objects.get(fpr=info["fpr"])
+            fpr_person = bmodels.Person.objects.get(fprs__fpr=info["fpr"])
         except bmodels.Person.DoesNotExist:
             fpr_person = None
         if info["uid"]:

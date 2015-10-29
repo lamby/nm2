@@ -420,7 +420,7 @@ class PersonManager(BaseUserManager):
             if p is not None:
                 candidates.append((p, "email", email))
         if fpr is not None:
-            p = self.get_or_none(fpr=fpr)
+            p = self.get_or_none(fprs__fpr=fpr)
             if p is not None:
                 candidates.append((p, "fingerprint", fpr))
         if username is not None:
