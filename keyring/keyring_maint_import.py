@@ -139,8 +139,11 @@ class KeyringMaintImport(object):
 
         fpr = operation.get("New-key", None)
         if fpr is None:
-            log.warn("%s: New-key field not found in commit %s", self.logtag, commit)
-            return None
+            log.warn("%s: New-key field not found in commit %s, trying Key instead", self.logtag, commit)
+            fpr = operation.get("Key", None)
+            if fpr is None:
+                log.warn("%s: Key field not found in commit %s, aborting", self.logtag, commit)
+                return None
 
         fn = operation.get("Subject", None)
         if fn is None:
