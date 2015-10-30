@@ -52,13 +52,13 @@ class Keyrings(hk.Task):
         self.dm = frozenset(kmodels.list_dm())
         log.info("%s: Imported %d entries from dm keyring", self.IDENTIFIER, len(self.dm))
         self.dd_u = frozenset(kmodels.list_dd_u())
-        log.info("%s: Imported %d entries ffom dd_u keyring", self.IDENTIFIER, len(self.dd_u))
+        log.info("%s: Imported %d entries from dd_u keyring", self.IDENTIFIER, len(self.dd_u))
         self.dd_nu = frozenset(kmodels.list_dd_nu())
-        log.info("%s: Imported %d entries ffom dd_nu keyring", self.IDENTIFIER, len(self.dd_nu))
+        log.info("%s: Imported %d entries from dd_nu keyring", self.IDENTIFIER, len(self.dd_nu))
         self.emeritus_dd = frozenset(kmodels.list_emeritus_dd())
-        log.info("%s: Imported %d entries ffom emeritus_dd keyring", self.IDENTIFIER, len(self.emeritus_dd))
+        log.info("%s: Imported %d entries from emeritus_dd keyring", self.IDENTIFIER, len(self.emeritus_dd))
         self.removed_dd = frozenset(kmodels.list_removed_dd())
-        log.info("%s: Imported %d entries ffom removed_dd keyring", self.IDENTIFIER, len(self.removed_dd))
+        log.info("%s: Imported %d entries from removed_dd keyring", self.IDENTIFIER, len(self.removed_dd))
 
         # Keep an index mapping key IDs to fingerprints and keyring type
         self.by_fpr = {}
