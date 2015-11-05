@@ -59,7 +59,7 @@ $(function() {
 <tbody>
     {% for m in mails %}
     <tr>
-        <td>{{m.Date}}</td>
+        <td>{{m.Date|date:"Y-m-d H:i:s"}}</td>
         <td>{{m.From}}</td>
         <td>{{m.Subject}}</td>
     </tr>
