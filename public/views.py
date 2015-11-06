@@ -23,7 +23,6 @@ from __future__ import unicode_literals
 from django import http, forms
 from django.conf import settings
 from django.shortcuts import redirect, render, get_object_or_404
-from django.contrib.auth.decorators import login_required
 from django.core.urlresolvers import reverse
 from django.core.exceptions import PermissionDenied
 from django.utils.translation import ugettext as _
@@ -877,12 +876,16 @@ class Newnm(VisitorMixin, FormView):
         )
         return ctx
 
-@login_required
 def newnm_resend_challenge(request, key):
     """
     Send/resend the encrypted email nonce for people who just requested a new
     Person record
     """
+
+    # Check someone is logged in, to avoid casual crawling
+    if not request.user.is_authenticated():
+        raise PermissionDenied()
+
     from keyring.models import UserKey
     person = bmodels.Person.lookup_or_404(key)
 
