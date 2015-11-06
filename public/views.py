@@ -794,7 +794,10 @@ class NewPersonForm(forms.ModelForm):
     dmup_ok = forms.ChoiceField(choices=YESNO, widget=forms.RadioSelect(), label="DMUP agreement")
 
     def clean_fpr(self):
-        return bmodels.FingerprintField.clean_fingerprint(self.cleaned_data['fpr'])
+        data = bmodels.FingerprintField.clean_fingerprint(self.cleaned_data['fpr'])
+        if bmodels.Fingerprint.objects.filter(fpr=data).exists():
+            raise forms.ValidationError("The GPG fingerprint is already known to this system. Please contact Front Desk to link your Alioth account to it.")
+        return data
 
     def clean_sc_ok(self):
         data = self.cleaned_data['sc_ok']
