@@ -21,7 +21,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 from . import models as kmodels
+from backend import models as bmodels
 from django import http
+from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from ratelimit.decorators import ratelimit
 import json
 import time
@@ -75,6 +77,17 @@ def keycheck(request, fpr):
                     "sigs_no_key": len(ku.sigs_no_key),
                     "sigs_bad": len(ku.sigs_bad)
                 })
+
+            try:
+                bf = bmodels.Fingerprint.objects.get(fpr=fpr)
+                k["person_id"] = bf.user_id
+                k["person"] = bf.user.fullname
+            except ObjectDoesNotExist:
+                k["person_id"] = None
+                k["person"] = None
+            except MultipleObjectsReturned:
+                # Should never happen because of unique constraints
+                raise
 
         return json_response(k)
     except RuntimeError as e:
