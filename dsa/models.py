@@ -4,7 +4,10 @@ Code used to access Debian's LDAP
 
 from django.db import models
 from django.conf import settings
-import ldap
+try:
+    import ldap
+except ImportError:
+    import ldap3 as ldap
 
 LDAP_SERVER = getattr(settings, "LDAP_SERVER", "ldap://db.debian.org")
 

@@ -22,13 +22,13 @@ import os.path
 import os
 import errno
 import shutil
-from cStringIO import StringIO
+from io import StringIO
 
 class atomic_writer(object):
     """
     Atomically write to a file
     """
-    def __init__(self, fname, mode=0664, sync=True):
+    def __init__(self, fname, mode=0o664, sync=True):
         self.fname = fname
         self.mode = mode
         self.sync = sync
@@ -128,7 +128,7 @@ class NamedTemporaryDirectory(object):
         shutil.rmtree(self.pathname)
         return False
 
-def require_dir(pathname, mode=0777):
+def require_dir(pathname, mode=0o777):
     """
     Make sure pathname exists, creating it if not.
     """

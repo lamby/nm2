@@ -8,7 +8,7 @@ import re
 import os
 import os.path
 import email.utils
-import cPickle as pickle
+import pickle
 import xapian
 
 log = logging.getLogger(__name__)

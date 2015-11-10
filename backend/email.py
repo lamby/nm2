@@ -5,7 +5,10 @@ from django.template.loader import render_to_string
 from django.utils.log import getLogger
 import email
 import email.utils
-from email.Iterators import typed_subpart_iterator
+try:
+    from email.Iterators import typed_subpart_iterator
+except ImportError:
+    from email.iterators import typed_subpart_iterator
 import mailbox
 from . import const
 

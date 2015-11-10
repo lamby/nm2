@@ -14,7 +14,7 @@ import os, os.path
 import re
 import time
 import subprocess
-import cPickle as pickle
+import pickle
 import psycopg2
 import logging
 
@@ -88,7 +88,7 @@ def read_gpg():
             rec["fpr"] = row[9]
     if rec is not None: yield rec
     if proc.wait() != 0:
-        raise RuntimeError, "gpg exited with error %d" % proc.returncode
+        raise RuntimeError("gpg exited with error {}".format(proc.returncode))
 
 class Maintainers(object):
     def __init__(self):
