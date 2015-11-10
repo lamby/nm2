@@ -8,10 +8,13 @@ if hasattr(sys, "dont_write_bytecode"):
 import imp
 import unittest
 import os
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "settings")
-import settings
-import backend.models as bmodels
+import django
 from cStringIO import StringIO
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "nm2.settings")
+django.setup()
+
+import backend.models as bmodels
 
 Dispatcher = imp.load_source("ape", "./archive-process-email").Dispatcher
 
