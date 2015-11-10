@@ -1,9 +1,13 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 """
 Dispatch an email to the right mailbox
 """
 
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
 import sys
 import re
 import shutil
@@ -62,7 +66,7 @@ class Dispatcher(object):
                 self._db = psycopg2.connect("service=nm user=nm")
             except:
                 import sqlite3
-                self._db = sqlite3.connect("db-used-for-development.sqlite")
+                self._db = sqlite3.connect("data/db-used-for-development.sqlite")
                 global Q
                 Q = lambda s: s.replace("%s", "?").replace("true", "1")
         return self._db
@@ -94,15 +98,15 @@ class Dispatcher(object):
             reason = "exception %s: %s" % (exc.__class__.__name__, str(exc))
         self.msg["NM-Archive-Failsafe-Reason"] = reason
 
-        with umask_override(037) as uo:
+        with umask_override(0o037) as uo:
             with open(os.path.join(self.destdir, "failsafe.mbox"), "a") as out:
-                print >>out, self.msg.as_string(True)
+                print(self.msg.as_string(True), file=out)
                 shutil.copyfileobj(sys.stdin, self.infd)
 
     def deliver_to_archive_key(self, arc_key):
-        with umask_override(037) as uo:
+        with umask_override(0o037) as uo:
             with open(os.path.join(self.destdir, "%s.mbox" % arc_key), "a") as out:
-                print >>out, self.msg.as_string(True)
+                print(self.msg.as_string(True), file=out)
                 shutil.copyfileobj(sys.stdin, self.infd)
 
     def archive_key_from_dest_key(self, dest_key):
@@ -256,17 +260,17 @@ def main():
         msgid = dispatcher.msg.get("message-id", "(no message id)")
         try:
             for arc_key in dispatcher.get_arc_keys():
-                print msgid, arc_key
+                print(msgid, arc_key)
             return 0
-        except Exception, e:
-            print msgid, "failsafe"
+        except Exception as e:
+            print(msgid, "failsafe")
             return 1
     else:
         try:
             for arc_key in dispatcher.get_arc_keys():
                 dispatcher.deliver_to_archive_key(arc_key)
             return 0
-        except Exception, e:
+        except Exception as e:
             dispatcher.deliver_to_failsafe(exc=e)
             return 1
 

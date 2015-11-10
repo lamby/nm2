@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import sys
 # Avoid creating archive-process-emailc
@@ -9,9 +9,9 @@ import imp
 import unittest
 import os
 import django
-from cStringIO import StringIO
+import io
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "nm2.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "nm2.settings_tapi")
 django.setup()
 
 import backend.models as bmodels
@@ -53,7 +53,7 @@ class TestLookup(unittest.TestCase):
         return res.as_string()
 
     def make_dispatcher(self, **kw):
-        return Dispatcher(StringIO(self.make_email(**kw)))
+        return Dispatcher(io.StringIO(self.make_email(**kw)))
 
     def testDestkeyEmail(self):
         dest = self.proc.person.email.replace("@", "=")

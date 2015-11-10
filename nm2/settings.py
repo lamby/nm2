@@ -122,7 +122,7 @@ TEMPLATE_DIRS = (
     "./", "templates"
 )
 
-INSTALLED_APPS = (
+INSTALLED_APPS = [
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -150,7 +150,7 @@ INSTALLED_APPS = (
     'minechangelogs',
     'api',
     'contributors',
-)
+]
 
 TEMPLATE_CONTEXT_PROCESSORS = global_settings.TEMPLATE_CONTEXT_PROCESSORS + (
     "django.core.context_processors.request",
