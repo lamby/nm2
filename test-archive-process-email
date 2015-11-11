@@ -59,46 +59,17 @@ class TestLookup(unittest.TestCase):
         dest = self.proc.person.email.replace("@", "=")
         d = self.make_dispatcher(dk=dest)
         key = d.get_dest_key()
-        self.assertEquals(key, dest)
+        self.assertEqual(key, dest)
         arc_key = d.archive_key_from_dest_key(key)
-        self.assertEquals(arc_key, self.proc.archive_key)
+        self.assertEqual(arc_key, self.proc.archive_key)
 
     def testDestkeyUid(self):
         dest = self.proc.person.uid
         d = self.make_dispatcher(dk=dest)
         key = d.get_dest_key()
-        self.assertEquals(key, dest)
+        self.assertEqual(key, dest)
         arc_key = d.archive_key_from_dest_key(key)
-        self.assertEquals(arc_key, self.proc.archive_key)
-
-    def testInfer(self):
-        d = self.make_dispatcher(src="nm", dst="am")
-        self.assertEquals(d.get_arc_keys(), [self.proc.archive_key])
-        self.assertNotIn("lookup by distinct nm and am gave 0 results", d.lookup_attempts)
-
-        d = self.make_dispatcher(src="am", dst="nm")
-        self.assertEquals(d.get_arc_keys(), [self.proc.archive_key])
-        self.assertNotIn("lookup by distinct nm and am gave 0 results", d.lookup_attempts)
-
-        d = self.make_dispatcher(src="fd", dst="nm")
-        self.assertEquals(d.get_arc_keys(), [self.proc.archive_key])
-
-    def testInferMultidest(self):
-        # Find an AM with multiple NMs
-        am = None
-        procs = None
-        for a in bmodels.AM.objects.all():
-            procs = a.processed.filter(is_active=True)
-            if procs.count() > 1:
-                am = a
-                procs = list(procs)
-                break
-        assert am
-        # AM sends an email to all their applicants
-        d = self.make_dispatcher(src=[am.person], dst=[p.person for p in procs])
-        self.assertEquals(sorted(d.get_arc_keys()), sorted(p.archive_key for p in procs))
-        self.assertNotIn("lookup by distinct nm and am gave 0 results", d.lookup_attempts)
-
+        self.assertEqual(arc_key, self.proc.archive_key)
 
 if __name__ == '__main__':
     unittest.main()
