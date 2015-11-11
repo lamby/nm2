@@ -130,7 +130,7 @@ class Dispatcher(object):
         SELECT pr.archive_key
           FROM person p
           JOIN process pr ON pr.person_id = p.id
-         WHERE pr.is_active = 1
+         WHERE pr.is_active IS TRUE
         """
 
         if '=' in dest_key:
