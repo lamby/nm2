@@ -50,10 +50,10 @@ class TestLookup(unittest.TestCase):
             res["Delivered-To"] = "archive-%s@nm.debian.org" % dk
         else:
             res["Delivered-To"] = "archive@nm.debian.org"
-        return res.as_string()
+        return res.as_string().encode("utf-8")
 
     def make_dispatcher(self, **kw):
-        return Dispatcher(io.StringIO(self.make_email(**kw)))
+        return Dispatcher(io.BytesIO(self.make_email(**kw)))
 
     def testDestkeyEmail(self):
         dest = self.proc.person.email.replace("@", "=")
