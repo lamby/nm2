@@ -57,7 +57,7 @@ class Dispatcher(object):
         self._db = None
 
         # Parse the header only, leave the body in the input pipe
-        self.msg = HeaderParser().parse(self.infd)
+        self.msg = BytesHeaderParser().parse(self.infd)
 
         # History of lookup attempts
         self.lookup_attempts = []
