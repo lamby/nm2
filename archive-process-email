@@ -13,7 +13,7 @@ import re
 import shutil
 import os
 import os.path
-from email.parser import HeaderParser
+from email.parser import BytesHeaderParser
 from email.utils import getaddresses
 
 VERSION="0.1"
