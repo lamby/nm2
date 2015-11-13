@@ -51,7 +51,7 @@ class umask_override(object):
 class Dispatcher(object):
     re_dest = re.compile("^archive-(.+)@nm.debian.org$")
 
-    def __init__(self, infd=sys.stdin, destdir=DEFAULT_DESTDIR):
+    def __init__(self, infd, destdir=DEFAULT_DESTDIR):
         self.destdir = destdir
         self.infd = infd
         self._db = None
@@ -114,15 +114,17 @@ class Dispatcher(object):
         self.msg["NM-Archive-Failsafe-Reason"] = reason
 
         with umask_override(0o037) as uo:
-            with open(os.path.join(self.destdir, "failsafe.mbox"), "a") as out:
-                print(self.msg.as_string(True), file=out)
-                shutil.copyfileobj(sys.stdin, self.infd)
+            with open(os.path.join(self.destdir, "failsafe.mbox"), "ab") as out:
+                out.write(self.msg.as_string(True).encode("utf-8"))
+                out.write(b"\n")
+                shutil.copyfileobj(self.infd, out)
 
     def deliver_to_archive_key(self, arc_key):
         with umask_override(0o037) as uo:
-            with open(os.path.join(self.destdir, "%s.mbox" % arc_key), "a") as out:
-                print(self.msg.as_string(True), file=out)
-                shutil.copyfileobj(sys.stdin, self.infd)
+            with open(os.path.join(self.destdir, "%s.mbox" % arc_key), "ab") as out:
+                out.write(self.msg.as_string(True).encode("utf-8"))
+                out.write(b"\n")
+                shutil.copyfileobj(self.infd, out)
 
     def archive_key_from_dest_key(self, dest_key):
         cur = self.db.cursor()
@@ -177,7 +179,7 @@ def main():
     parser.add_option("--dry-run", action="store_true", help="print destinations instead of delivering mails")
     (opts, args) = parser.parse_args()
 
-    dispatcher = Dispatcher(sys.stdin, destdir=opts.dest)
+    dispatcher = Dispatcher(sys.stdin.buffer, destdir=opts.dest)
     if opts.dry_run:
         msgid = dispatcher.msg.get("message-id", "(no message id)")
         try:
