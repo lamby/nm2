@@ -12,6 +12,6 @@ The current status of {{ log.process.person.fullname }} is {{ log.process.person
 
 Advocacy text:
 
-{{ log.logtext }}
+{{ log.logtext|safe }}
 
 {{ log.changed_by.fullname }} (via nm.debian.org)
