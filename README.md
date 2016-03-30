@@ -3,10 +3,16 @@ Debian NM Front Desk web application
 
 ## Running this code on your own machine
 ### Dependencies
-    
-    apt-get install python-django python-ldap python-psycopg2 python-xapian \
-     python-debian python-django-south python-markdown \
-     python-debiancontributors
+
+    apt-get install python-markdown python-ldap python-psycopg2 python-xapian \
+     python-django python-django-south python-django-housekeeping \
+     python-debian python-debiancontributors
+
+#### django-housekeeping
+
+The ‘python-django-housekeeping’ package is not available in Debian
+earlier than Debian Stretch. If you are deploying to a machine running
+Debian earlier than Stretch, use the following procedure:
 
     # https://github.com/spanezz/django-housekeeping
     git clone https://github.com/spanezz/django-housekeeping
@@ -18,6 +24,10 @@ Debian NM Front Desk web application
 
     # install the package
     dpkg -i  ../python-django-housekeeping_0.1-1_all.deb
+
+#### django-ratelimit
+
+The ‘django-ratelimit’ library is not yet in Debian.
 
     # https://github.com/jsocol/django-ratelimit
     git clone https://github.com/jsocol/django-ratelimit.git
