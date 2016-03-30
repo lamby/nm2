@@ -110,7 +110,7 @@ class StreamStdoutKeepStderr(object):
                     else:
                         last_line = l
             elif tag == "E":
-                self.stderr.write(buf)
+                self.stderr.write(unicode(buf))
         if last_line is not None:
             yield last_line
 
