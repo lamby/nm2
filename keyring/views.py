@@ -24,7 +24,9 @@ from . import models as kmodels
 from backend import models as bmodels
 from django import http
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
+from django.utils.timezone import utc, now
 import json
+import datetime
 import time
 
 class Serializer(json.JSONEncoder):
@@ -47,45 +49,44 @@ def keycheck(request, fpr):
     if request.method != "GET":
         return http.HttpResponseForbidden("Only GET request is allowed here")
 
-    if getattr(request, 'limited', False) and request.user.is_anonymous():
-        return json_response({
-            "error": "too many requests, please wait a minute before retrying",
-        }, status_code=420)
-
     try:
-        key = kmodels.UserKey(fpr)
-        # Do not refresh more than once every 5 minutes
-        if key.getmtime() + 300 < time.time():
-            key.refresh()
+        key = kmodels.Key.objects.get_or_download(fpr)
+
+        # Do not redownload more than once every 5 minutes
+        if key.key_updated < now() - datetime.timedelta(minutes=5):
+            key.update_key()
+
+        key.update_check_sigs()
+
         res = {}
-        for kc in key.keycheck():
-            uids = []
-            k = {
-                "fpr": kc.key.fpr,
-                "errors": sorted(kc.errors),
-                "uids": uids
-            }
-            res[kc.key.fpr] = k
+        kc = key.keycheck()
+        uids = []
+        k = {
+            "fpr": kc.key.fpr,
+            "errors": sorted(kc.errors),
+            "uids": uids
+        }
+        res[kc.key.fpr] = k
 
-            for ku in kc.uids:
-                uids.append({
-                    "name": ku.uid.name,
-                    "errors": sorted(ku.errors),
-                    "sigs_ok": [x[9].decode("utf8", "replace") for x in ku.sigs_ok],
-                    "sigs_no_key": len(ku.sigs_no_key),
-                    "sigs_bad": len(ku.sigs_bad)
-                })
+        for ku in kc.uids:
+            uids.append({
+                "name": ku.uid.name,
+                "errors": sorted(ku.errors),
+                "sigs_ok": [x[9].decode("utf8", "replace") for x in ku.sigs_ok],
+                "sigs_no_key": len(ku.sigs_no_key),
+                "sigs_bad": len(ku.sigs_bad)
+            })
 
-            try:
-                bf = bmodels.Fingerprint.objects.get(fpr=fpr)
-                k["person_id"] = bf.user_id
-                k["person"] = bf.user.fullname
-            except ObjectDoesNotExist:
-                k["person_id"] = None
-                k["person"] = None
-            except MultipleObjectsReturned:
-                # Should never happen because of unique constraints
-                raise
+        try:
+            bf = bmodels.Fingerprint.objects.get(fpr=fpr)
+            k["person_id"] = bf.user_id
+            k["person"] = bf.user.fullname
+        except ObjectDoesNotExist:
+            k["person_id"] = None
+            k["person"] = None
+        except MultipleObjectsReturned:
+            # Should never happen because of unique constraints
+            raise
 
         return json_response(k)
     except RuntimeError as e:

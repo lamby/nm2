@@ -21,6 +21,7 @@ import datetime
 import shutil
 import tempfile
 from six.moves.urllib.parse import urlencode
+import json
 import requests
 import logging
 
@@ -65,8 +66,8 @@ class KeyManager(models.Manager):
         homedir = tempfile.mkdtemp(dir=KEYRINGS_TMPDIR)
         try:
             gpg = GPG(homedir=homedir)
-            gpg.run_checked(["--import"], input=res.text)
-            return gpg.run_checked(["--export", "-a", fpr])
+            gpg.run_checked(gpg.cmd("--import"), input=res.text)
+            return gpg.run_checked(gpg.cmd("--export", "-a", fpr))
         finally:
             shutil.rmtree(homedir)
 
@@ -87,10 +88,59 @@ class Key(models.Model):
     fpr = FingerprintField(verbose_name="OpenPGP key fingerprint", max_length=40, unique=True)
     key = models.TextField(verbose_name="ASCII armored key material")
     key_updated = models.DateTimeField(verbose_name="Datetime when the key material was downloaded")
-    keycheck = models.TextField(verbose_name="keycheck results (JSON)", blank=True)
-    keycheck_update = models.DateTimeField(verbose_name="Datetime when the keycheck data was computed", null=True)
+    check_sigs = models.TextField(verbose_name="gpg --check-sigs results", blank=True)
+    check_sigs_updated = models.DateTimeField(verbose_name="Datetime when the check_sigs data was computed", null=True)
 
     objects = KeyManager()
+
+    def update_key(self):
+        self.key = self.objects.download()
+        self.key_updated = now()
+        self.save()
+
+    def update_check_sigs(self):
+        """
+        This little (and maybe bad) function is used to check keys.
+
+        It computes the key and all signatures made by existing Debian
+        Developers.
+
+        Then, it checks to make sure that the key has encryption and signature
+        capabilities, and will continue to have them one month into the future.
+        """
+        # Based on keycheck.sh by
+        # Joerg Jaspert <joerg@debian.org>,
+        # Daniel Kahn Gillmor <dkg@fifthhorseman.net>,
+        # and others.
+
+        homedir = tempfile.mkdtemp(dir=KEYRINGS_TMPDIR)
+        keyring = os.path.join(homedir, "user.gpg")
+        try:
+            gpg = GPG(homedir=homedir)
+            gpg.run_checked(gpg.cmd("--import"), input=self.key)
+
+            # Check key
+            cmd = gpg.keyring_cmd(("debian-keyring.gpg", "debian-nonupload.gpg"), "--check-sigs", self.fpr)
+            self.check_sigs = gpg.run_checked(cmd)
+            self.check_sigs_updated = now()
+        finally:
+            shutil.rmtree(homedir)
+        self.save()
+
+
+    def keycheck(self):
+        if not self.check_sigs:
+            self.update_check_sigs()
+
+        # Check the key data and signatures
+        keys = KeyData.read_from_gpg(self.check_sigs.splitlines())
+
+        # There should only be keycheck data for the fingerprint we gave gpg
+        keydata = keys.get(self.fpr, None)
+        if keydata is None:
+            raise RuntimeError("keycheck results not found for fingerprint " + self.fpr)
+
+        return KeycheckKeyResult(keydata)
 
 
 class GPG(object):
@@ -160,13 +210,13 @@ class GPG(object):
         result = proc.wait()
         return stdout, stderr, result
 
-    def run_checked(self, args, input=None):
+    def run_checked(self, cmd, input=None):
         """
         Run gpg with the given command, waiting for its completion, returning stdout.
 
         In case gpg returns nonzero, raises a RuntimeError that includes stderr.
         """
-        stdout, stderr, result = self.run_cmd(self.cmd(*args), input)
+        stdout, stderr, result = self.run_cmd(cmd, input)
         if result != 0:
             raise RuntimeError("gpg exited with status %d: %s" % (result, stderr.strip()))
         return stdout
@@ -358,7 +408,7 @@ class KeyData(object):
                     raise Exception("gpg:{}: found sub line with no previous pub+fpr lines".format(lineno))
                 cur_key.add_sub(line.split(b":"))
 
-        return keys.itervalues()
+        return keys
 
 class Uid(object):
     """
@@ -578,34 +628,6 @@ class UserKey(object):
             raise RuntimeError("gpg exited with status %d: %s" % (result, stderr.strip()))
         return stdout
 
-    def keycheck(self):
-        """
-        This little (and maybe bad) function is used to check keys from NM's.
-
-        First it downloads the key of the NM from a keyserver in the local nm.gpg
-        file.
-
-        Then it shows the key and all signatures made by existing Debian
-        Developers.
-
-        Finally, it checks to make sure that the key has encryption and
-        signature capabilities, and will continue to have them one month
-        into the future.
-        """
-        # Based on keycheck,sh by
-        # Joerg Jaspert <joerg@debian.org>,
-        # Daniel Kahn Gillmor <dkg@fifthhorseman.net>,
-        # and others.
-
-        # Check key
-        cmd = self.gpg.keyring_cmd(("debian-keyring.gpg", "debian-nonupload.gpg"), "--keyring", self.keyring, "--check-sigs", self.fpr)
-        proc, lines = self.gpg.pipe_cmd(cmd)
-        for key in KeyData.read_from_gpg(lines):
-            yield key.keycheck()
-
-        result = proc.wait()
-        if result != 0:
-            raise RuntimeError("gpg exited with status %d: %s" % (result, lines.stderr.getvalue().strip()))
 
 class Changelog(object):
     re_date = re.compile("^\d+-\d+-\d+$")
