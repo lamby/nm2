@@ -29,6 +29,10 @@ class LookupTest(TestCase):
         self.assertFalse(kmodels.is_dd_nu(fpr))
 
 class TestKeycheck(TestCase):
+    def test_download(self):
+        encoded = kmodels.Key.objects.download("1793D6AB75663E6BF104953A634F4BD1E7AD5568")
+        self.assertTrue(encoded.startswith("-----BEGIN PGP PUBLIC KEY BLOCK-----"))
+
     def test_keycheck(self):
         c = Client()
         response = c.get(reverse("keyring_keycheck", kwargs={"fpr": "1793D6AB75663E6BF104953A634F4BD1E7AD5568"}))
