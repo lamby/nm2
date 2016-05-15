@@ -3,12 +3,14 @@
 from django.conf import global_settings
 import os.path
 import datetime
+import sys
 
 PROJECT_DIR = os.path.abspath(os.path.dirname(__file__))
 DATA_DIR = os.path.join(PROJECT_DIR, '../data')
 
 DEBUG = False
 TEMPLATE_DEBUG = DEBUG
+TESTING = 'test' in sys.argv
 
 ADMINS = (
     ('Debian New Member Frontdesk', 'nm@debian.org'),
@@ -29,7 +31,7 @@ TIME_ZONE = 'UTC'
 LANGUAGE_CODE = 'en_GB'
 
 LOCALE_PATHS = (os.path.join(PROJECT_DIR, "locale"), )
-SECRET_KEY = 'non-empty secret for ugettext'
+SECRET_KEY = 'thisisnotreallysecretweonlyuseitfortestingharrharr'
 from django.utils.translation import ugettext_lazy as _
 LANGUAGES = (
     ('de', _('German')),
@@ -185,6 +187,33 @@ LOGGING = {
     }
 }
 
+# Database configuration for development environments
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
+        'NAME': '%s/db-used-for-development.sqlite' % DATA_DIR, # Or path to database file if using sqlite3.
+        'USER': '',                      # Not used with sqlite3.
+        'PASSWORD': '',                  # Not used with sqlite3.
+        'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
+        'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
+    },
+    'projectb': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'projectb',
+        'USER': 'guest',
+        'HOST': 'localhost',
+        # ssh mirror.ftp-master.debian.org -L15434:bmdb1.debian.org:5434
+        'PORT': '15434',                 # Port forwarded
+        #'PORT': '5433',                  # Local
+    },
+}
+if TESTING:
+    DATABASES["projectb"] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': '{}/test-projectb.sqlite'.format(DATA_DIR),
+    }
+
+# Prevent attempts to create tables on projectb (they would fail anyway)
 DATABASE_ROUTERS = ["projectb.router.DbRouter"]
 
 # New 1.7 test runner, we set it explicitly to silence django's checks
