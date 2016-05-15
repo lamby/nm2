@@ -34,13 +34,6 @@ KEYSERVER = getattr(settings, "KEYSERVER", "pgp.mit.edu")
 KEYRING_MAINT_KEYRING = getattr(settings, "KEYRING_MAINT_KEYRING", "data/keyring-maint.gpg")
 KEYRING_MAINT_GIT_REPO = getattr(settings, "KEYRING_MAINT_GIT_REPO", "data/keyring-maint.git")
 
-#WithFingerprint = namedtuple("WithFingerprint", (
-#    "type", "trust", "bits", "alg", "id", "created", "expiry",
-#    "misc8", "ownertrust", "uid", "sigclass", "cap", "misc13",
-#    "flag", "misc15"))
-
-Uid = namedtuple("Uid", ("name", "email", "comment"))
-
 
 class KeyManager(models.Manager):
     def download(self, fpr):
@@ -50,6 +43,7 @@ class KeyManager(models.Manager):
         It passes the result to GPG to validate at least that there is key
         material with the right fingerprint.
         """
+        # See https://tools.ietf.org/html/draft-shaw-openpgp-hkp-00
         url = "http://{server}/pks/lookup?{query}".format(
             server=KEYSERVER,
             query=urlencode({
@@ -81,7 +75,6 @@ class KeyManager(models.Manager):
             body = self.download(fpr)
 
         return self.create(fpr=fpr, key=body, key_updated=now())
-
 
 
 class Key(models.Model):
@@ -144,6 +137,10 @@ class Key(models.Model):
 
 
 class GPG(object):
+    """
+    Run GnuPG commands and parse their output
+    """
+
     def __init__(self, homedir=None):
         self.homedir = homedir
 
@@ -233,12 +230,14 @@ class GPG(object):
         lines = StreamStdoutKeepStderr(proc)
         return proc, lines
 
+
 def _check_keyring(keyring, fpr):
     """
     Check if a fingerprint exists in a keyring
     """
     gpg = GPG()
     return gpg.has_key(keyring, fpr)
+
 
 def _list_keyring(keyring):
     """
@@ -261,63 +260,6 @@ def _list_keyring(keyring):
     if result != 0:
         raise RuntimeError("gpg exited with status %d: %s" % (result, lines.stderr.getvalue().strip()))
 
-# def _parse_list_keys_line(line):
-#     res = []
-#     for i in line.split(":"):
-#         if not i:
-#             res.append(None)
-#         else:
-#             i = i.decode("string_escape")
-#             try:
-#                 i = i.decode("utf-8")
-#             except UnicodeDecodeError:
-#                 pass
-#             res.append(i)
-#     for i in range(len(res), 15):
-#         res.append(None)
-#     return WithFingerprint(*res)
-
-
-# def _list_full_keyring(keyring):
-#     keyring = os.path.join(KEYRINGS, keyring)
-#
-#     cmd = [
-#         "gpg",
-#         "-q", "--no-options", "--no-default-keyring", "--no-auto-check-trustdb", "--trust-model", "always",
-#         "--keyring", keyring,
-#         "--with-colons", "--with-fingerprint", "--list-keys",
-#     ]
-#     #print " ".join(cmd)
-#     proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-#     proc.stdin.close()
-#     lines = StreamStdoutKeepStderr(proc)
-#     fprs = []
-#     for line in lines:
-#         yield _parse_list_keys_line(line)
-#     result = proc.wait()
-#     if result != 0:
-#         raise RuntimeError("gpg exited with status %d: %s" % (result, lines.stderr.getvalue().strip()))
-
-# def uid_info(keyring):
-#     re_uid = re.compile(r"^(?P<name>.+?)\s*(?:\((?P<comment>.+)\))?\s*(?:<(?P<email>.+)>)?$")
-#
-#     fpr = None
-#     for l in _list_full_keyring(keyring):
-#         if l.type == "pub":
-#             fpr = None
-#         elif l.type == "fpr":
-#             fpr = l.uid
-#         elif l.type == "uid":
-#             # filter out revoked/expired uids
-#             if 'r' in l.trust or 'e' in l.trust:
-#                 continue
-#             # Parse uid
-#             mo = re_uid.match(l.uid)
-#             u = Uid(mo.group("name"), mo.group("email"), mo.group("comment"))
-#             if not mo:
-#                 log.warning("Cannot parse uid %s for key %s in keyring %s" % (l.uid, fpr, keyring))
-#             else:
-#                 yield fpr, u
 
 def is_dm(fpr):
     return _check_keyring("debian-maintainers.gpg", fpr)
@@ -343,6 +285,7 @@ def list_emeritus_dd():
 
 def list_removed_dd():
     return _list_keyring("removed-keys.pgp")
+
 
 class KeyData(object):
     """
@@ -410,6 +353,7 @@ class KeyData(object):
 
         return keys
 
+
 class Uid(object):
     """
     Collects data about a key uid, parsed from gpg --with-colons --fixed-list-mode
@@ -436,6 +380,7 @@ class Uid(object):
                 "email": mo.group("email"),
                 "comment": mo.group("comment"),
         }
+
 
 class KeycheckKeyResult(object):
     """
@@ -563,6 +508,7 @@ class KeycheckUidResult(object):
                 self.sigs_ok.append(sig)
             else:
                 self.sigs_bad.append(sig)
+
 
 class UserKey(object):
     """
