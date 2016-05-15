@@ -2,7 +2,6 @@ from __future__ import absolute_import
 from django.conf import settings
 from django.core.mail import send_mail, EmailMessage
 from django.template.loader import render_to_string
-from django.utils.log import getLogger
 import email
 import email.utils
 try:
@@ -11,8 +10,9 @@ except ImportError:
     from email.iterators import typed_subpart_iterator
 import mailbox
 from . import const
+import logging
 
-log = getLogger(__name__)
+log = logging.getLogger(__name__)
 
 EMAIL_PRIVATE_ANNOUNCES = getattr(settings, "EMAIL_PRIVATE_ANNOUNCES", "nm@debian.org")
 

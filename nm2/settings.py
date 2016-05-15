@@ -152,10 +152,10 @@ INSTALLED_APPS = [
     'contributors',
 ]
 
-TEMPLATE_CONTEXT_PROCESSORS = global_settings.TEMPLATE_CONTEXT_PROCESSORS + (
+TEMPLATE_CONTEXT_PROCESSORS = list(global_settings.TEMPLATE_CONTEXT_PROCESSORS) + [
     "django.core.context_processors.request",
     "backend.context_processors.const",
-)
+]
 
 # A sample logging configuration. The only tangible logging
 # performed by this configuration is to send an email to
