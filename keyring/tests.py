@@ -1,26 +1,12 @@
 # coding: utf-8
-# nm.debian.org keyring access functions
-#
-# Copyright (C) 2012--2013  Enrico Zini <enrico@debian.org>
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as
-# published by the Free Software Foundation, either version 3 of the
-# License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
-from django.test import TestCase
+from django.test import TestCase, Client
+from django.core.urlresolvers import reverse
 from . import models as kmodels
+import json
 
 
 class LookupTest(TestCase):
@@ -41,3 +27,25 @@ class LookupTest(TestCase):
         self.assertTrue(kmodels.is_dm(fpr))
         self.assertFalse(kmodels.is_dd_u(fpr))
         self.assertFalse(kmodels.is_dd_nu(fpr))
+
+class TestKeycheck(TestCase):
+    def test_keycheck(self):
+        c = Client()
+        response = c.get(reverse("keyring_keycheck", kwargs={"fpr": "1793D6AB75663E6BF104953A634F4BD1E7AD5568"}))
+        self.assertEquals(response.status_code, 200)
+        decoded = json.loads(response.content)
+        self.assertEquals(decoded["fpr"], "1793D6AB75663E6BF104953A634F4BD1E7AD5568")
+        self.assertIsInstance(decoded["errors"], list)
+        self.assertIsInstance(decoded["uids"], list)
+        for k in decoded["uids"]:
+            if k["name"] == "Enrico Zini <enrico@debian.org>":
+                uid = k
+                break
+        else:
+            self.fail("'Enrico Zini <enrico@debian.org>' not found in {}".format(repr([x["name"] for x in decoded["uids"]])))
+
+        self.assertEquals(uid["name"], "Enrico Zini <enrico@debian.org>")
+        self.assertIsInstance(uid["errors"], list)
+        self.assertIsInstance(uid["sigs_ok"], list)
+        self.assertIsInstance(uid["sigs_no_key"], int)
+        self.assertIsInstance(uid["sigs_bad"], int)
