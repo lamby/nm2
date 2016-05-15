@@ -8,7 +8,7 @@ from __future__ import division
 from __future__ import unicode_literals
 from django.db import models
 from django.conf import settings
-from django.utils.timezone import utc
+from django.utils.timezone import utc, now
 import os
 import os.path
 import subprocess
@@ -69,6 +69,18 @@ class KeyManager(models.Manager):
             return gpg.run_checked(["--export", "-a", fpr])
         finally:
             shutil.rmtree(homedir)
+
+    def get_or_download(self, fpr, body=None):
+        try:
+            return self.get(fpr=fpr)
+        except self.model.DoesNotExist:
+            pass
+
+        if body is None:
+            body = self.download(fpr)
+
+        return self.create(fpr=fpr, key=body, key_updated=now())
+
 
 
 class Key(models.Model):
