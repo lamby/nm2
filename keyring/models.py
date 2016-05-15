@@ -225,7 +225,7 @@ def list_emeritus_dd():
 def list_removed_dd():
     return _list_keyring("removed-keys.pgp")
 
-class Key(object):
+class KeyData(object):
     """
     Collects data about a key, parsed from gpg --with-colons --fixed-list-mode
     """
@@ -531,7 +531,7 @@ class UserKey(object):
         # Check key
         cmd = self.gpg.keyring_cmd(("debian-keyring.gpg", "debian-nonupload.gpg"), "--keyring", self.keyring, "--check-sigs", self.fpr)
         proc, lines = self.gpg.pipe_cmd(cmd)
-        for key in Key.read_from_gpg(lines):
+        for key in KeyData.read_from_gpg(lines):
             yield key.keycheck()
 
         result = proc.wait()
