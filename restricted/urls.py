@@ -1,20 +1,4 @@
 # coding: utf8
-# nm.debian.org website restricted pages
-#
-# Copyright (C) 2012--2014  Enrico Zini <enrico@debian.org>
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as
-# published by the Free Software Foundation, either version 3 of the
-# License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
@@ -23,7 +7,7 @@ from django.conf.urls import *
 from . import views
 from backend.mixins import VisitorTemplateView
 
-urlpatterns = patterns('restricted.views',
+urlpatterns = [
     url(r'^$', VisitorTemplateView.as_view(template_name='restricted/index.html'), name="restricted_index"),
     # AM Personal page
     url(r'^ammain$', views.AMMain.as_view(), name="restricted_ammain"),
@@ -38,7 +22,7 @@ urlpatterns = patterns('restricted.views',
     # Create new process for a person (advocate)
     url(r'^advocate/(?P<applying_for>[^/]+)/(?P<key>[^/]+)$', views.NewProcess.as_view(), name="restricted_advocate"),
     # Show changelogs (minechangelogs)
-    url(r'^minechangelogs/(?P<key>[^/]+)?$', 'minechangelogs', name="restricted_minechangelogs"),
+    url(r'^minechangelogs/(?P<key>[^/]+)?$', views.minechangelogs, name="restricted_minechangelogs"),
     # Impersonate a user
     url(r'^impersonate/(?P<key>[^/]+)?$', views.Impersonate.as_view(), name="impersonate"),
     # Export database
@@ -51,4 +35,4 @@ urlpatterns = patterns('restricted.views',
     url(r'^assign-am/(?P<key>[^/]+)$', views.AssignAM.as_view(), name="assign_am"),
     # Mailbox stats
     url(r'^mailbox-stats$', views.MailboxStats.as_view(), name="mailbox_stats"),
-)
+]
