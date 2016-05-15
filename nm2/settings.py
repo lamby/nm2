@@ -185,6 +185,8 @@ LOGGING = {
     }
 }
 
+DATABASE_ROUTERS = ["projectb.router.DbRouter"]
+
 # New 1.7 test runner, we set it explicitly to silence django's checks
 TEST_RUNNER = 'django.test.runner.DiscoverRunner'
 
