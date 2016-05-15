@@ -24,7 +24,6 @@ from . import models as kmodels
 from backend import models as bmodels
 from django import http
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
-from ratelimit.decorators import ratelimit
 import json
 import time
 
@@ -41,7 +40,6 @@ def json_response(val, status_code=200):
     json.dump(val, res, cls=Serializer, indent=1)
     return res
 
-@ratelimit(method="GET", rate="3/m")
 def keycheck(request, fpr):
     """
     Web-based keycheck.sh implementation

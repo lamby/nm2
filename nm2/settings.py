@@ -136,7 +136,6 @@ INSTALLED_APPS = [
     # https://github.com/spanezz/django-housekeeping
     'django_housekeeping',
     'django_dacs',
-    'ratelimit',
     'keyring',
     'dsa',
     'deblayout',
