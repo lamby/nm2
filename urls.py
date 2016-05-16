@@ -17,13 +17,14 @@
 
 from django.conf.urls import patterns, include, url
 from django.views.generic import TemplateView
+from django_dacs import views as django_dacs_views
 from backend.mixins import VisitorTemplateView
 
 # Uncomment the next two lines to enable the admin:
 from django.contrib import admin
 admin.autodiscover()
 
-urlpatterns = patterns('',
+urlpatterns = [
     url(r'^robots.txt$', TemplateView.as_view(template_name='robots.txt', content_type="text/plain"), name="root_robots_txt"),
     url(r'^i18n/', include('django.conf.urls.i18n')),
     url(r'^$', VisitorTemplateView.as_view(template_name='index.html'), name="home"),
@@ -42,5 +43,5 @@ urlpatterns = patterns('',
     # Uncomment the next line to enable the admin:
     url(r'^admin/', include(admin.site.urls)),
 
-    url(r'^logout/', "django_dacs.views.logout"),
-)
+    url(r'^logout/', django_dacs_views.logout),
+]
