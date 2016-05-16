@@ -54,6 +54,7 @@ class TestNewnm(PersonFixtureMixin, TestCase):
         self.assertNotContains(response, "You already have an entry in the system")
         self.assertNotContains(response, "Not only you have an entry, but you are also")
         self.assertNotContains(response, "Apply for an entry in the system")
+        self.assertNotContains(response, "Submit disabled because you already have an entry in the system")
 
     def test_no_person(self):
         client = self.make_test_client("new_person@example.org")
@@ -66,6 +67,7 @@ class TestNewnm(PersonFixtureMixin, TestCase):
         self.assertNotContains(response, "You already have an entry in the system")
         self.assertNotContains(response, "Not only you have an entry, but you are also")
         self.assertContains(response, "Apply for an entry in the system")
+        self.assertNotContains(response, "Submit disabled because you already have an entry in the system")
 
     def _test_non_dd(self, person):
         client = self.make_test_client(person)
@@ -78,6 +80,7 @@ class TestNewnm(PersonFixtureMixin, TestCase):
         self.assertContains(response, "You already have an entry in the system")
         self.assertNotContains(response, "Not only you have an entry, but you are also")
         self.assertNotContains(response, "Apply for an entry in the system")
+        self.assertNotContains(response, "Submit disabled because you already have an entry in the system")
 
     def _test_dd(self, person):
         client = self.make_test_client(person)
@@ -90,3 +93,4 @@ class TestNewnm(PersonFixtureMixin, TestCase):
         self.assertContains(response, "You already have an entry in the system")
         self.assertContains(response, "Not only you have an entry, but you are also")
         self.assertContains(response, "Apply for an entry in the system")
+        self.assertContains(response, "Submit disabled because you already have an entry in the system")

@@ -461,7 +461,12 @@ that you can read encrypted email before spending time on this form.</p>
     visit to confirm your data. The link will be encrypted with your GPG key.
     Once you have confirmed, other Debian Developers can go to your personal
     page and advocate you for what you require.</p>
-    <input type="submit">
+
+    {% if has_entry %}
+    <button type="submit" disabled="disabled">Submit disabled because you already have an entry in the system</button>
+    {% else %}
+    <button type="submit">Submit</button>
+    {% endif %}
   </div>
 </form>
 
