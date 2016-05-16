@@ -287,13 +287,13 @@ $(main);
 </div>
 {% endif %}
 
-{% if person %}
+{% if has_entry %}
 <h2 id="hasentry">You already have an entry in the system</h2>
 
 <p>You already have an entry in the system if you are a DD, a DM, have a guest
 account on Debian machines or have already applied on this page.</p>
 
-{% if "dd" in person.perms %}
+{% if is_dd %}
 <p>Not only you have an entry, but you are also <i>{{person.status|desc_status}}</i>.
 The rest of this page does not apply to you, but you can still see it so that
 you know how it looks like if you want to refer prospective new applicants to
@@ -311,14 +311,16 @@ They can then:
 </p>
 {% endif %}
 
-{% if not request.sso_username %}
+{% if require_login %}
 
 <h2>Please login first</h2>
 
 You can login using with your Alioth credentials using
 <a href="https://sso.debian.org/sso/login?url={{request.build_absolute_uri}}&site=NM">this link</a>.
 
-{% else %}
+{% endif %}
+
+{% if show_apply_form %}
 
 <h2>Apply for an entry in the system</h2>
 

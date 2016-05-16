@@ -860,18 +860,19 @@ class Newnm(VisitorMixin, FormView):
                 "errors": v,
             })
 
-        if self.request.sso_username:
-            try:
-                person = bmodels.Person.objects.get(username=self.request.sso_username)
-            except bmodels.Person.DoesNotExist:
-                person = None
-        else:
-            person = None
+        has_entry = self.visitor is not None
+        is_dd = self.visitor and "dd" in self.visitor.perms
+        require_login = self.request.sso_username is None
+        show_apply_form = not require_login and (not has_entry or is_dd)
 
         ctx.update(
-            person=person,
+            person=self.visitor,
             form=form,
             errors=errors,
+            has_entry=has_entry,
+            is_dd=is_dd,
+            show_apply_form=show_apply_form,
+            require_login=require_login,
             DAYS_VALID=self.DAYS_VALID,
         )
         return ctx
