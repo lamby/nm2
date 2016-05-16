@@ -10,8 +10,8 @@ from . import views
 urlpatterns = [
     url(r'^$', RedirectView.as_view(url="/", permanent=True), name="public_index"),
     url(r'^newnm$', views.Newnm.as_view(), name="public_newnm"),
-    url(r'^newnm/resend_challenge/(?P<key>[^/]+)$', views.newnm_resend_challenge, name="public_newnm_resend_challenge"),
-    url(r'^newnm/confirm/(?P<nonce>[^/]+)$', views.newnm_confirm, name="public_newnm_confirm"),
+    url(r'^newnm/resend_challenge/(?P<key>[^/]+)$', views.NewnmResendChallenge.as_view(), name="public_newnm_resend_challenge"),
+    url(r'^newnm/confirm/(?P<nonce>[^/]+)$', views.NewnmConfirm.as_view(), name="public_newnm_confirm"),
     url(r'^processes$', views.Processes.as_view(), name="processes"),
     url(r'^managers$', views.Managers.as_view(), name="managers"),
     url(r'^people(?:/(?P<status>\w+))?$', views.People.as_view(), name="people"),

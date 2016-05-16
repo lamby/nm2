@@ -140,19 +140,17 @@ class TestBase(object):
             kw["SSL_CLIENT_S_DN_CN"] = sso_username
         return Client(**kw)
 
-    #def assertPermissionDenied(self, response):
-    #    if response.status_code == 403:
-    #        pass
-    #    elif response.status_code == 302:
-    #        self.assertRedirectMatches(response, reverse("login"))
-    #    else:
-    #        self.fail("response has status code {} instead of a 403 Forbidden or a 302 Redirect".format(response.status_code))
+    def assertPermissionDenied(self, response):
+        if response.status_code == 403:
+            pass
+        else:
+            self.fail("response has status code {} instead of a 403 Forbidden".format(response.status_code))
 
-    #def assertRedirectMatches(self, response, target):
-    #    if response.status_code != 302:
-    #        self.fail("response has status code {} instead of a Redirect".format(response.status_code))
-    #    if target and not re.search(target, response["Location"]):
-    #        self.fail("response redirects to {} which does not match {}".format(response["Location"], target))
+    def assertRedirectMatches(self, response, target):
+        if response.status_code != 302:
+            self.fail("response has status code {} instead of a Redirect".format(response.status_code))
+        if target and not re.search(target, response["Location"]):
+            self.fail("response redirects to {} which does not match {}".format(response["Location"], target))
 
 
 class PersonFixtureMixin(TestBase):

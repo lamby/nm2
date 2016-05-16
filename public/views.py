@@ -27,7 +27,7 @@ from django.core.urlresolvers import reverse
 from django.core.exceptions import PermissionDenied
 from django.utils.translation import ugettext as _
 from django.utils.timezone import now
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, View
 from django.views.generic.edit import FormView
 import backend.models as bmodels
 import backend.email as bemail
@@ -830,6 +830,9 @@ class Newnm(VisitorMixin, FormView):
         return redirect("public_newnm_resend_challenge", key=self.request.user.lookup_key)
 
     def form_valid(self, form):
+        if self.visitor is not None: raise PermissionDenied
+        if self.request.sso_username is None: raise PermissionDenied
+
         person = form.save(commit=False)
         person.username = self.request.sso_username
         person.status = const.STATUS_DC
@@ -877,40 +880,40 @@ class Newnm(VisitorMixin, FormView):
         )
         return ctx
 
-def newnm_resend_challenge(request, key):
+
+class NewnmResendChallenge(VisitorMixin, View):
     """
     Send/resend the encrypted email nonce for people who just requested a new
     Person record
     """
+    def get(self, request, key=None, *args, **kw):
+        from keyring.models import UserKey
 
-    # Check someone is logged in, to avoid casual crawling
-    if not request.user.is_authenticated():
-        raise PermissionDenied()
+        if self.visitor is None: raise PermissionDenied()
 
-    from keyring.models import UserKey
-    person = bmodels.Person.lookup_or_404(key)
+        # Deal gracefully with someone clicking the reconfirm link after they have
+        # already confirmed
+        if not self.visitor.pending: return redirect(self.visitor.get_absolute_url())
 
-    # Deal gracefully with someone clicking the reconfirm link after they have
-    # already confirmed
-    if not person.pending: return redirect(person.get_absolute_url())
+        confirm_url = request.build_absolute_uri(reverse("public_newnm_confirm", kwargs=dict(nonce=self.visitor.pending)))
+        plaintext = "Please visit {} to confirm your application at {}\n".format(
+                confirm_url,
+                request.build_absolute_uri(self.visitor.get_absolute_url()))
+        key = UserKey(self.visitor.fpr)
+        key.refresh()
+        encrypted = key.encrypt(plaintext.encode("utf8"))
+        bemail.send_nonce("notification_mails/newperson.txt", self.visitor, encrypted_nonce=encrypted)
+        return redirect(self.visitor.get_absolute_url())
 
-    confirm_url = request.build_absolute_uri(reverse("public_newnm_confirm", kwargs=dict(nonce=person.pending)))
-    plaintext = "Please visit {} to confirm your application at {}\n".format(
-            confirm_url,
-            request.build_absolute_uri(person.get_absolute_url()))
-    key = UserKey(person.fpr)
-    key.refresh()
-    encrypted = key.encrypt(plaintext.encode("utf8"))
-    bemail.send_nonce("notification_mails/newperson.txt", person, encrypted_nonce=encrypted)
-    return redirect(person.get_absolute_url())
 
-def newnm_confirm(request, nonce):
+class NewnmConfirm(VisitorMixin, View):
     """
     Confirm a pending Person object, given its nonce
     """
-    person = get_object_or_404(bmodels.Person, pending=nonce)
-    person.pending = ""
-    person.expires = now() + datetime.timedelta(days=30)
-    person.save(audit_author=person, audit_notes="confirmed pending subscription")
-    return redirect(person.get_absolute_url())
-
+    def get(self, request, nonce, *args, **kw):
+        if self.visitor is None: raise PermissionDenied
+        if self.visitor.pending != nonce: raise PermissionDenied
+        self.visitor.pending = ""
+        self.visitor.expires = now() + datetime.timedelta(days=30)
+        self.visitor.save(audit_author=self.visitor, audit_notes="confirmed pending subscription")
+        return redirect(self.visitor.get_absolute_url())
