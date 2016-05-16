@@ -887,7 +887,7 @@ class NewnmResendChallenge(VisitorMixin, View):
     Person record
     """
     def get(self, request, key=None, *args, **kw):
-        from keyring.models import UserKey
+        from keyring.models import Key
 
         if self.visitor is None: raise PermissionDenied()
 
@@ -899,8 +899,8 @@ class NewnmResendChallenge(VisitorMixin, View):
         plaintext = "Please visit {} to confirm your application at {}\n".format(
                 confirm_url,
                 request.build_absolute_uri(self.visitor.get_absolute_url()))
-        key = UserKey(self.visitor.fpr)
-        key.refresh()
+        key = Key.objects.get_or_download(self.visitor.fpr)
+        if not key.key_is_fresh(): key.update_key()
         encrypted = key.encrypt(plaintext.encode("utf8"))
         bemail.send_nonce("notification_mails/newperson.txt", self.visitor, encrypted_nonce=encrypted)
         return redirect(self.visitor.get_absolute_url())

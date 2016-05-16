@@ -23,6 +23,7 @@ import tempfile
 from six.moves.urllib.parse import urlencode
 import json
 import requests
+from contextlib import contextmanager
 import logging
 
 log = logging.getLogger(__name__)
@@ -33,6 +34,16 @@ KEYRINGS_TMPDIR = getattr(settings, "KEYRINGS_TMPDIR", "/srv/keyring.debian.org/
 KEYSERVER = getattr(settings, "KEYSERVER", "pgp.mit.edu")
 KEYRING_MAINT_KEYRING = getattr(settings, "KEYRING_MAINT_KEYRING", "data/keyring-maint.gpg")
 KEYRING_MAINT_GIT_REPO = getattr(settings, "KEYRING_MAINT_GIT_REPO", "data/keyring-maint.git")
+
+
+@contextmanager
+def tempdir_gpg():
+    homedir = tempfile.mkdtemp(dir=KEYRINGS_TMPDIR)
+    try:
+        gpg = GPG(homedir=homedir)
+        yield gpg
+    finally:
+        shutil.rmtree(homedir)
 
 
 class KeyManager(models.Manager):
@@ -57,13 +68,9 @@ class KeyManager(models.Manager):
         if not text: raise RuntimeError("empty response from key server")
         if text[0] != "-----BEGIN PGP PUBLIC KEY BLOCK-----": raise RuntimeError("downloaded key material has invalid begin line")
         if text[-1] != "-----END PGP PUBLIC KEY BLOCK-----": raise RuntimeError("downloaded key material has invalid end line")
-        homedir = tempfile.mkdtemp(dir=KEYRINGS_TMPDIR)
-        try:
-            gpg = GPG(homedir=homedir)
+        with tempdir_gpg() as gpg:
             gpg.run_checked(gpg.cmd("--import"), input=res.text)
             return gpg.run_checked(gpg.cmd("--export", "-a", fpr))
-        finally:
-            shutil.rmtree(homedir)
 
     def get_or_download(self, fpr, body=None):
         try:
@@ -86,6 +93,9 @@ class Key(models.Model):
 
     objects = KeyManager()
 
+    def key_is_fresh(self):
+        return self.key_updated > now() - datetime.timedelta(minutes=5)
+
     def update_key(self):
         self.key = self.objects.download()
         self.key_updated = now()
@@ -105,21 +115,24 @@ class Key(models.Model):
         # Joerg Jaspert <joerg@debian.org>,
         # Daniel Kahn Gillmor <dkg@fifthhorseman.net>,
         # and others.
-
-        homedir = tempfile.mkdtemp(dir=KEYRINGS_TMPDIR)
-        keyring = os.path.join(homedir, "user.gpg")
-        try:
-            gpg = GPG(homedir=homedir)
+        with tempdir_gpg() as gpg:
             gpg.run_checked(gpg.cmd("--import"), input=self.key)
 
             # Check key
             cmd = gpg.keyring_cmd(("debian-keyring.gpg", "debian-nonupload.gpg"), "--check-sigs", self.fpr)
             self.check_sigs = gpg.run_checked(cmd)
             self.check_sigs_updated = now()
-        finally:
-            shutil.rmtree(homedir)
         self.save()
 
+    def encrypt(self, data):
+        """
+        Encrypt the given data with this key, returning the ascii-armored
+        encrypted result.
+        """
+        with tempdir_gpg() as gpg:
+            gpg.run_checked(gpg.cmd("--import"), input=self.key)
+            cmd = gpg.cmd("--encrypt", "--armor", "--no-default-recipient", "--trust-model=always", "--recipient", self.fpr)
+            return gpg.run_checked(cmd, input=data)
 
     def keycheck(self):
         if not self.check_sigs:

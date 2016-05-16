@@ -40,7 +40,7 @@ class TestKeycheck(TestCase):
 
         key.update_check_sigs()
         self.assertIsNotNone(key.check_sigs_updated)
-        self.assertNotEquals(key.check_sigs, "")
+        self.assertNotEquals(key.check_sigs, b"")
 
         results = key.keycheck()
         self.assertEquals(results.key.fpr, "1793D6AB75663E6BF104953A634F4BD1E7AD5568")
