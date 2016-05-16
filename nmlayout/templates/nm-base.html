@@ -33,7 +33,7 @@
 {% block relatedpages %}
 {% if user.is_anonymous %}
  {% if request.sso_username %}
-  <a href="{% url 'public_newnm' %}">{{request.sso_username}} not known to this site yet</a>
+  <a href="{% url 'dm_claim' %}">{{request.sso_username}} not known to this site yet</a>
  {% else %}
   <a href="https://sso.debian.org/sso/login?url={{request.build_absolute_uri}}&site=NM">login</a>
  {% endif %}

@@ -1,0 +1,44 @@
+{% extends "public/base.html" %}
+{% load nm %}
+
+{% block content %}
+
+<h1>Associate SSO username to existing person</h1>
+
+<p>For many Debian Maintainer entries, the site does not currently know the
+corresponding username that is used by the <a href="https://wiki.debian.org/DebianSingleSignOn">Debian Single Sign-On</a>,
+and therefore cannot give you permission on your own data. This page helps to
+fix this situation.</p>
+
+
+<p>Since you are logged in, I already know that your Single Sign-On username is
+<b>{{username}}</b>. The missing bit of information is who are you in the site,
+and I would like to find out using your GPG key. Please enter the fingerprint
+in this form:</p>
+
+<form action="" method="POST">{% csrf_token %}
+{{form.as_p}}
+<button type="submit">Update</button>
+</form>
+
+{% if person %}
+
+<p>
+Ok, so you claim to be <a href="{{person.get_absolute_url}}">{{person}}</a>, is
+that right? If that is not correct, please change the fingerprint in the form
+above and click "Update".
+</p>
+
+<p>
+If it is correct, I need a way to trust you. Please decrypt the GPG snippet
+that you find after this paragraph, and you will find a URL. Visit that URL and
+I will be able to trust that you are indeed <a href="{{person.get_absolute_url}}">{{person}}</a>.
+</p>
+
+<pre>
+{{challenge}}
+</pre>
+
+{% endif %}
+
+{% endblock %}

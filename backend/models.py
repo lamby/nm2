@@ -790,6 +790,10 @@ class Fingerprint(models.Model):
     fpr = FingerprintField(verbose_name="OpenPGP key fingerprint", max_length=40, unique=True)
     is_active = models.BooleanField(default=False, help_text="whether this key is curently in use")
 
+    def get_key(self):
+        from keyring.models import Key
+        return Key.objects.get_or_download(self.fpr)
+
     def save(self, *args, **kw):
         """
         Save, and add an entry to the Person audit log.
