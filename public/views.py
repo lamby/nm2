@@ -257,6 +257,7 @@ class Process(VisitorTemplateView):
                     "remarks": " ".join(sorted(keycheck.errors)) if keycheck.errors else "ok",
                 },
                 "uids": uids,
+                "updated": key.check_sigs_updated,
             }
 
         return ctx
