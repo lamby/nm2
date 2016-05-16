@@ -236,6 +236,29 @@ class Process(VisitorTemplateView):
                 stats["median_py"] = datetime.timedelta(seconds=stats["median"])
                 stats["median_hours"] = stats["median_py"].seconds // 3600
         ctx["mbox_stats"] = stats
+
+        # Key information for active processes
+        if process.is_active:
+            from keyring.models import Key
+            key = Key.objects.get_or_download(process.person.fpr)
+            keycheck = key.keycheck()
+            uids = []
+            for ku in keycheck.uids:
+                uids.append({
+                    "name": ku.uid.name.replace("@", ", "),
+                    "remarks": " ".join(sorted(ku.errors)) if ku.errors else "ok",
+                    "sigs_ok": len(ku.sigs_ok),
+                    "sigs_no_key": len(ku.sigs_no_key),
+                    "sigs_bad": len(ku.sigs_bad)
+                })
+
+            ctx["keycheck"] = {
+                "main": {
+                    "remarks": " ".join(sorted(keycheck.errors)) if keycheck.errors else "ok",
+                },
+                "uids": uids,
+            }
+
         return ctx
 
     def build_wizards(self, process):

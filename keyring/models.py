@@ -23,6 +23,7 @@ import tempfile
 from six.moves.urllib.parse import urlencode
 import json
 import requests
+from six.moves import shlex_quote
 from contextlib import contextmanager
 import logging
 
@@ -40,7 +41,7 @@ KEYRING_MAINT_GIT_REPO = getattr(settings, "KEYRING_MAINT_GIT_REPO", "data/keyri
 def tempdir_gpg():
     homedir = tempfile.mkdtemp(dir=KEYRINGS_TMPDIR)
     try:
-        gpg = GPG(homedir=homedir)
+        gpg = GPG(homedir=homedir, use_default_keyring=True)
         yield gpg
     finally:
         shutil.rmtree(homedir)
@@ -154,17 +155,20 @@ class GPG(object):
     Run GnuPG commands and parse their output
     """
 
-    def __init__(self, homedir=None):
+    def __init__(self, homedir=None, use_default_keyring=False):
         self.homedir = homedir
+        self.use_default_keyring = use_default_keyring
 
     def _base_cmd(self):
         cmd = ["/usr/bin/gpg"]
         if self.homedir is not None:
             cmd.append("--homedir")
             cmd.append(self.homedir)
-        cmd.extend(("-q", "--no-options", "--no-default-keyring", "--no-auto-check-trustdb",
+        cmd.extend(("-q", "--no-options", "--no-auto-check-trustdb",
             "--trust-model", "always", "--with-colons", "--fixed-list-mode",
             "--with-fingerprint", "--no-permission-warning"))
+        if not self.use_default_keyring:
+            cmd.append("--no-default-keyring")
         return cmd
 
     def cmd(self, *args):
@@ -228,7 +232,11 @@ class GPG(object):
         """
         stdout, stderr, result = self.run_cmd(cmd, input)
         if result != 0:
-            raise RuntimeError("gpg exited with status %d: %s" % (result, stderr.strip()))
+            raise RuntimeError("{} exited with status {}: {}".format(
+                " ".join(shlex_quote(x) for x in cmd),
+                result,
+                stderr.strip()
+            ))
         return stdout
 
     def pipe_cmd(self, cmd):
