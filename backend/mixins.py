@@ -96,5 +96,40 @@ class VisitPersonMixin(VisitorMixin):
         ctx["vperms"] = self.vperms
         return ctx
 
+
 class VisitPersonTemplateView(VisitPersonMixin, TemplateView):
     pass
+
+
+class VisitProcessMixin(VisitorMixin):
+    """
+    Visit a person process. Adds self.person, self.process and self.vperms with
+    the permissions the visitor has over the person
+    """
+    # Define to "edit_bio" "edit_ldap" or "view_person_audit_log" to raise
+    # PermissionDenied if the given test on the person-visitor fails
+    require_vperms = None
+
+    def pre_dispatch(self):
+        super(VisitProcessMixin, self).pre_dispatch()
+        key = self.kwargs.get("key", None)
+        if key is None:
+            raise PermissionDenied
+        self.process = bmodels.Process.lookup_or_404(key)
+        self.person = self.process.person
+        self.vperms = self.process.permissions_of(self.visitor)
+
+        if self.require_vperms and self.require_vperms not in self.vperms.perms:
+            raise PermissionDenied
+
+    def get_context_data(self, **kw):
+        ctx = super(VisitProcessMixin, self).get_context_data(**kw)
+        ctx["person"] = self.person
+        ctx["process"] = self.process
+        ctx["vperms"] = self.vperms
+        return ctx
+
+
+class VisitProcessTemplateView(VisitProcessMixin, TemplateView):
+    pass
+

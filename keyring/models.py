@@ -98,7 +98,7 @@ class Key(models.Model):
         return self.key_updated > now() - datetime.timedelta(minutes=5)
 
     def update_key(self):
-        self.key = self.objects.download()
+        self.key = Key.objects.download(fpr=self.fpr)
         self.key_updated = now()
         self.save()
 

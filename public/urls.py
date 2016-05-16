@@ -17,6 +17,7 @@ urlpatterns = [
     url(r'^people(?:/(?P<status>\w+))?$', views.People.as_view(), name="people"),
     url(r'^person/(?P<key>[^/]+)$', views.Person.as_view(), name="person"),
     url(r'^process/(?P<key>[^/]+)$', views.Process.as_view(), name="public_process"),
+    url(r'^process/(?P<key>[^/]+)/update_keycheck$', views.ProcessUpdateKeycheck.as_view(), name="public_process_update_keycheck"),
     url(r'^progress/(?P<progress>\w+)$', views.Progress.as_view(), name="public_progress"),
     url(r'^stats/$', views.Stats.as_view(), name="public_stats"),
     url(r'^stats/latest$', views.StatsLatest.as_view(), name="public_stats_latest"),

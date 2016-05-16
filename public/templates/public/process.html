@@ -135,7 +135,13 @@ See: <a href="http://lists.debian.org/debian-project/2010/09/msg00026.html">hand
         {% if keycheck %}
         <small>
         <ul class="packed">
-          <li>Main key: <i>{{keycheck.main.remarks}}</i> (last updated: {{keycheck.updated|date:"Y-m-d"}})</li>
+          <li>Main key: <i>{{keycheck.main.remarks}}</i> (last updated: {{keycheck.updated|date:"Y-m-d H:i T"}})
+            {% if "update_keycheck" in vperms.perms %}
+            <form class="inline" action="{% url 'public_process_update_keycheck' key=process.lookup_key %}" method="POST">{% csrf_token %}
+              <button type="submit">Update</button>
+            </form>
+            {% endif %}
+          </li>
           {% for uid in keycheck.uids %}
           <li>{{uid.name}}: <i>{{uid.remarks}}</i>, <i>{{uid.sigs_ok}}</i> DD sigs, <i>{{uid.sigs_no_key}}</i> non-DD sigs</li>
           {% endfor %}

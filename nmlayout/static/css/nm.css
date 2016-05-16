@@ -48,9 +48,13 @@ table.tablesorter th.headerSortDown:after {
     content: "▼";
 }
 
+form.inline {
+    display: inline;
+}
+
 ul.packed {
-   margin-top: 0;
-   margin-bottom: 0;
+    margin-top: 0;
+    margin-bottom: 0;
 }
 
 ul.horizontal {

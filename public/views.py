@@ -32,7 +32,7 @@ from django.views.generic.edit import FormView
 import backend.models as bmodels
 import backend.email as bemail
 from backend import const
-from backend.mixins import VisitorMixin, VisitorTemplateView, VisitPersonTemplateView
+from backend.mixins import VisitorMixin, VisitorTemplateView, VisitPersonTemplateView, VisitProcessMixin, VisitProcessTemplateView
 from .email_stats import mailbox_get_gaps
 import markdown
 import datetime
@@ -131,33 +131,25 @@ def make_statusupdateform(editor):
         )
     return StatusUpdateForm
 
-class Process(VisitorTemplateView):
+
+class Process(VisitProcessTemplateView):
     template_name = "public/process.html"
 
     def get_context_data(self, **kw):
         ctx = super(Process, self).get_context_data(**kw)
-        key = self.kwargs["key"]
-        process = bmodels.Process.lookup_or_404(key)
-        perms = process.permissions_of(self.visitor)
-
-        ctx.update(
-            process=process,
-            person=process.person,
-            vperms=perms,
-        )
 
         # Process form ASAP, so we compute the rest with updated values
         am = self.visitor.am_or_none if self.visitor else None
-        if am and (process.manager == am or am.is_admin) and (
-            "edit_bio" in perms.perms or "edit_ldap" in perms.perms):
+        if am and (self.process.manager == am or am.is_admin) and (
+            "edit_bio" in self.vperms.perms or "edit_ldap" in self.vperms.perms):
             StatusUpdateForm = make_statusupdateform(am)
-            form = StatusUpdateForm(initial=dict(progress=process.progress))
+            form = StatusUpdateForm(initial=dict(progress=self.process.progress))
         else:
             form = None
 
         ctx["form"] = form
 
-        log = list(process.log.order_by("logdate", "progress"))
+        log = list(self.process.log.order_by("logdate", "progress"))
         if log:
             ctx["started"] = log[0].logdate
             ctx["last_change"] = log[-1].logdate
@@ -191,7 +183,7 @@ class Process(VisitorTemplateView):
         }
 
         # Get the 'simplified' current step
-        curstep = unusual_step_map.get(process.progress, process.progress)
+        curstep = unusual_step_map.get(self.process.progress, self.process.progress)
 
         # List of usual steps in order
         steps = (
@@ -215,7 +207,7 @@ class Process(VisitorTemplateView):
 
         # Wizards for next actions
         if self.visitor:
-            ctx["wizards"] = self.build_wizards(process)
+            ctx["wizards"] = self.build_wizards(self.process)
 
         # Mailbox statistics
         # TODO: move saving per-process stats into a JSON field in Process
@@ -226,7 +218,7 @@ class Process(VisitorTemplateView):
             stats = {}
 
         stats = stats.get("process", {})
-        stats = stats.get(process.lookup_key, {})
+        stats = stats.get(self.process.lookup_key, {})
         if stats:
             stats["date_first_py"] = datetime.datetime.fromtimestamp(stats["date_first"])
             stats["date_last_py"] = datetime.datetime.fromtimestamp(stats["date_last"])
@@ -238,9 +230,9 @@ class Process(VisitorTemplateView):
         ctx["mbox_stats"] = stats
 
         # Key information for active processes
-        if process.is_active:
+        if self.process.is_active and self.process.person.fpr:
             from keyring.models import Key
-            key = Key.objects.get_or_download(process.person.fpr)
+            key = Key.objects.get_or_download(self.process.person.fpr)
             keycheck = key.keycheck()
             uids = []
             for ku in keycheck.uids:
@@ -383,7 +375,6 @@ class Process(VisitorTemplateView):
         return wizards
 
     def post(self, request, key, *args, **kw):
-        process = bmodels.Process.lookup_or_404(key)
         if not self.visitor: raise PermissionDenied()
         am = self.visitor.am_or_none
         if not am: raise PermissionDenied
@@ -394,9 +385,9 @@ class Process(VisitorTemplateView):
             if form.cleaned_data["progress"] == const.PROGRESS_APP_OK \
                 and process.progress in [const.PROGRESS_AM_HOLD, const.PROGRESS_AM, const.PROGRESS_AM_RCVD]:
                 # Unassign from AM
-                process.manager = None
-            process.progress = form.cleaned_data["progress"]
-            process.save()
+                self.process.manager = None
+            self.process.progress = form.cleaned_data["progress"]
+            self.process.save()
             text = form.cleaned_data["logtext"]
             if self.impersonator:
                 text = "[%s as %s] %s" % (self.impersonator,
@@ -404,16 +395,27 @@ class Process(VisitorTemplateView):
                                             text)
             log = bmodels.Log(
                 changed_by=self.visitor,
-                process=process,
-                progress=process.progress,
+                process=self.process,
+                progress=self.process.progress,
                 logtext=text,
                 is_public=form.cleaned_data["log_is_public"]
             )
             log.save()
-            form = StatusUpdateForm(initial=dict(progress=process.progress))
+            form = StatusUpdateForm(initial=dict(progress=self.process.progress))
 
         context = self.get_context_data(**kw)
         return self.render_to_response(context)
+
+
+class ProcessUpdateKeycheck(VisitProcessMixin, View):
+    require_vperms = "update_keycheck"
+
+    def post(self, request, key, *args, **kw):
+        from keyring.models import Key
+        key = Key.objects.get_or_download(self.person.fpr)
+        key.update_key()
+        key.update_check_sigs()
+        return redirect(self.process.get_absolute_url())
 
 
 SIMPLIFY_STATUS = {

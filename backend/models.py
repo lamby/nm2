@@ -171,6 +171,17 @@ class PersonVisitorPermissions(object):
         return self._is_current_advocate or self._is_current_am
 
     @cached_property
+    def _can_update_keycheck(self):
+        """
+        Visitor can refresh keycheck results
+        """
+        if self.visitor is None: return False
+        if self.visitor.is_admin: return True
+        if self.person.pending: return False
+        if self.visitor.pk == self.person.pk: return True
+        return self._is_current_advocate or self._is_current_am
+
+    @cached_property
     def _has_ldap_record(self):
         """
         The person already has an LDAP record
@@ -246,6 +257,7 @@ class PersonVisitorPermissions(object):
         """
         res = set()
         if self._can_edit_bio: res.add("edit_bio")
+        if self._can_update_keycheck: res.add("update_keycheck")
         if self._can_edit_ldap_fields: res.add("edit_ldap")
         if self._can_view_person_audit_log: res.add("view_person_audit_log")
         return res
