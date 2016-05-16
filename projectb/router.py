@@ -18,12 +18,6 @@ class DbRouter(object):
     def allow_relation(self, obj1, obj2, **hints):
         return None
 
-    # Also works with Django 1.7 as long as the projectb app has no DB models
-    def allow_migrate(self, db, *args, **kw):
-        if db == "projectb":
+    def allow_migrate(self, db, app_label, model_name=None, **hints):
+        if db == "projectb" or app_label == "projectb":
             return False
-
-    # From Django 1.8 onwards
-    #def allow_migrate(self, db, app_label, model_name=None, **hints):
-    #    if db == "projectb" or app_label == "projectb":
-    #        return False

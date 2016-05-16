@@ -22,6 +22,7 @@ from __future__ import division
 from __future__ import unicode_literals
 import django_housekeeping as hk
 from django.conf import settings
+from django.utils.timezone import utc, now
 from backend.housekeeping import MakeLink
 import backend.models as bmodels
 from backend import const
@@ -222,23 +223,26 @@ class CheckKeyringConsistency(hk.Task):
     #        if i["cur"] != cand:
     #            log.info("%s: %s %r != %r", keyring, fpr, i["cur"], cand)
 
-class CleanUserKeyrings(hk.Task):
+class CleanUserKeys(hk.Task):
     """
     Remove old user keyrings
     """
     def run_main(self, stage):
-        if not os.path.isdir(KEYRINGS_TMPDIR):
-            return
-        # Delete everything older than three days ago
-        threshold = time.time() - 86400 * 3
-        for fn in os.listdir(KEYRINGS_TMPDIR):
-            if fn.startswith("."): continue
-            pn = os.path.join(KEYRINGS_TMPDIR, fn)
-            if not os.path.isdir(pn): continue
-            if os.path.getmtime(pn) > threshold: continue
+        threshold = now() - datetime.timedelta(days=15)
 
-            log.info("%s: removing old user keyring %s", self.IDENTIFIER, pn)
-            shutil.rmtree(pn)
+        for key in kmodels.Key.objects.all():
+            try:
+                fpr = backend.models.Fingerprint.get(fpr=key.fpr)
+            except backend.models.Fingerprint.DoesNotExist:
+                fpr = None
+
+            in_use = fpr is not None and fpr.is_active and (fpr.user.pending or fpr.user.active_processes)
+            if in_use: continue
+
+            if key.key_updated < threshold:
+                log.info("%s: removing old key %s", self.IDENTIFIER, key.fpr)
+                key.delete()
+
 
 class KeyringMaint(hk.Task):
     """
