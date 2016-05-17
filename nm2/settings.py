@@ -146,6 +146,7 @@ INSTALLED_APPS = [
     'apikeys',
     'public',
     'restricted',
+    'fprs',
     'dm',
     'maintenance',
     'projectb',

@@ -11,6 +11,10 @@ from django.utils.timezone import now
 import datetime
 import re
 
+# Warning: do not write new tests using this infrastructure. See
+# backend.unittest for one that leads to faster and more readable tests.
+# This is here only until all the old tests get rewritten.
+
 class NMFactoryMixin(object):
     def setUp(self):
         super(NMFactoryMixin, self).setUp()

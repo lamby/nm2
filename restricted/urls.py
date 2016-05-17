@@ -15,10 +15,6 @@ urlpatterns = [
     url(r'^amprofile(?:/(?P<key>[^/]+))?$', views.AMProfile.as_view(), name="restricted_amprofile"),
     # Edit personal info
     url(r'^person/(?P<key>[^/]+)$', views.Person.as_view(), name="restricted_person"),
-    # Manage fingerprints
-    url(r'^person/(?P<key>[^/]+)/fingerprints$', views.PersonFingerprints.as_view(), name="restricted_person_fingerprints"),
-    # Activate fingerprints
-    url(r'^person/(?P<key>[^/]+)/fingerprints/(?P<fpr>[0-9A-F]+)/activate$', views.SetActiveFingerprint.as_view(), name="restricted_person_fingerprints_activate"),
     # Create new process for a person (advocate)
     url(r'^advocate/(?P<applying_for>[^/]+)/(?P<key>[^/]+)$', views.NewProcess.as_view(), name="restricted_advocate"),
     # Show changelogs (minechangelogs)

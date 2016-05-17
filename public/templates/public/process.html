@@ -129,7 +129,7 @@ See: <a href="http://lists.debian.org/debian-project/2010/09/msg00026.html">hand
     <tr>
       <th>OpenPGP fingerprint</th>
       <td>
-        {{person.fpr|fingerprint}}{% if "edit_ldap" in vperms.perms %} (<a href="{% url 'restricted_person_fingerprints' key=person.lookup_key %}">manage</a>){% endif %}
+        {{person.fpr|fingerprint}}{% if "edit_ldap" in vperms.perms %} (<a href="{% url 'fprs_person_list' key=person.lookup_key %}">manage</a>){% endif %}
         {% if keycheck %}
         <small>
         <ul class="packed">

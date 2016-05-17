@@ -91,13 +91,38 @@ class TestPersons(NamedObjects):
 
     def create(self, _name, alioth=False, **kw):
         if alioth:
-            kw.setdefault("uid", _name + "-guest")
             kw.setdefault("username", _name + "-guest@users.alioth.debian.org")
         else:
-            kw.setdefault("uid", _name)
             kw.setdefault("username", _name + "@debian.org")
+        kw.setdefault("uid", _name)
         self._update_kwargs_with_defaults(_name, kw)
         self[_name] = o = self._model.objects.create_user(audit_skip=True, **kw)
+        return o
+
+
+class TestProcesses(NamedObjects):
+    def __init__(self, **defaults):
+        super(TestProcesses, self).__init__(Process, **defaults)
+        defaults.setdefault("progress", const.PROGRESS_APP_NEW)
+
+    def create(self, _name, advocates=[], **kw):
+        self._update_kwargs_with_defaults(_name, kw)
+
+        if "process" in kw:
+            kw.setdefault("is_active", kw["process"] not in (const.PROGRESS_DONE, const.PROGRESS_CANCELLED))
+        else:
+            kw.setdefault("is_active", True)
+
+        if "manager" in kw:
+            try:
+                am = kw["manager"].am
+            except AM.DoesNotExist:
+                am = AM.objects.create(person=kw["manager"])
+            kw["manager"] = am
+
+        o = super(TestProcesses, self).create(_name, **kw)
+        for a in advocates:
+            o.advocates.add(a)
         return o
 
 
@@ -160,7 +185,14 @@ class PersonFixtureMixin(TestBase):
     @classmethod
     def get_persons_defaults(cls):
         """
-        Get default arguments for test users
+        Get default arguments for test persons
+        """
+        return {}
+
+    @classmethod
+    def get_processes_defaults(cls):
+        """
+        Get default arguments for test processes
         """
         return {}
 
@@ -168,6 +200,7 @@ class PersonFixtureMixin(TestBase):
     def setUpClass(cls):
         super(PersonFixtureMixin, cls).setUpClass()
         cls.persons = TestPersons(**cls.get_persons_defaults())
+        cls.processes = TestProcesses(**cls.get_processes_defaults())
         cls.ams = NamedObjects(AM)
 
         # pending account
@@ -194,11 +227,12 @@ class PersonFixtureMixin(TestBase):
     @classmethod
     def tearDownClass(cls):
         cls.ams.delete_all()
+        cls.processes.delete_all()
         cls.persons.delete_all()
         super(PersonFixtureMixin, cls).tearDownClass()
 
     def setUp(self):
         super(PersonFixtureMixin, self).setUp()
         self.persons.refresh();
+        self.processes.refresh();
         self.ams.refresh();
-
