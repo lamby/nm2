@@ -156,7 +156,6 @@ class Key(models.Model):
                 with io.open(logger_log, "rt") as fd:
                     stderr += fd.read()
                 raise RuntimeError("gpg exited with status {}: {}".format(
-                    " ".join(shlex_quote(x) for x in cmd),
                     result,
                     stderr.strip()
                 ))

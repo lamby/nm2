@@ -792,6 +792,9 @@ class Fingerprint(models.Model):
     endorsement = models.TextField(blank=True, help_text="Endorsement of DC and SMUP signed with this key")
     endorsement_valid = models.BooleanField(default=False, help_text="True if the endorsement has been verified to have valid wording")
 
+    def __unicode__(self):
+        return self.fpr
+
     def get_key(self):
         from keyring.models import Key
         return Key.objects.get_or_download(self.fpr)

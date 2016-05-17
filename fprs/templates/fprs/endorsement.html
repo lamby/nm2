@@ -22,57 +22,46 @@
 
 {% block content %}
 
-<p>This page does not exist yet.</p>
+<h1>Manage agreements for key {{keyid}}</h1>
 
-<img src="https://upload.wikimedia.org/wikipedia/commons/2/24/Campitelli_-_clivo_di_Venere_Felice_-_sicurezza_x_lavori_metro_C_P1010586.JPG" width="600">
+<p>Every Debian Contributor, to gain access to project resources, needs to know
+and agree with these documents:
+<dl>
+  <dt><a href="https://www.debian.org/social_contract">Debian Social Contract</a> (SC)</dt>
+  <dd>Defines the common principles for all work in Debian</dd>
+  <dt><a href="https://www.debian.org/social_contract#guidelines">Debian Free Software Guidelines</a> (DFSG)</dt>
+  <dd>Defines what is Free Software for Debian</dd>
+  <dt><a href="https://www.debian.org/devel/dmup">Debian Machine Usage Policies</a> (DMUP)</dt>
+  <dd>Defines the rules for accessing Debian machines</dd>
+</dl>
+</p>
 
-{% comment %}
-<h1>Edit fingerprints for {{person.fullname}}</h1>
+<p>Since a person's identity in Debian is defined by the OpenPGP key, we
+require a signed statement of agreement for each key that is used in the
+project. This page allows to manage the agreements automatically.</p>
 
-<form action="{% url 'fprs_person_list' key=person.lookup_key %}" method="post">{% csrf_token %}
-  {% for hidden in form.hidden_fields %} {{hidden}} {% endfor %}
+<p>The key is missing a signed statement of agreement with the SC, DFSG and
+DMUP. To add it, paste it in the form below. For your convenince, you can
+generate it with this command, and the site will recognise the text and accept
+it without a need of manual validation of its content:</p>
+
+<pre>
+(
+  echo "I agree to uphold the Social Contract and the Debian Free Software Guidelines in my Debian work."
+  echo "I have read the Debian Machine Usage Policy and I accept them."
+) | gpg --clearsign
+</pre>
+
+<form action="{% url 'fprs_endorsement' key=person.lookup_key fpr=fpr.fpr %}" method="post">{% csrf_token %}
+  {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+  {% for field in form.visible_fields %}
+  {{ field.label_tag }}<br>
+  {{ field }}<br>
+  {{ field.errors }}
+  {% endfor %}        
   {{ form.non_field_errors }}
-  {% for f in form.visible_fields %}
-    <p>{{f.label_tag}}<br>{{f}}<br><small>{{f.help_text}}</small></p>{{f.errors}}
-  {% endfor %}
-  <input type="submit" value="Add key">
+  <input type="submit" value="Submit">
 </form>
-
-<table>
-  <thead>
-    <tr>
-      <th>Key</th>
-      <th>SC/DMUP endorsement</th>
-      <th>Active</th>
-      <th>Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-  {% for fpr in person.fprs.all %}
-  <tr>
-      <td>{{fpr.fpr|fingerprint}}</td>
-      <td>
-        {% if fpr.endorsement_valid %}
-        valid
-        {% elif fpr.endorsement %}
-        unverified
-        {% else %}
-        missing
-        {% endif %}
-      </td>
-      <td>{{fpr.is_active}}</td>
-      <td>
-        {% if not fpr_is_active %}
-        <form action="{% url 'fprs_person_activate' key=person.lookup_key fpr=fpr.fpr %}" method="POST">{% csrf_token %}
-          <button type="submit">Activate</button>
-        </form>
-        {% endif %}
-      </td>
-  </tr>
-  {% endfor %}
-  </tbody>
-</table>
-{% endcomment %}
 
 {% endblock %}
 
