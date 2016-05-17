@@ -109,10 +109,8 @@ See: <a href="http://lists.debian.org/debian-project/2010/09/msg00026.html">hand
 
 <h2>Personal information</h2>
 
-{% if "edit_bio" in vperms.perms or "edit_ldap" in vperms.perms %}
 {% if process.progress == PROGRESS_AM_OK %}
 <div id="checklist">{% include "public/checklist-fd-checks.html" %}</div>
-{% endif %}
 {% endif %}
 
 <table class="personinfo">
