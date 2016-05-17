@@ -71,7 +71,7 @@ class KeyManager(models.Manager):
         if text[-1] != "-----END PGP PUBLIC KEY BLOCK-----": raise RuntimeError("downloaded key material has invalid end line")
         with tempdir_gpg() as gpg:
             gpg.run_checked(gpg.cmd("--import"), input=res.text)
-            return gpg.run_checked(gpg.cmd("--export", "-a", fpr))
+            return gpg.run_checked(gpg.cmd("--export", "-a", fpr)).decode("utf-8", "replace")
 
     def get_or_download(self, fpr, body=None):
         try:
@@ -219,7 +219,7 @@ class GPG(object):
         Run gpg with the given command, waiting for its completion, returning a triple
         (stdout, stderr, result)
         """
-        proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
         stdout, stderr = proc.communicate(input=input)
         result = proc.wait()
         return stdout, stderr, result
@@ -246,7 +246,7 @@ class GPG(object):
         where proc is the subprocess.Popen object, and lines is a
         backend.utils.StreamStdoutKeepStderr object connected to proc.
         """
-        proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
         proc.stdin.close()
         lines = StreamStdoutKeepStderr(proc)
         return proc, lines
@@ -269,7 +269,7 @@ def _list_keyring(keyring):
     proc, lines = gpg.pipe_cmd(cmd)
     for line in lines:
         try:
-            line = line.decode('utf8')
+            line = line.decode('utf-8')
         except:
             try:
                 line = line.decode('iso8859-1')
@@ -342,35 +342,36 @@ class KeyData(object):
         cur_key = None
         cur_uid = None
         for lineno, line in enumerate(lines, start=1):
-            if line.startswith(b"pub:"):
+            print(repr(line))
+            if line.startswith("pub:"):
                 # Keep track of this pub record, to correlate with the following
                 # fpr record
-                pub = line.split(b":")
+                pub = line.split(":")
                 cur_key = None
                 cur_uid = None
-            elif line.startswith(b"fpr:"):
+            elif line.startswith("fpr:"):
                 # Correlate fpr with the previous pub record, and start gathering
                 # information for a new key
                 if pub is None:
                     raise Exception("gpg:{}: found fpr line with no previous pub line".format(lineno))
-                fpr = line.split(b":")[9]
+                fpr = line.split(":")[9]
                 cur_key = keys.get(fpr, None)
                 if cur_key is None:
                     keys[fpr] = cur_key = cls(fpr, pub)
                 pub = None
                 cur_uid = None
-            elif line.startswith(b"uid:"):
+            elif line.startswith("uid:"):
                 if cur_key is None:
                     raise Exception("gpg:{}: found uid line with no previous pub+fpr lines".format(lineno))
-                cur_uid = cur_key.get_uid(line.split(b":"))
-            elif line.startswith(b"sig:"):
+                cur_uid = cur_key.get_uid(line.split(":"))
+            elif line.startswith("sig:"):
                 if cur_uid is None:
                     raise Exception("gpg:{}: found sig line with no previous uid line".format(lineno))
-                cur_uid.add_sig(line.split(b":"))
-            elif line.startswith(b"sub:"):
+                cur_uid.add_sig(line.split(":"))
+            elif line.startswith("sub:"):
                 if cur_key is None:
                     raise Exception("gpg:{}: found sub line with no previous pub+fpr lines".format(lineno))
-                cur_key.add_sub(line.split(b":"))
+                cur_key.add_sub(line.split(":"))
 
         return keys
 
@@ -384,7 +385,7 @@ class Uid(object):
     def __init__(self, key, uid):
         self.key = key
         self.uid = uid
-        self.name = uid[9].decode("utf8", "replace")
+        self.name = uid[9]
         self.sigs = {}
 
     def add_sig(self, sig):
