@@ -232,6 +232,7 @@ class KeyringMaintImport(object):
             else:
                 info["audit_notes"] = "Created DM entry, RT unknown"
             p = bmodels.Person.objects.create_user(**info)
+            p.fprs.create(fpr=info["fpr"], is_active=True, audit_author=info["audit_author"], audit_notes=info["audit_notes"])
             log.info("%s: %s: %s", self.logtag, self.person_link(p), info["audit_notes"])
             return True
 
