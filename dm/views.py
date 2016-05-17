@@ -50,7 +50,7 @@ class Claim(VisitorMixin, FormView):
 
     def pre_dispatch(self):
         super(Claim, self).pre_dispatch()
-        if self.visitor is not None: raise PermissionDenied
+        if self.visitor is not None and not self.visitor.is_admin: raise PermissionDenied
         if self.request.sso_username is None: raise PermissionDenied
         if not is_valid_username(self.request.sso_username): raise PermissionDenied
         self.username = self.request.sso_username
