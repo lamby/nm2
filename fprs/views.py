@@ -84,24 +84,9 @@ class EndorsementForm(forms.Form):
         except RuntimeError as e:
             raise forms.ValidationError("Cannot verify the signature: " + str(e))
 
-        #data = bmodels.FingerprintField.clean_fingerprint(self.cleaned_data['fpr'])
-        #try:
-        #    fpr = bmodels.Fingerprint.objects.get(fpr=self.cleaned_data["fpr"])
-        #except bmodels.Fingerprint.DoesNotExist:
-        #    raise forms.ValidationError("The GPG fingerprint is not known to this system. "
-        #                                "If you are a Debian Maintainer, and you entered the fingerprint that is in the DM keyring, "
-        #                                "please contact Front Desk to get this fixed.")
-
-        #if not fpr.is_active:
-        #    raise forms.ValidationError("The GPG fingerprint corresponds to a key that is not currently the active key of the user.")
-
-        #if is_valid_username(fpr.person.username):
-        #    raise forms.ValidationError("The GPG fingerprint corresponds to a person that has a valid Single Sign-On username.")
-
         return text
 
 class Endorsement(FingerprintMixin, FormView):
-    # TODO: work in progress
     template_name = "fprs/endorsement.html"
     require_vperms = "edit_ldap"
     form_class = EndorsementForm
@@ -113,10 +98,12 @@ class Endorsement(FingerprintMixin, FormView):
 
     @transaction.atomic
     def form_valid(self, form):
+        self.fpr.endorsement = form.cleaned_data["agreement"]
+
+        # TODO: normalise and verify content of plaintext
+
         #fpr = form.save(commit=False)
         #fpr.person = self.person
         #fpr.is_active = True
-        #fpr.save(audit_author=self.visitor, audit_notes="added new fingerprint")
-        ## Ensure that only the new fingerprint is the active one
-        #self.person.fprs.exclude(pk=fpr.pk).update(is_active=False)
+        fpr.save(audit_author=self.visitor, audit_notes="added SC/DFSG/DMUP agreement")
         return redirect("fprs_person_list", key=self.person.lookup_key)
