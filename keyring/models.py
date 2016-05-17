@@ -9,6 +9,7 @@ from __future__ import unicode_literals
 from django.db import models
 from django.conf import settings
 from django.utils.timezone import utc, now
+import io
 import os
 import os.path
 import subprocess
@@ -134,6 +135,39 @@ class Key(models.Model):
             gpg.run_checked(gpg.cmd("--import"), input=self.key)
             cmd = gpg.cmd("--encrypt", "--armor", "--no-default-recipient", "--trust-model=always", "--recipient", self.fpr)
             return gpg.run_checked(cmd, input=data)
+
+    def verify(self, data):
+        """
+        Verify a signed text with this key, returning the signed payload
+        """
+        with tempdir_gpg() as gpg:
+            gpg.run_checked(gpg.cmd("--import"), input=self.key)
+            data_file = os.path.join(gpg.homedir, "data.txt")
+            status_log = os.path.join(gpg.homedir, "status.log")
+            logger_log = os.path.join(gpg.homedir, "logger.log")
+            with io.open(data_file, "wt") as fd:
+                fd.write(data)
+            with io.open(status_log, "wb") as fd_status:
+                with io.open(logger_log, "wb") as fd_logger:
+                    cmd = gpg.cmd("--status-fd", str(fd_status.fileno()), "--logger-fd", str(fd_logger.fileno()), "--decrypt", data_file)
+                    plaintext, stderr, result = gpg.run_cmd(cmd)
+
+            if result != 0:
+                with io.open(logger_log, "rt") as fd:
+                    stderr += fd.read()
+                raise RuntimeError("gpg exited with status {}: {}".format(
+                    " ".join(shlex_quote(x) for x in cmd),
+                    result,
+                    stderr.strip()
+                ))
+
+            with io.open(status_log, "rt") as fd:
+                status = fd.read()
+
+            if "VALIDSIG" not in status and "GOODSIG" not in status:
+                raise RuntimeError("VALIDSIG or GOODSIG not found in gpg output")
+
+            return plaintext.decode("utf-8", errors="replace")
 
     def keycheck(self):
         if not self.check_sigs:

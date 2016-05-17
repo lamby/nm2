@@ -6,8 +6,32 @@ from __future__ import unicode_literals
 from django.test import TestCase, Client
 from django.core.urlresolvers import reverse
 from . import models as kmodels
+import io
 import json
 
+test_signed = """
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA256
+
+This is a test string
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
+
+iQIcBAEBCAAGBQJXO5CSAAoJEAPWVoyDcnWpArgP/3EBdxc4gu5iQX7HQdmc93p8
+4BSd/6evtqNtSJehQtZIRiJIqP3pcKDgnWQ+PqkEDkrMnlp7hQyLLXqENcwU54l1
+Pj3OiS4O5EMkF4rvteIajX/GXO/qou7+zJYny/DBJUaDg9Dem7Zr8TzVoQsEMOcs
+3VPdKQTZHOYcKvCoBMv34ZD9cKRsLACt7x+MTQIIZg62oaaCoHEraT6KSkkcn28P
+IC5LTZaMRJm8di3zpxxHpM6RHhJpLEjmZNgRFaGPKam9ba7OeQy96tgTRYs4yKvx
+gO2zcDLoXC2s/vhF7A0VTbg7GGfvFlQpRr6tempK39UbUaGGDlaPkyYeRdIXhxoP
+yOUZS+ejGI2lxiECYWR5hVUO+Py+sHM2FWwphaRF226yPdq3bIIobQ22FgDaEiPw
+bWrRVNG35TRJYSn4xb3XovIrcY8rmgOV5gSCpZh4Iy/92PuVg5gp1y2fFHp42PrC
+OQqk1JXE1PHAX6ZqWQJW3MUcyBqKyEnz5Ylez7yyDqCWobey/s62dybYtdtQ/aZO
+xBT0EeU3M5W1yBzEWVCLUUBIsmzFI+uUqZwO20XWmdMYFtWyvxmVQ9JCXo3ncWwf
+a+KEa+sSqB8ZN0fIzGLL2uOOPdQGoVHxnObCJ5gBKjZ73JajY3cfLysY0UW45/eh
++5lxImpwauF6Tf+pMHKD
+=86an
+-----END PGP SIGNATURE-----
+"""
 
 class LookupTest(TestCase):
     def test_dd_u(self):
@@ -58,6 +82,13 @@ class TestKeycheck(TestCase):
         self.assertIsInstance(uid.sigs_ok, list)
         self.assertIsInstance(uid.sigs_no_key, list)
         self.assertIsInstance(uid.sigs_bad, list)
+
+        self.assertEquals(key.verify(test_signed), "This is a test string\n")
+
+        with io.open("test_data/F4B4B0CC797EBFAB.txt", "rt") as fd:
+            key1 = kmodels.Key.objects.get_or_download(fpr="66B4DFB68CB24EBBD8650BC4F4B4B0CC797EBFAB", body=fd.read())
+        with self.assertRaises(RuntimeError):
+            key1.verify(test_signed)
 
     def test_keycheck(self):
         c = Client()
