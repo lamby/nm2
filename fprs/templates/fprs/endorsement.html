@@ -12,6 +12,7 @@
 
 {% block breadcrumbs %}{{block.super}}
 / <a href="{{ person.get_absolute_url }}">{{person.lookup_key}}</a>
+/ <a href="{% url 'fprs_person_list' key=person.lookup_key %}">key list</a>
 {% endblock %}
 
 {% block relatedpages %}
@@ -21,6 +22,11 @@
 
 {% block content %}
 
+<p>This page does not exist yet.</p>
+
+<img src="https://upload.wikimedia.org/wikipedia/commons/2/24/Campitelli_-_clivo_di_Venere_Felice_-_sicurezza_x_lavori_metro_C_P1010586.JPG" width="600">
+
+{% comment %}
 <h1>Edit fingerprints for {{person.fullname}}</h1>
 
 <form action="{% url 'fprs_person_list' key=person.lookup_key %}" method="post">{% csrf_token %}
@@ -46,7 +52,6 @@
   <tr>
       <td>{{fpr.fpr|fingerprint}}</td>
       <td>
-        <a href="{% url 'fprs_endorsement' key=person.lookup_key fpr=fpr.fpr %}">
         {% if fpr.endorsement_valid %}
         valid
         {% elif fpr.endorsement %}
@@ -54,7 +59,6 @@
         {% else %}
         missing
         {% endif %}
-        </a>
       </td>
       <td>{{fpr.is_active}}</td>
       <td>
@@ -68,6 +72,8 @@
   {% endfor %}
   </tbody>
 </table>
+{% endcomment %}
 
 {% endblock %}
+
 

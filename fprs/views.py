@@ -56,3 +56,20 @@ class SetActiveFingerprint(VisitPersonMixin, View):
             fpr.save(audit_author=self.visitor, audit_notes="activated fingerprint {}".format(fpr.fpr))
 
         return redirect("fprs_person_list", key=self.person.lookup_key)
+
+
+class Endorsement(VisitPersonMixin, FormView):
+    # TODO: work in progress
+    template_name = "fprs/endorsement.html"
+    require_vperms = "edit_ldap"
+    form_class = NewFingerprintForm
+
+    @transaction.atomic
+    def form_valid(self, form):
+        #fpr = form.save(commit=False)
+        #fpr.person = self.person
+        #fpr.is_active = True
+        #fpr.save(audit_author=self.visitor, audit_notes="added new fingerprint")
+        ## Ensure that only the new fingerprint is the active one
+        #self.person.fprs.exclude(pk=fpr.pk).update(is_active=False)
+        return redirect("fprs_person_list", key=self.person.lookup_key)
