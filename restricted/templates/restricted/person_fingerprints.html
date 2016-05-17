@@ -36,6 +36,7 @@
   <thead>
     <tr>
       <th>Key</th>
+      <th>SC/DMUP endorsement</th>
       <th>Active</th>
       <th>Actions</th>
     </tr>
@@ -44,6 +45,7 @@
   {% for fpr in person.fprs.all %}
   <tr>
       <td>{{fpr.fpr|fingerprint}}</td>
+      <td>{{fpr.endorsement_valid}}</td>
       <td>{{fpr.is_active}}</td>
       <td>
         {% if not fpr_is_active %}

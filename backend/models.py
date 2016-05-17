@@ -789,6 +789,8 @@ class Fingerprint(models.Model):
     person = models.ForeignKey(Person, related_name="fprs")
     fpr = FingerprintField(verbose_name="OpenPGP key fingerprint", max_length=40, unique=True)
     is_active = models.BooleanField(default=False, help_text="whether this key is curently in use")
+    endorsement = models.TextField(blank=True, help_text="Endorsement of DC and SMUP signed with this key")
+    endorsement_valid = models.BooleanField(default=False, help_text="True if the endorsement has been verified to have valid wording")
 
     def get_key(self):
         from keyring.models import Key
