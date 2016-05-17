@@ -584,7 +584,7 @@ class PersonFingerprints(VisitPersonMixin, FormView):
     @transaction.atomic
     def form_valid(self, form):
         fpr = form.save(commit=False)
-        fpr.user = self.person
+        fpr.person = self.person
         fpr.is_active = True
         fpr.save(audit_author=self.visitor, audit_notes="added new fingerprint")
         # Ensure that only the new fingerprint is the active one
@@ -598,7 +598,7 @@ class SetActiveFingerprint(VisitPersonMixin, View):
     @transaction.atomic
     def post(self, request, key, fpr, *args, **kw):
         fpr = get_object_or_404(bmodels.Fingerprint, fpr=fpr)
-        if fpr.user.pk != self.person.pk:
+        if fpr.person.pk != self.person.pk:
             raise PermissionDenied
 
         # Set all other fingerprints as not active

@@ -236,7 +236,7 @@ class CleanUserKeys(hk.Task):
             except backend.models.Fingerprint.DoesNotExist:
                 fpr = None
 
-            in_use = fpr is not None and fpr.is_active and (fpr.user.pending or fpr.user.active_processes)
+            in_use = fpr is not None and fpr.is_active and (fpr.person.pending or fpr.person.active_processes)
             if in_use: continue
 
             if key.key_updated < threshold:

@@ -786,7 +786,7 @@ class Fingerprint(models.Model):
 
     objects = FingerprintManager()
 
-    user = models.ForeignKey(Person, related_name="fprs")
+    person = models.ForeignKey(Person, related_name="fprs")
     fpr = FingerprintField(verbose_name="OpenPGP key fingerprint", max_length=40, unique=True)
     is_active = models.BooleanField(default=False, help_text="whether this key is curently in use")
 
@@ -822,7 +822,7 @@ class Fingerprint(models.Model):
 
             changes = PersonAuditLog.diff_fingerprint(existing_fingerprint, self)
             if changes and not author:
-                raise RuntimeError("Cannot save a Person instance without providing Author information")
+                raise RuntimeError("Cannot save a Fingerprint instance without providing Author information")
 
         # Perform the save; if we are creating a new person, this will also
         # fill in the id/pk field, so that PersonAuditLog can link to us
@@ -830,9 +830,9 @@ class Fingerprint(models.Model):
 
         # Finally, create the audit log entry
         if changes:
-            if existing_fingerprint is not None and existing_fingerprint.user.pk != self.user.pk:
-                PersonAuditLog.objects.create(person=existing_fingerprint.user, author=author, notes=notes, changes=PersonAuditLog.serialize_changes(changes))
-            PersonAuditLog.objects.create(person=self.user, author=author, notes=notes, changes=PersonAuditLog.serialize_changes(changes))
+            if existing_fingerprint is not None and existing_fingerprint.person.pk != self.person.pk:
+                PersonAuditLog.objects.create(person=existing_fingerprint.person, author=author, notes=notes, changes=PersonAuditLog.serialize_changes(changes))
+            PersonAuditLog.objects.create(person=self.person, author=author, notes=notes, changes=PersonAuditLog.serialize_changes(changes))
 
 class PersonAuditLog(models.Model):
     person = models.ForeignKey(Person, related_name="audit_log")

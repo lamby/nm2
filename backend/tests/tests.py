@@ -235,21 +235,21 @@ class FingerprintTest(TransactionTestCase):
         cr = connection.cursor()
 
         # Spaces are stripped
-        f = bmodels.Fingerprint.objects.create(fpr="A410 5B0A 9F84 97EC AB5F  1683 8D5B 478C F7FE 4DAA", user=p)
+        f = bmodels.Fingerprint.objects.create(fpr="A410 5B0A 9F84 97EC AB5F  1683 8D5B 478C F7FE 4DAA", person=p, audit_skip=True)
         db_fpr = cr.execute("select fpr from fingerprints where id='{}'".format(f.id)).fetchone()[0]
         self.assertEquals(db_fpr, "A4105B0A9F8497ECAB5F16838D5B478CF7FE4DAA")
 
         # Letters are uppercased
-        f = bmodels.Fingerprint.objects.create(fpr="a410 5b0a 9f84 97ec ab5f1683 8d5b 478c f7fe 4dab", user=p)
+        f = bmodels.Fingerprint.objects.create(fpr="a410 5b0a 9f84 97ec ab5f1683 8d5b 478c f7fe 4dab", person=p, audit_skip=True)
         on_db_valid_fpr = cr.execute("select fpr from fingerprints where id='{}'".format(f.id)).fetchone()[0]
         self.assertEquals(on_db_valid_fpr, "A4105B0A9F8497ECAB5F16838D5B478CF7FE4DAB")
 
         # Everything else is discarded
         with self.assertRaises(django.db.IntegrityError):
-            bmodels.Fingerprint.objects.create(fpr="FIXME: I'll let you know later when I'll have a bit of a clue", user=p)
+            bmodels.Fingerprint.objects.create(fpr="FIXME: I'll let you know later when I'll have a bit of a clue", person=p, audit_skip=True)
 
         with self.assertRaises(django.db.IntegrityError):
-            bmodels.Fingerprint.objects.create(fpr="")
+            bmodels.Fingerprint.objects.create(fpr="", audit_skip=True)
 
 
 class PersonExpires(TransactionTestCase):

@@ -34,7 +34,7 @@ class ClaimForm(forms.Form):
         if not fpr.is_active:
             raise forms.ValidationError("The GPG fingerprint corresponds to a key that is not currently the active key of the user.")
 
-        if is_valid_username(fpr.user.username):
+        if is_valid_username(fpr.person.username):
             raise forms.ValidationError("The GPG fingerprint corresponds to a person that has a valid Single Sign-On username.")
 
         return data
@@ -60,7 +60,7 @@ class Claim(VisitorMixin, FormView):
         ctx["username"] = self.username
         if fpr:
             ctx["fpr"] = fpr
-            ctx["person"] = fpr.user
+            ctx["person"] = fpr.person
 
             key = fpr.get_key()
             if not key.key_is_fresh(): key.update_key()
@@ -114,10 +114,10 @@ class ClaimConfirm(VisitorMixin, TemplateView):
         if not self.fpr.is_active:
             self.errors.append("The GPG fingerprint corresponds to a key that is not currently the active key of the user.")
 
-        if is_valid_username(self.fpr.user.username):
+        if is_valid_username(self.fpr.person.username):
             self.errors.append("The GPG fingerprint corresponds to a person that has a valid Single Sign-On username.")
 
-        if self.fpr.user.is_dd:
+        if self.fpr.person.is_dd:
             self.errors.append("The GPG fingerprint corresponds to a Debian Developer.")
 
         # Validate username
@@ -138,10 +138,10 @@ class ClaimConfirm(VisitorMixin, TemplateView):
 
         if self.validate_token(self.kwargs["token"]):
             # Do the mapping
-            self.fpr.user.username = self.username
-            self.fpr.user.save(audit_author=self.fpr.user, audit_notes="claimed account via /dm/claim")
+            self.fpr.person.username = self.username
+            self.fpr.person.save(audit_author=self.fpr.person, audit_notes="claimed account via /dm/claim")
             ctx["mapped"] = True
-            ctx["person"] = self.fpr.user
+            ctx["person"] = self.fpr.person
             ctx["fpr"] = self.fpr
             ctx["username"] = self.username
         ctx["errors"] = self.errors

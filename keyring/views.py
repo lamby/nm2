@@ -72,7 +72,7 @@ def keycheck(request, fpr):
             uids.append({
                 "name": ku.uid.name,
                 "errors": sorted(ku.errors),
-                "sigs_ok": [x[9].decode("utf8", "replace") for x in ku.sigs_ok],
+                "sigs_ok": [x[9] for x in ku.sigs_ok],
                 "sigs_no_key": len(ku.sigs_no_key),
                 "sigs_bad": len(ku.sigs_bad)
             })
@@ -80,7 +80,7 @@ def keycheck(request, fpr):
         try:
             bf = bmodels.Fingerprint.objects.get(fpr=fpr)
             k["person_id"] = bf.user_id
-            k["person"] = bf.user.fullname
+            k["person"] = bf.person.fullname
         except ObjectDoesNotExist:
             k["person_id"] = None
             k["person"] = None

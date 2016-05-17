@@ -386,7 +386,7 @@ class PersonFingerprintActivateTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, T
         self.proc = self.make_process(self.app, const.STATUS_DD_NU, const.PROGRESS_AM, manager=self.am, advocates=[self.adv])
 
         for idx, u in enumerate(self.users.values()):
-            bmodels.Fingerprint.objects.create(user=u, fpr="0123456789abcdef00000123456789abcdef{:04}".format(idx), is_active=False, audit_skip=True)
+            bmodels.Fingerprint.objects.create(person=u, fpr="0123456789abcdef00000123456789abcdef{:04}".format(idx), is_active=False, audit_skip=True)
 
     def test_get(self):
         class WhenView(NMTestUtilsWhen):

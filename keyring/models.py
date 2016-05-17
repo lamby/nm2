@@ -71,7 +71,7 @@ class KeyManager(models.Manager):
         if text[-1] != "-----END PGP PUBLIC KEY BLOCK-----": raise RuntimeError("downloaded key material has invalid end line")
         with tempdir_gpg() as gpg:
             gpg.run_checked(gpg.cmd("--import"), input=res.text)
-            return gpg.run_checked(gpg.cmd("--export", "-a", fpr)).decode("utf-8", "replace")
+            return gpg.run_checked(gpg.cmd("--export", "-a", fpr)).decode("utf-8", errors="replace")
 
     def get_or_download(self, fpr, body=None):
         try:
@@ -121,7 +121,7 @@ class Key(models.Model):
 
             # Check key
             cmd = gpg.keyring_cmd(("debian-keyring.gpg", "debian-nonupload.gpg"), "--check-sigs", self.fpr)
-            self.check_sigs = gpg.run_checked(cmd)
+            self.check_sigs = gpg.run_checked(cmd).decode("utf-8", errors="replace")
             self.check_sigs_updated = now()
         self.save()
 
@@ -274,7 +274,7 @@ def _list_keyring(keyring):
             try:
                 line = line.decode('iso8859-1')
             except:
-                line = line.decode('utf8', 'replace')
+                line = line.decode('utf-8', errors='replace')
         if not line.startswith("fpr"): continue
         yield line.split(":")[9]
     result = proc.wait()
@@ -342,7 +342,6 @@ class KeyData(object):
         cur_key = None
         cur_uid = None
         for lineno, line in enumerate(lines, start=1):
-            print(repr(line))
             if line.startswith("pub:"):
                 # Keep track of this pub record, to correlate with the following
                 # fpr record

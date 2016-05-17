@@ -61,7 +61,7 @@ class TestClaim(PersonFixtureMixin, TestCase):
         orig_username = person.username
         person.username = "invalid@example.org"
         person.save(audit_skip=True)
-        fpr = Fingerprint.objects.create(fpr=self.test_fingerprint, user=person, is_active=True, audit_skip=True)
+        fpr = Fingerprint.objects.create(fpr=self.test_fingerprint, person=person, is_active=True, audit_skip=True)
 
         client = self.make_test_client(orig_username)
         response = client.get(reverse("dm_claim"))
