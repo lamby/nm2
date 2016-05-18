@@ -65,6 +65,9 @@ class KeyManager(models.Manager):
                 "exact": "on",
                 "options": "mr",
             }))
+        #import traceback
+        #traceback.print_stack()
+        #print("Download from", url)
         res = requests.get(url)
         text = res.text.splitlines()
         if not text: raise RuntimeError("empty response from key server")
@@ -73,6 +76,18 @@ class KeyManager(models.Manager):
         with tempdir_gpg() as gpg:
             gpg.run_checked(gpg.cmd("--import"), input=res.text)
             return gpg.run_checked(gpg.cmd("--export", "-a", fpr)).decode("utf-8", errors="replace")
+
+    def test_preload(self, fpr):
+        """
+        Load a key material from test keys in test_data/
+
+        This is used to prevent hitting the keyservers in unit tests when not
+        explicitly testing key downloads.
+        """
+        keyfile = os.path.join("test_data", fpr + ".txt")
+        with io.open(keyfile, "rt", encoding="utf-8") as fd:
+            body = fd.read()
+        self.get_or_create(fpr=fpr, defaults={"key": body, "key_updated": now()})
 
     def get_or_download(self, fpr, body=None):
         try:

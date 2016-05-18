@@ -8,6 +8,8 @@ from backend import const
 from django.utils.timezone import now
 from django.test import Client
 import datetime
+import os
+import io
 import re
 import six
 
@@ -120,9 +122,21 @@ class TestProcesses(NamedObjects):
                 am = AM.objects.create(person=kw["manager"])
             kw["manager"] = am
 
-        o = super(TestProcesses, self).create(_name, **kw)
+        self[_name] = o = self._model.objects.create(**kw)
         for a in advocates:
             o.advocates.add(a)
+        return o
+
+
+class TestKeys(NamedObjects):
+    def __init__(self, **defaults):
+        from keyring.models import Key
+        super(TestKeys, self).__init__(Key, **defaults)
+
+    def create(self, _name, **kw):
+        self._update_kwargs_with_defaults(_name, kw)
+        self._model.objects.test_preload(_name)
+        self[_name] = o = self._model.objects.get_or_download(_name, **kw)
         return o
 
 
@@ -177,6 +191,16 @@ class TestBase(object):
         if target and not re.search(target, response["Location"]):
             self.fail("response redirects to {} which does not match {}".format(response["Location"], target))
 
+    def assertFormErrorMatches(self, response, form_name, field_name, regex):
+        form = response.context[form_name]
+        errors = form.errors
+        if not errors: self.fail("Form {} has no errors".format(form_name))
+        if field_name not in errors: self.fail("Form {} has no errors in field {}".format(form_name, field_name))
+        match = re.compile(regex)
+        for errmsg in errors[field_name]:
+            if match.search(errmsg): return
+        self.fail("{} dit not match any in {}".format(regex, repr(errors)))
+
 
 class PersonFixtureMixin(TestBase):
     """
@@ -202,6 +226,7 @@ class PersonFixtureMixin(TestBase):
         cls.persons = TestPersons(**cls.get_persons_defaults())
         cls.processes = TestProcesses(**cls.get_processes_defaults())
         cls.ams = NamedObjects(AM)
+        cls.keys = TestKeys()
 
         # pending account
         cls.persons.create("pending", status=const.STATUS_DC, expires=now() + datetime.timedelta(days=1), pending="12345", alioth=True)
@@ -224,8 +249,13 @@ class PersonFixtureMixin(TestBase):
         dam = cls.persons.create("dam", status=const.STATUS_DD_NU)
         cls.ams.create("dam", person=dam, is_fd=True, is_dam=True)
 
+        # Preload two keys
+        cls.keys.create("66B4DFB68CB24EBBD8650BC4F4B4B0CC797EBFAB")
+        cls.keys.create("1793D6AB75663E6BF104953A634F4BD1E7AD5568")
+
     @classmethod
     def tearDownClass(cls):
+        cls.keys.delete_all()
         cls.ams.delete_all()
         cls.processes.delete_all()
         cls.persons.delete_all()
@@ -236,3 +266,4 @@ class PersonFixtureMixin(TestBase):
         self.persons.refresh();
         self.processes.refresh();
         self.ams.refresh();
+        self.keys.refresh();

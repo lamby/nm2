@@ -12,6 +12,7 @@ from django.core.exceptions import PermissionDenied
 from backend.mixins import VisitPersonMixin
 from django.db import transaction
 import backend.models as bmodels
+import re
 
 
 class NewFingerprintForm(forms.ModelForm):
@@ -84,26 +85,34 @@ class EndorsementForm(forms.Form):
         except RuntimeError as e:
             raise forms.ValidationError("Cannot verify the signature: " + str(e))
 
-        return text
+        return (text, plaintext)
 
 class Endorsement(FingerprintMixin, FormView):
     template_name = "fprs/endorsement.html"
-    require_vperms = "edit_ldap"
     form_class = EndorsementForm
+    require_vperms = "edit_ldap"
+
+    def pre_dispatch(self):
+        super(Endorsement, self).pre_dispatch()
+        # Only the person themselves can edit the agreements
+        if self.visitor is None: raise PermissionDenied
+        if self.visitor != self.person and not self.visitor.is_admin: raise PermissionDenied
 
     def get_form_kwargs(self):
         kw = super(Endorsement, self).get_form_kwargs()
         kw["fpr"] = self.fpr
         return kw
 
+    def normalise_text(self, text):
+        return re.sub("\s+", " ", text).lower().strip()
+
     @transaction.atomic
     def form_valid(self, form):
-        self.fpr.endorsement = form.cleaned_data["agreement"]
-
-        # TODO: normalise and verify content of plaintext
-
-        #fpr = form.save(commit=False)
-        #fpr.person = self.person
-        #fpr.is_active = True
-        fpr.save(audit_author=self.visitor, audit_notes="added SC/DFSG/DMUP agreement")
+        self.fpr.endorsement, plaintext = form.cleaned_data["agreement"]
+        expected = self.normalise_text(
+            "I agree to uphold the Social Contract and the Debian Free Software Guidelines in my Debian work.\n"
+            "I have read the Debian Machine Usage Policy and I accept them.")
+        submitted = self.normalise_text(plaintext)
+        self.fpr.endorsement_valid = submitted == expected
+        self.fpr.save(audit_author=self.visitor, audit_notes="added SC/DFSG/DMUP agreement")
         return redirect("fprs_person_list", key=self.person.lookup_key)

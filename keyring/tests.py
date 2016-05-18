@@ -54,10 +54,13 @@ class LookupTest(TestCase):
 
 class TestKeycheck(TestCase):
     def test_backend(self):
-        encoded = kmodels.Key.objects.download("1793D6AB75663E6BF104953A634F4BD1E7AD5568")
+        test_fpr1 = "1793D6AB75663E6BF104953A634F4BD1E7AD5568"
+        test_fpr2 = "66B4DFB68CB24EBBD8650BC4F4B4B0CC797EBFAB"
+
+        encoded = kmodels.Key.objects.download(test_fpr1)
         self.assertTrue(encoded.startswith("-----BEGIN PGP PUBLIC KEY BLOCK-----"))
-        key = kmodels.Key.objects.get_or_download(fpr="1793D6AB75663E6BF104953A634F4BD1E7AD5568", body=encoded)
-        self.assertEquals(key.fpr, "1793D6AB75663E6BF104953A634F4BD1E7AD5568")
+        key = kmodels.Key.objects.get_or_download(fpr=test_fpr1, body=encoded)
+        self.assertEquals(key.fpr, test_fpr1)
         self.assertEquals(key.key, encoded)
         self.assertEquals(key.check_sigs, "")
         self.assertIsNone(key.check_sigs_updated)
@@ -67,7 +70,7 @@ class TestKeycheck(TestCase):
         self.assertNotEquals(key.check_sigs, b"")
 
         results = key.keycheck()
-        self.assertEquals(results.key.fpr, "1793D6AB75663E6BF104953A634F4BD1E7AD5568")
+        self.assertEquals(results.key.fpr, test_fpr1)
         self.assertIsInstance(results.errors, set)
         self.assertIsInstance(results.uids, list)
         for u in results.uids:
@@ -83,19 +86,21 @@ class TestKeycheck(TestCase):
         self.assertIsInstance(uid.sigs_no_key, list)
         self.assertIsInstance(uid.sigs_bad, list)
 
+        # Test key signature verification
         self.assertEquals(key.verify(test_signed), "This is a test string\n")
-
-        with io.open("test_data/F4B4B0CC797EBFAB.txt", "rt") as fd:
-            key1 = kmodels.Key.objects.get_or_download(fpr="66B4DFB68CB24EBBD8650BC4F4B4B0CC797EBFAB", body=fd.read())
+        kmodels.Key.objects.test_preload(test_fpr2)
+        key2 = kmodels.Key.objects.get_or_download(fpr=test_fpr2)
         with self.assertRaises(RuntimeError):
-            key1.verify(test_signed)
+            key2.verify(test_signed)
 
     def test_keycheck(self):
+        test_fpr = "1793D6AB75663E6BF104953A634F4BD1E7AD5568"
+        kmodels.Key.objects.test_preload(test_fpr)
         c = Client()
-        response = c.get(reverse("keyring_keycheck", kwargs={"fpr": "1793D6AB75663E6BF104953A634F4BD1E7AD5568"}))
+        response = c.get(reverse("keyring_keycheck", kwargs={"fpr": test_fpr}))
         self.assertEquals(response.status_code, 200)
         decoded = json.loads(response.content)
-        self.assertEquals(decoded["fpr"], "1793D6AB75663E6BF104953A634F4BD1E7AD5568")
+        self.assertEquals(decoded["fpr"], test_fpr)
         self.assertIsInstance(decoded["errors"], list)
         self.assertIsInstance(decoded["uids"], list)
         for k in decoded["uids"]:

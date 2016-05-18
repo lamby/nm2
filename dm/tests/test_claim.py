@@ -19,19 +19,6 @@ class TestClaim(PersonFixtureMixin, TestCase):
     test_fingerprint = "66B4DFB68CB24EBBD8650BC4F4B4B0CC797EBFAB"
 
     @classmethod
-    def setUpClass(cls):
-        super(TestClaim, cls).setUpClass()
-        # Preload the key for test_fingerprint so we do not download it every
-        # test
-        with open("test_data/F4B4B0CC797EBFAB.txt", "rt") as fd:
-            Key.objects.get_or_download(cls.test_fingerprint, body=fd.read())
-
-    @classmethod
-    def tearDownClass(cls):
-        super(TestClaim, cls).tearDownClass()
-        Key.objects.filter(fpr=cls.test_fingerprint).delete()
-
-    @classmethod
     def __add_extra_tests__(cls):
         for person in ("pending", "dc", "dc_ga", "dm", "dm_ga"):
             cls._add_method(cls._test_success, person)
