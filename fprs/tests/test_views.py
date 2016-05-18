@@ -199,7 +199,7 @@ class TestEndorsements(PersonFixtureMixin, TestCase):
     def _test_get_success(self, visitor, visited):
         client = self.make_test_client(visitor)
         Fingerprint.objects.create(fpr=test_fingerprint1, person=self.persons[visited], is_active=True, audit_skip=True)
-        response = client.get(reverse("fprs_endorsement", kwargs={"key": self.persons[visited].lookup_key, "fpr": test_fingerprint1}))
+        response = client.get(reverse("fprs_agreement", kwargs={"key": self.persons[visited].lookup_key, "fpr": test_fingerprint1}))
         self.assertEquals(response.status_code, 200)
 
     def _test_post_success(self, visitor, visited):
@@ -207,7 +207,7 @@ class TestEndorsements(PersonFixtureMixin, TestCase):
         Fingerprint.objects.create(fpr=test_fingerprint1, person=self.persons[visited], is_active=True, audit_skip=True)
 
         # Post a signature done with the wrong key
-        response = client.post(reverse("fprs_endorsement", kwargs={"key": self.persons[visited].lookup_key, "fpr": test_fingerprint1}), data={"agreement": test_fpr2_signed_valid_text})
+        response = client.post(reverse("fprs_agreement", kwargs={"key": self.persons[visited].lookup_key, "fpr": test_fingerprint1}), data={"agreement": test_fpr2_signed_valid_text})
         self.assertEquals(response.status_code, 200)
         self.assertFormErrorMatches(response, "form", "agreement", "public key not found")
         fpr = Fingerprint.objects.get(fpr=test_fingerprint1)
@@ -216,7 +216,7 @@ class TestEndorsements(PersonFixtureMixin, TestCase):
 
         # Post an invalid signature
         text = test_fpr1_signed_valid_text.replace("I agree", "I do not agree")
-        response = client.post(reverse("fprs_endorsement", kwargs={"key": self.persons[visited].lookup_key, "fpr": test_fingerprint1}), data={"agreement": text})
+        response = client.post(reverse("fprs_agreement", kwargs={"key": self.persons[visited].lookup_key, "fpr": test_fingerprint1}), data={"agreement": text})
         self.assertEquals(response.status_code, 200)
         self.assertFormErrorMatches(response, "form", "agreement", "BAD signature from")
         fpr = Fingerprint.objects.get(fpr=test_fingerprint1)
@@ -224,14 +224,14 @@ class TestEndorsements(PersonFixtureMixin, TestCase):
         self.assertEquals(fpr.endorsement_valid, False)
 
         # Post a valid signature, with an invalid text
-        response = client.post(reverse("fprs_endorsement", kwargs={"key": self.persons[visited].lookup_key, "fpr": test_fingerprint1}), data={"agreement": test_fpr1_signed_invalid_text})
+        response = client.post(reverse("fprs_agreement", kwargs={"key": self.persons[visited].lookup_key, "fpr": test_fingerprint1}), data={"agreement": test_fpr1_signed_invalid_text})
         self.assertRedirectMatches(response, reverse("fprs_person_list", kwargs={"key": self.persons[visited].lookup_key}))
         fpr = Fingerprint.objects.get(fpr=test_fingerprint1)
         self.assertEquals(fpr.endorsement, test_fpr1_signed_invalid_text)
         self.assertEquals(fpr.endorsement_valid, False)
 
         # Post a valid signature, with an valid text
-        response = client.post(reverse("fprs_endorsement", kwargs={"key": self.persons[visited].lookup_key, "fpr": test_fingerprint1}), data={"agreement": test_fpr1_signed_valid_text})
+        response = client.post(reverse("fprs_agreement", kwargs={"key": self.persons[visited].lookup_key, "fpr": test_fingerprint1}), data={"agreement": test_fpr1_signed_valid_text})
         self.assertRedirectMatches(response, reverse("fprs_person_list", kwargs={"key": self.persons[visited].lookup_key}))
         fpr = Fingerprint.objects.get(fpr=test_fingerprint1)
         self.assertEquals(fpr.endorsement, test_fpr1_signed_valid_text)
@@ -240,11 +240,11 @@ class TestEndorsements(PersonFixtureMixin, TestCase):
     def _test_get_forbidden(self, visitor, visited):
         client = self.make_test_client(visitor)
         Fingerprint.objects.create(fpr=test_fingerprint1, person=self.persons[visited], is_active=True, audit_skip=True)
-        response = client.get(reverse("fprs_endorsement", kwargs={"key": self.persons[visited].lookup_key, "fpr": test_fingerprint1}))
+        response = client.get(reverse("fprs_agreement", kwargs={"key": self.persons[visited].lookup_key, "fpr": test_fingerprint1}))
         self.assertPermissionDenied(response)
 
     def _test_post_forbidden(self, visitor, visited):
         client = self.make_test_client(visitor)
         Fingerprint.objects.create(fpr=test_fingerprint1, person=self.persons[visited], is_active=True, audit_skip=True)
-        response = client.post(reverse("fprs_endorsement", kwargs={"key": self.persons[visited].lookup_key, "fpr": test_fingerprint1}), data={"agreement": test_fpr1_signed_valid_text})
+        response = client.post(reverse("fprs_agreement", kwargs={"key": self.persons[visited].lookup_key, "fpr": test_fingerprint1}), data={"agreement": test_fpr1_signed_valid_text})
         self.assertPermissionDenied(response)

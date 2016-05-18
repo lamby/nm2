@@ -232,6 +232,29 @@ class PersonVisitorPermissions(object):
         return True
 
     @cached_property
+    def _can_see_agreements(self):
+        """
+        Visitor can see SC/DFSG/DMUP agreements
+        """
+        if self.visitor is None: return False
+        if self.visitor.is_admin: return True
+        if self.person.pending: return False
+        if self.visitor.pk == self.person.pk: return True
+        return self._is_current_advocate or self._is_current_am
+
+    @cached_property
+    def _can_edit_agreements(self):
+        """
+        Visitor can edit SC/DFSG/DMUP agreements
+        """
+        if self.visitor is None: return False
+        if self._has_ldap_record: return False
+        if self.visitor.is_admin: return True
+        if self.person.pending: return False
+        if self.visitor.pk == self.person.pk: return True
+        return False
+
+    @cached_property
     def _can_view_person_audit_log(self):
         """
         The visitor can view the person's audit log
@@ -260,6 +283,8 @@ class PersonVisitorPermissions(object):
         if self._can_update_keycheck: res.add("update_keycheck")
         if self._can_edit_ldap_fields: res.add("edit_ldap")
         if self._can_view_person_audit_log: res.add("view_person_audit_log")
+        if self._can_see_agreements: res.add("see_agreements")
+        if self._can_edit_agreements: res.add("edit_agreements")
         return res
 
     @cached_property
@@ -526,15 +551,25 @@ class Person(PermissionsMixin, models.Model):
         return False
 
     @property
+    def fingerprint(self):
+        """
+        Return the Fingerprint associated to this person, or None if there is
+        none
+        """
+        # If there is more than one active fingerprint, return a random one.
+        # This should not happen, and a nightly maintenance task will warn if
+        # it happens.
+        for f in self.fprs.filter(is_active=True):
+            return f
+        return None
+
+    @property
     def fpr(self):
         """
         Return the current fingerprint for this Person
         """
-        # If there is more than one active fields, return a random one. This
-        # should not happen, and a nightly maintenance task will warn if it
-        # happens.
-        for f in self.fprs.filter(is_active=True):
-            return f.fpr
+        f = self.fingerprint
+        if f is not None: return f.fpr
         return None
 
     USERNAME_FIELD = 'username'
@@ -794,6 +829,12 @@ class Fingerprint(models.Model):
 
     def __unicode__(self):
         return self.fpr
+
+    @property
+    def agreement_status(self):
+        if self.endorsement_valid: return "verified"
+        if self.endorsement: return "unverified"
+        return "missing"
 
     def get_key(self):
         from keyring.models import Key

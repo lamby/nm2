@@ -72,7 +72,10 @@ class NamedObjects(dict):
         # FIXME: when we get Django 1.8, we can just do
         # for o in self.values(): o.refresh_from_db()
         for name, o in list(self.items()):
-            self[name] = self._model.objects.get(pk=o.pk)
+            try:
+                self[name] = self._model.objects.get(pk=o.pk)
+            except self._model.DoesNotExist:
+                del self[name]
 
     def delete_all(self):
         """
@@ -202,10 +205,7 @@ class TestBase(object):
         self.fail("{} dit not match any in {}".format(regex, repr(errors)))
 
 
-class PersonFixtureMixin(TestBase):
-    """
-    Pre-create some persons
-    """
+class BaseFixtureMixin(TestBase):
     @classmethod
     def get_persons_defaults(cls):
         """
@@ -222,12 +222,39 @@ class PersonFixtureMixin(TestBase):
 
     @classmethod
     def setUpClass(cls):
-        super(PersonFixtureMixin, cls).setUpClass()
+        super(BaseFixtureMixin, cls).setUpClass()
         cls.persons = TestPersons(**cls.get_persons_defaults())
         cls.processes = TestProcesses(**cls.get_processes_defaults())
         cls.ams = NamedObjects(AM)
         cls.keys = TestKeys()
 
+        # Preload two keys
+        cls.keys.create("66B4DFB68CB24EBBD8650BC4F4B4B0CC797EBFAB")
+        cls.keys.create("1793D6AB75663E6BF104953A634F4BD1E7AD5568")
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.keys.delete_all()
+        cls.ams.delete_all()
+        cls.processes.delete_all()
+        cls.persons.delete_all()
+        super(BaseFixtureMixin, cls).tearDownClass()
+
+    def setUp(self):
+        super(BaseFixtureMixin, self).setUp()
+        self.persons.refresh();
+        self.processes.refresh();
+        self.ams.refresh();
+        self.keys.refresh();
+
+
+class PersonFixtureMixin(BaseFixtureMixin):
+    """
+    Pre-create some persons
+    """
+    @classmethod
+    def setUpClass(cls):
+        super(PersonFixtureMixin, cls).setUpClass()
         # pending account
         cls.persons.create("pending", status=const.STATUS_DC, expires=now() + datetime.timedelta(days=1), pending="12345", alioth=True)
         # debian contributor
@@ -248,22 +275,3 @@ class PersonFixtureMixin(TestBase):
         # dam
         dam = cls.persons.create("dam", status=const.STATUS_DD_NU)
         cls.ams.create("dam", person=dam, is_fd=True, is_dam=True)
-
-        # Preload two keys
-        cls.keys.create("66B4DFB68CB24EBBD8650BC4F4B4B0CC797EBFAB")
-        cls.keys.create("1793D6AB75663E6BF104953A634F4BD1E7AD5568")
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.keys.delete_all()
-        cls.ams.delete_all()
-        cls.processes.delete_all()
-        cls.persons.delete_all()
-        super(PersonFixtureMixin, cls).tearDownClass()
-
-    def setUp(self):
-        super(PersonFixtureMixin, self).setUp()
-        self.persons.refresh();
-        self.processes.refresh();
-        self.ams.refresh();
-        self.keys.refresh();

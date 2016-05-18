@@ -36,7 +36,7 @@
   <thead>
     <tr>
       <th>Key</th>
-      <th>SC/DMUP endorsement</th>
+      <th>SC/DFSG/DMUP agreement</th>
       <th>Active</th>
       <th>Actions</th>
     </tr>
@@ -46,13 +46,10 @@
   <tr>
       <td>{{fpr.fpr|fingerprint}}</td>
       <td>
-        <a href="{% url 'fprs_endorsement' key=person.lookup_key fpr=fpr.fpr %}">
-        {% if fpr.endorsement_valid %}
-        valid
-        {% elif fpr.endorsement %}
-        unverified
-        {% else %}
-        missing
+        {% if "edit_agreements" in vperms.perms %}
+        <a href="{% url 'fprs_agreement' key=person.lookup_key fpr=fpr.fpr %}">{{fpr.agreement_status}}</a>
+        {% elif "see_agreements" in vperms.perms %}
+        <a href="{% url 'fprs_agreement' key=person.lookup_key fpr=fpr.fpr %}">{{fpr.agreement_status}}</a>
         {% endif %}
         </a>
       </td>

@@ -14,5 +14,5 @@ urlpatterns = [
     # Activate fingerprints
     url(r'^person/(?P<key>[^/]+)/(?P<fpr>[0-9A-F]+)/activate$', views.SetActiveFingerprint.as_view(), name="fprs_person_activate"),
     # Signed endorsement
-    url(r'^person/(?P<key>[^/]+)/(?P<fpr>[0-9A-F]+)/endorsement$', views.Endorsement.as_view(), name="fprs_endorsement"),
+    url(r'^person/(?P<key>[^/]+)/(?P<fpr>[0-9A-F]+)/endorsement$', views.Agreement.as_view(), name="fprs_agreement"),
 ]

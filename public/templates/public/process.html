@@ -126,13 +126,25 @@ See: <a href="http://lists.debian.org/debian-project/2010/09/msg00026.html">hand
         </td>
     </tr>
     <tr><th>Account name</th><td>{{person.uid|default:"none chosen yet"}}</td></tr>
+    {% with fpr=person.fingerprint %}
     <tr>
       <th>OpenPGP fingerprint</th>
       <td>
-        {{person.fpr|fingerprint}}{% if "edit_ldap" in vperms.perms %} (<a href="{% url 'fprs_person_list' key=person.lookup_key %}">manage</a>){% endif %}
-        {% if keycheck %}
+        {{fpr.fpr|fingerprint}}{% if "edit_ldap" in vperms.perms %} (<a href="{% url 'fprs_person_list' key=person.lookup_key %}">manage</a>){% endif %}
+        {% if fpr %}
         <small>
         <ul class="packed">
+          <li>
+            SC/DFSG/DMUP agreeement:
+            {% if "edit_agreements" in vperms.perms %}
+              <a href="{% url 'fprs_agreement' key=person.lookup_key fpr=fpr.fpr %}">{{fpr.agreement_status}}</a>
+            {% elif "see_agreements" in vperms.perms %}
+              <a href="{% url 'fprs_agreement' key=person.lookup_key fpr=fpr.fpr %}">{{fpr.agreement_status}}</a>
+            {% else %}
+              {{fpr.agreement_status}}
+            {% endif %}
+          </li>
+          {% if keycheck %}
           <li>Main key: <i>{{keycheck.main.remarks}}</i> (last updated: {{keycheck.updated|date:"Y-m-d H:i T"}})
             {% if "update_keycheck" in vperms.perms %}
             <form class="inline" action="{% url 'public_process_update_keycheck' key=process.lookup_key %}" method="POST">{% csrf_token %}
@@ -143,11 +155,13 @@ See: <a href="http://lists.debian.org/debian-project/2010/09/msg00026.html">hand
           {% for uid in keycheck.uids %}
           <li>{{uid.name}}: <i>{{uid.remarks}}</i>, <i>{{uid.sigs_ok}}</i> DD sigs, <i>{{uid.sigs_no_key}}</i> non-DD sigs</li>
           {% endfor %}
+          {% endif %}
         </ul>
         </small>
         {% endif %}
       </td>
     </tr>
+    {% endwith %}
     {% if process.manager %}
     <tr><th>Manager</th><td><a href="{{process.manager.get_absolute_url}}">{{process.manager.person.uid}}</a></td></tr>
     {% elif process.progress == PROGRESS_APP_OK %}

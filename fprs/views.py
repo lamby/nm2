@@ -69,12 +69,12 @@ class SetActiveFingerprint(FingerprintMixin, View):
         return redirect("fprs_person_list", key=self.person.lookup_key)
 
 
-class EndorsementForm(forms.Form):
+class AgreementForm(forms.Form):
     agreement = forms.CharField(label="Agreement", widget=forms.Textarea(attrs={"rows": 25, "cols": 80}))
 
     def __init__(self, *args, **kw):
         self.fpr = kw.pop("fpr")
-        super(EndorsementForm, self).__init__(*args, **kw)
+        super(AgreementForm, self).__init__(*args, **kw)
 
     def clean_agreement(self):
         from keyring.models import Key
@@ -87,19 +87,14 @@ class EndorsementForm(forms.Form):
 
         return (text, plaintext)
 
-class Endorsement(FingerprintMixin, FormView):
-    template_name = "fprs/endorsement.html"
-    form_class = EndorsementForm
-    require_vperms = "edit_ldap"
 
-    def pre_dispatch(self):
-        super(Endorsement, self).pre_dispatch()
-        # Only the person themselves can edit the agreements
-        if self.visitor is None: raise PermissionDenied
-        if self.visitor != self.person and not self.visitor.is_admin: raise PermissionDenied
+class Agreement(FingerprintMixin, FormView):
+    template_name = "fprs/endorsement.html"
+    form_class = AgreementForm
+    require_vperms = "edit_agreements"
 
     def get_form_kwargs(self):
-        kw = super(Endorsement, self).get_form_kwargs()
+        kw = super(Agreement, self).get_form_kwargs()
         kw["fpr"] = self.fpr
         return kw
 

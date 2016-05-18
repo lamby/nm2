@@ -52,7 +52,7 @@ it without a need of manual validation of its content:</p>
 ) | gpg --clearsign
 </pre>
 
-<form action="{% url 'fprs_endorsement' key=person.lookup_key fpr=fpr.fpr %}" method="post">{% csrf_token %}
+<form action="{% url 'fprs_agreement' key=person.lookup_key fpr=fpr.fpr %}" method="post">{% csrf_token %}
   {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
   {% for field in form.visible_fields %}
   {{ field.label_tag }}<br>
