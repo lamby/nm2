@@ -69,6 +69,7 @@ class KeyManager(models.Manager):
         #traceback.print_stack()
         #print("Download from", url)
         res = requests.get(url)
+        res.raise_for_status()
         text = res.text.splitlines()
         if not text: raise RuntimeError("empty response from key server")
         if text[0] != "-----BEGIN PGP PUBLIC KEY BLOCK-----": raise RuntimeError("downloaded key material has invalid begin line")
