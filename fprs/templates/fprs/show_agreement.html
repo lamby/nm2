@@ -22,7 +22,7 @@
 
 {% block content %}
 
-<h1>Manage agreements for key {{keyid}}</h1>
+<h1>Signed agreements for key {{keyid}}</h1>
 
 <p>Every Debian Contributor, to gain access to project resources, needs to know
 and agree with these documents:
@@ -38,31 +38,15 @@ and agree with these documents:
 
 <p>Since a person's identity in Debian is defined by the OpenPGP key, we
 require a signed statement of agreement for each key that is used in the
-project. This page allows to manage the agreements automatically.</p>
+project. This page show the status of agreements for this key.</p>
 
-<p>The key is missing a signed statement of agreement with the SC, DFSG and
-DMUP. To add it, paste it in the form below. For your convenince, you can
-generate it with this command, and the site will recognise the text and accept
-it without a need of manual validation of its content:</p>
+<p>Agreement status: <b>{{fpr.agreement_status}}</b></p>
 
 <pre>
-(
-  echo "I agree to uphold the Social Contract and the Debian Free Software Guidelines in my Debian work."
-  echo "I have read the Debian Machine Usage Policy and I accept them."
-) | gpg --clearsign
+{{fpr.agreement}}
 </pre>
 
-<form action="{% url 'fprs_agreement' key=person.lookup_key fpr=fpr.fpr %}" method="post">{% csrf_token %}
-  {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
-  {% for field in form.visible_fields %}
-  {{ field.label_tag }}<br>
-  {{ field }}<br>
-  {{ field.errors }}
-  {% endfor %}        
-  {{ form.non_field_errors }}
-  <input type="submit" value="Submit">
-</form>
-
 {% endblock %}
+
 
 

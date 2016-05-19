@@ -88,13 +88,18 @@ class AgreementForm(forms.Form):
         return (text, plaintext)
 
 
-class Agreement(FingerprintMixin, FormView):
-    template_name = "fprs/endorsement.html"
+class ShowAgreement(FingerprintMixin, TemplateView):
+    template_name = "fprs/show_agreement.html"
+    require_vperms = "see_agreements"
+
+
+class EditAgreement(FingerprintMixin, FormView):
+    template_name = "fprs/edit_agreement.html"
     form_class = AgreementForm
     require_vperms = "edit_agreements"
 
     def get_form_kwargs(self):
-        kw = super(Agreement, self).get_form_kwargs()
+        kw = super(EditAgreement, self).get_form_kwargs()
         kw["fpr"] = self.fpr
         return kw
 
