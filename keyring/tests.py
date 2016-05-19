@@ -33,6 +33,32 @@ a+KEa+sSqB8ZN0fIzGLL2uOOPdQGoVHxnObCJ5gBKjZ73JajY3cfLysY0UW45/eh
 -----END PGP SIGNATURE-----
 """
 
+test_signed_3D983C52EB85980C46A56090357312559D1E064B = """
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+I agree to uphold the Social Contract and the Debian Free Software Guidelines in my Debian work.
+I have read the Debian Machine Usage Policy and I accept them.
+-----BEGIN PGP SIGNATURE-----
+Comment: GPGTools - https://gpgtools.org
+
+iQIcBAEBCgAGBQJXPXQkAAoJEDVzElWdHgZLibsQAIhlC5bf3h7zSNNV9m5KX1Id
+oIG++wN8KNA3wTnv0EYNUQkJRdWWK0fIL8GLcmeA/MuhRTP3O+stv3mkIZkMPS9s
+0fpFPj7F3EkrskXrAEd9hOfik6lqG4iv4iEYPl3PA4wJiX9zjV+6l2LxzfvRUrWU
+rlkvBsqLkG+CcJ+wCKVYZRgS7PKOu3kEdvzFE0efqyWOPwEsrDoQ3Ax3KRe5W/pv
+R5aiTiobKu//eObqjHNJGxsKkmXew7XMMcdzaQcre8e59WWdNUcTrfCg8sn4ykrk
+5Bq6i1/FFcyEY1xqVeN54LRjqdlPSQN7YqXBLD9Gus2yhvyBA7MiDvJc1QsWB9tv
+TcSVct9UKbKZs7BvRzvM7lm1J/y4dUVEq3fk5i8zNEFzsKWqgxYn9kHWrTB1MuNK
+8rY3WZyxlTQdqjmWnu1jfpxbcuBrteHEZ2XwXjER9m0OXJahxk2t3YSAbr627UXH
+G/loATZLoUNXFqeplHar1nIL7Kd/HDFznSN7N9M6NSzaBUgMlyhNSKa4SWYSuzlI
+UBV4Alx80fkIG8pyWpcuHQtbyci6lW9P26VaK1w5OIkAIK/GrSkMeQ1BzilhGjV7
+ayKnst/3J4IXlpye92gm+xNiISlDCL1aXa503AuKSC6zKsfaKqYtIiQZyBluSjTk
+IJsNoeacVLqO2u0JYEwF
+=pBe0
+-----END PGP SIGNATURE-----
+"""
+
+
 class LookupTest(TestCase):
     def test_dd_u(self):
         fpr = next(kmodels.list_dd_u())
@@ -115,3 +141,35 @@ class TestKeycheck(TestCase):
         self.assertIsInstance(uid["sigs_ok"], list)
         self.assertIsInstance(uid["sigs_no_key"], int)
         self.assertIsInstance(uid["sigs_bad"], int)
+
+    def test_encoding(self):
+        fpr = "3D983C52EB85980C46A56090357312559D1E064B"
+        kmodels.Key.objects.test_preload(fpr)
+        key = kmodels.Key.objects.get_or_download(fpr=fpr)
+        results = key.keycheck()
+        self.assertEquals(results.key.fpr, fpr)
+        self.assertIsInstance(results.errors, set)
+        self.assertIsInstance(results.uids, list)
+        for u in results.uids:
+            if u.uid.name == "Ondřej Nový <novy@ondrej.org>":
+                uid = u
+                break
+        else:
+            self.fail("'Ondřej Nový <novy@ondrej.org>' not found in {}".format(repr([x.uid.name for x in results.uids])))
+
+        self.assertEquals(uid.uid.name, "Ondřej Nový <novy@ondrej.org>")
+        self.assertIsInstance(uid.errors, set)
+        self.assertIsInstance(uid.sigs_ok, list)
+        self.assertIsInstance(uid.sigs_no_key, list)
+        self.assertIsInstance(uid.sigs_bad, list)
+
+        # Test key signature verification
+        self.assertEquals(key.verify(test_signed_3D983C52EB85980C46A56090357312559D1E064B),
+            "I agree to uphold the Social Contract and the Debian Free Software Guidelines in my Debian work.\n"
+            "I have read the Debian Machine Usage Policy and I accept them.\n")
+        test_fpr2 = "66B4DFB68CB24EBBD8650BC4F4B4B0CC797EBFAB"
+        kmodels.Key.objects.test_preload(test_fpr2)
+        key2 = kmodels.Key.objects.get_or_download(fpr=test_fpr2)
+        with self.assertRaises(RuntimeError):
+            key2.verify(test_signed)
+

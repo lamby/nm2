@@ -168,14 +168,14 @@ class Key(models.Model):
                     plaintext, stderr, result = gpg.run_cmd(cmd)
 
             if result != 0:
-                with io.open(logger_log, "rt") as fd:
+                with io.open(logger_log, "rt", encoding="utf-8", errors="replace") as fd:
                     stderr += fd.read()
                 raise RuntimeError("gpg exited with status {}: {}".format(
                     result,
                     stderr.strip()
                 ))
 
-            with io.open(status_log, "rt") as fd:
+            with io.open(status_log, "rt", encoding="utf-8", errors="replace") as fd:
                 status = fd.read()
 
             if "VALIDSIG" not in status and "GOODSIG" not in status:
