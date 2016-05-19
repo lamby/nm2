@@ -34,6 +34,7 @@ KEYRINGS = getattr(settings, "KEYRINGS", "/srv/keyring.debian.org/keyrings")
 KEYRINGS_TMPDIR = getattr(settings, "KEYRINGS_TMPDIR", "/srv/keyring.debian.org/data/tmp_keyrings")
 #KEYSERVER = getattr(settings, "KEYSERVER", "keys.gnupg.net")
 KEYSERVER = getattr(settings, "KEYSERVER", "pgp.mit.edu")
+#KEYSERVER = getattr(settings, "KEYSERVER", "www.example.org")
 KEYRING_MAINT_KEYRING = getattr(settings, "KEYRING_MAINT_KEYRING", "data/keyring-maint.gpg")
 KEYRING_MAINT_GIT_REPO = getattr(settings, "KEYRING_MAINT_GIT_REPO", "data/keyring-maint.git")
 
@@ -69,7 +70,10 @@ class KeyManager(models.Manager):
         #traceback.print_stack()
         #print("Download from", url)
         res = requests.get(url)
-        res.raise_for_status()
+        try:
+            res.raise_for_status()
+        except Exception as e:
+            raise RuntimeError("GET {} failed: {}".format(url, e))
         text = res.text.splitlines()
         if not text: raise RuntimeError("empty response from key server")
         if text[0] != "-----BEGIN PGP PUBLIC KEY BLOCK-----": raise RuntimeError("downloaded key material has invalid begin line")

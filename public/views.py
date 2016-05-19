@@ -232,25 +232,36 @@ class Process(VisitProcessTemplateView):
         # Key information for active processes
         if self.process.is_active and self.process.person.fpr:
             from keyring.models import Key
-            key = Key.objects.get_or_download(self.process.person.fpr)
-            keycheck = key.keycheck()
-            uids = []
-            for ku in keycheck.uids:
-                uids.append({
-                    "name": ku.uid.name.replace("@", ", "),
-                    "remarks": " ".join(sorted(ku.errors)) if ku.errors else "ok",
-                    "sigs_ok": len(ku.sigs_ok),
-                    "sigs_no_key": len(ku.sigs_no_key),
-                    "sigs_bad": len(ku.sigs_bad)
-                })
+            try:
+                key = Key.objects.get_or_download(self.process.person.fpr)
+            except RuntimeError as e:
+                key = None
+                key_error = str(e)
+            if key is not None:
+                keycheck = key.keycheck()
+                uids = []
+                for ku in keycheck.uids:
+                    uids.append({
+                        "name": ku.uid.name.replace("@", ", "),
+                        "remarks": " ".join(sorted(ku.errors)) if ku.errors else "ok",
+                        "sigs_ok": len(ku.sigs_ok),
+                        "sigs_no_key": len(ku.sigs_no_key),
+                        "sigs_bad": len(ku.sigs_bad)
+                    })
 
-            ctx["keycheck"] = {
-                "main": {
-                    "remarks": " ".join(sorted(keycheck.errors)) if keycheck.errors else "ok",
-                },
-                "uids": uids,
-                "updated": key.check_sigs_updated,
-            }
+                ctx["keycheck"] = {
+                    "main": {
+                        "remarks": " ".join(sorted(keycheck.errors)) if keycheck.errors else "ok",
+                    },
+                    "uids": uids,
+                    "updated": key.check_sigs_updated,
+                }
+            else:
+                ctx["keycheck"] = {
+                    "main": {
+                        "remarks": key_error
+                    }
+                }
 
         return ctx
 
@@ -412,9 +423,13 @@ class ProcessUpdateKeycheck(VisitProcessMixin, View):
 
     def post(self, request, key, *args, **kw):
         from keyring.models import Key
-        key = Key.objects.get_or_download(self.person.fpr)
-        key.update_key()
-        key.update_check_sigs()
+        try:
+            key = Key.objects.get_or_download(self.person.fpr)
+        except RuntimeError as e:
+            key = None
+        if key is not None:
+            key.update_key()
+            key.update_check_sigs()
         return redirect(self.process.get_absolute_url())
 
 

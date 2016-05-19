@@ -79,7 +79,11 @@ class AgreementForm(forms.Form):
     def clean_agreement(self):
         from keyring.models import Key
         text = self.cleaned_data["agreement"]
-        key = Key.objects.get_or_download(self.fpr.fpr)
+        try:
+            key = Key.objects.get_or_download(self.fpr.fpr)
+        except RuntimeError as e:
+            raise forms.ValidationError("Cannot download the key: " + str(e))
+
         try:
             plaintext = key.verify(text)
         except RuntimeError as e:
