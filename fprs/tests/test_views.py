@@ -139,8 +139,8 @@ class TestPersonFingerprints(PersonFixtureMixin, TestCase):
         self.assertRedirectMatches(response, reverse("fprs_person_list", kwargs={"key": self.persons[visited].lookup_key}))
         fpr1 = Fingerprint.objects.get(fpr=test_fingerprint1)
         self.assertEquals(fpr1.is_active, True)
-        self.assertEquals(fpr1.endorsement, "")
-        self.assertEquals(fpr1.endorsement_valid, False)
+        self.assertEquals(fpr1.agreement, "")
+        self.assertEquals(fpr1.agreement_valid, False)
         self.assertEquals(fpr1.person, self.persons[visited])
 
         # Add a second one, it becomes the active one
@@ -148,8 +148,8 @@ class TestPersonFingerprints(PersonFixtureMixin, TestCase):
         self.assertRedirectMatches(response, reverse("fprs_person_list", kwargs={"key": self.persons[visited].lookup_key}))
         fpr2 = Fingerprint.objects.get(fpr=test_fingerprint2)
         self.assertEquals(fpr2.is_active, True)
-        self.assertEquals(fpr2.endorsement, "")
-        self.assertEquals(fpr2.endorsement_valid, False)
+        self.assertEquals(fpr2.agreement, "")
+        self.assertEquals(fpr2.agreement_valid, False)
         self.assertEquals(fpr2.person, self.persons[visited])
 
         fpr1 = Fingerprint.objects.get(fpr=test_fingerprint1)
@@ -177,7 +177,7 @@ class TestPersonFingerprints(PersonFixtureMixin, TestCase):
 class TestEndorsements(PersonFixtureMixin, TestCase):
     @classmethod
     def __add_extra_tests__(cls):
-        # Confirmed people with no entries in LDAP can use the endorsement
+        # Confirmed people with no entries in LDAP can use the agreement
         # interface for themselves, and admins can on their behalf
         for person in ("dc", "dm"):
             cls._add_method(cls._test_get_success, person, person)
@@ -190,7 +190,7 @@ class TestEndorsements(PersonFixtureMixin, TestCase):
             cls._add_method(cls._test_get_forbidden, person, person)
             cls._add_method(cls._test_post_forbidden, person, person)
 
-        # Only admins can see the endorsement interface of other people
+        # Only admins can see the agreement interface of other people
         for visitor in ("pending", "dc_ga", "dm_ga", "dd_nu", "dd_u"):
             for visited in ("dc", "dm"):
                 cls._add_method(cls._test_get_forbidden, visitor, visited)
@@ -211,8 +211,8 @@ class TestEndorsements(PersonFixtureMixin, TestCase):
         self.assertEquals(response.status_code, 200)
         self.assertFormErrorMatches(response, "form", "agreement", "public key not found")
         fpr = Fingerprint.objects.get(fpr=test_fingerprint1)
-        self.assertEquals(fpr.endorsement, "")
-        self.assertEquals(fpr.endorsement_valid, False)
+        self.assertEquals(fpr.agreement, "")
+        self.assertEquals(fpr.agreement_valid, False)
 
         # Post an invalid signature
         text = test_fpr1_signed_valid_text.replace("I agree", "I do not agree")
@@ -220,22 +220,22 @@ class TestEndorsements(PersonFixtureMixin, TestCase):
         self.assertEquals(response.status_code, 200)
         self.assertFormErrorMatches(response, "form", "agreement", "BAD signature from")
         fpr = Fingerprint.objects.get(fpr=test_fingerprint1)
-        self.assertEquals(fpr.endorsement, "")
-        self.assertEquals(fpr.endorsement_valid, False)
+        self.assertEquals(fpr.agreement, "")
+        self.assertEquals(fpr.agreement_valid, False)
 
         # Post a valid signature, with an invalid text
         response = client.post(reverse("fprs_agreement_edit", kwargs={"key": self.persons[visited].lookup_key, "fpr": test_fingerprint1}), data={"agreement": test_fpr1_signed_invalid_text})
         self.assertRedirectMatches(response, reverse("fprs_person_list", kwargs={"key": self.persons[visited].lookup_key}))
         fpr = Fingerprint.objects.get(fpr=test_fingerprint1)
-        self.assertEquals(fpr.endorsement, test_fpr1_signed_invalid_text)
-        self.assertEquals(fpr.endorsement_valid, False)
+        self.assertEquals(fpr.agreement, test_fpr1_signed_invalid_text)
+        self.assertEquals(fpr.agreement_valid, False)
 
         # Post a valid signature, with an valid text
         response = client.post(reverse("fprs_agreement_edit", kwargs={"key": self.persons[visited].lookup_key, "fpr": test_fingerprint1}), data={"agreement": test_fpr1_signed_valid_text})
         self.assertRedirectMatches(response, reverse("fprs_person_list", kwargs={"key": self.persons[visited].lookup_key}))
         fpr = Fingerprint.objects.get(fpr=test_fingerprint1)
-        self.assertEquals(fpr.endorsement, test_fpr1_signed_valid_text)
-        self.assertEquals(fpr.endorsement_valid, True)
+        self.assertEquals(fpr.agreement, test_fpr1_signed_valid_text)
+        self.assertEquals(fpr.agreement_valid, True)
 
     def _test_get_forbidden(self, visitor, visited):
         client = self.make_test_client(visitor)

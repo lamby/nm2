@@ -112,11 +112,11 @@ class EditAgreement(FingerprintMixin, FormView):
 
     @transaction.atomic
     def form_valid(self, form):
-        self.fpr.endorsement, plaintext = form.cleaned_data["agreement"]
+        self.fpr.agreement, plaintext = form.cleaned_data["agreement"]
         expected = self.normalise_text(
             "I agree to uphold the Social Contract and the Debian Free Software Guidelines in my Debian work.\n"
             "I have read the Debian Machine Usage Policy and I accept them.")
         submitted = self.normalise_text(plaintext)
-        self.fpr.endorsement_valid = submitted == expected
+        self.fpr.agreement_valid = submitted == expected
         self.fpr.save(audit_author=self.visitor, audit_notes="added SC/DFSG/DMUP agreement")
         return redirect("fprs_person_list", key=self.person.lookup_key)
