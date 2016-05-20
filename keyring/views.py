@@ -79,7 +79,7 @@ def keycheck(request, fpr):
 
         try:
             bf = bmodels.Fingerprint.objects.get(fpr=fpr)
-            k["person_id"] = bf.user_id
+            k["person_id"] = bf.person_id
             k["person"] = bf.person.fullname
         except ObjectDoesNotExist:
             k["person_id"] = None
