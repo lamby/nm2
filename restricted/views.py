@@ -405,6 +405,9 @@ def minechangelogs(request, key=None):
                 person.fullname,
                 person.email,
             ]
+            if person.cn and person.mn and person.sn:
+                # some people don't use their middle names in changelogs
+                query.append("{} {}".format(person.cn, person.sn))
             if person.uid:
                 query.append(person.uid)
             form = MinechangelogsForm(initial=dict(query="\n".join(query)))
