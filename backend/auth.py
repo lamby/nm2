@@ -45,7 +45,9 @@ class NMUserBackend(DACSUserBackend):
         username = self.clean_username(remote_user)
 
         # Get the Person for this username: Person is authoritative over User
-        if username.endswith("@debian.org") or username.endswith("-guest@users.alioth.debian.org"):
+        # Allow user@alioth without -guest, for cases like retired DDs who are
+        # DMs (Edward Betts <edward> is an example)
+        if username.endswith("@debian.org") or username.endswith("@users.alioth.debian.org"):
             try:
                 return bmodels.Person.objects.get(username=username)
             except bmodels.Person.DoesNotExist:
