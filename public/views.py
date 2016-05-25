@@ -394,7 +394,7 @@ class Process(VisitProcessTemplateView):
         form = StatusUpdateForm(request.POST)
         if form.is_valid():
             if form.cleaned_data["progress"] == const.PROGRESS_APP_OK \
-                and process.progress in [const.PROGRESS_AM_HOLD, const.PROGRESS_AM, const.PROGRESS_AM_RCVD]:
+                and self.process.progress in [const.PROGRESS_AM_HOLD, const.PROGRESS_AM, const.PROGRESS_AM_RCVD]:
                 # Unassign from AM
                 self.process.manager = None
             self.process.progress = form.cleaned_data["progress"]
