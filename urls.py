@@ -22,6 +22,7 @@ urlpatterns = [
     url(r'^public/', include("public.urls")),
     url(r'^am/', include("restricted.urls")),
     url(r'^fprs/', include("fprs.urls")),
+    url(r'^statements/', include("statements.urls")),
     url(r'^dm/', include("dm.urls")),
     url(r'^api/', include("api.urls")),
     url(r'^apikeys/', include("apikeys.urls")),

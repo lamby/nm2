@@ -78,13 +78,16 @@ class VisitPersonMixin(VisitorMixin):
     # PermissionDenied if the given test on the person-visitor fails
     require_vperms = None
 
-    def pre_dispatch(self):
-        super(VisitPersonMixin, self).pre_dispatch()
+    def get_person(self):
         key = self.kwargs.get("key", None)
         if key is None:
-            self.person = self.visitor
+            return self.visitor
         else:
-            self.person = bmodels.Person.lookup_or_404(key)
+            return bmodels.Person.lookup_or_404(key)
+
+    def pre_dispatch(self):
+        super(VisitPersonMixin, self).pre_dispatch()
+        self.person = self.get_person()
         self.vperms = self.person.permissions_of(self.visitor)
 
         if self.require_vperms and self.require_vperms not in self.vperms.perms:
