@@ -136,9 +136,9 @@ See: <a href="http://lists.debian.org/debian-project/2010/09/msg00026.html">hand
         <ul class="packed">
           <li>
             SC/DFSG/DMUP agreement:
-            {% if "edit_agreements" in vperms.perms %}
+            {% if "edit_statements" in vperms.perms %}
               <a href="{% url 'fprs_agreement_edit' key=person.lookup_key fpr=fpr.fpr %}">{{fpr.agreement_status}}</a>
-            {% elif "see_agreements" in vperms.perms %}
+            {% elif "see_statements" in vperms.perms %}
               <a href="{% url 'fprs_agreement_show' key=person.lookup_key fpr=fpr.fpr %}">{{fpr.agreement_status}}</a>
             {% else %}
               {{fpr.agreement_status}}

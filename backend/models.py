@@ -153,7 +153,7 @@ class PersonVisitorPermissions(object):
         return True
 
     @cached_property
-    def _can_see_agreements(self):
+    def _can_see_statements(self):
         """
         Visitor can see SC/DFSG/DMUP agreements
         """
@@ -164,12 +164,11 @@ class PersonVisitorPermissions(object):
         return self._is_current_advocate or self._is_current_am
 
     @cached_property
-    def _can_edit_agreements(self):
+    def _can_edit_statements(self):
         """
         Visitor can edit SC/DFSG/DMUP agreements
         """
         if self.visitor is None: return False
-        if self._has_ldap_record: return False
         if self.visitor.is_admin: return True
         if self.person.pending: return False
         if self.visitor.pk == self.person.pk: return True
@@ -204,8 +203,8 @@ class PersonVisitorPermissions(object):
         if self._can_update_keycheck: res.add("update_keycheck")
         if self._can_edit_ldap_fields: res.add("edit_ldap")
         if self._can_view_person_audit_log: res.add("view_person_audit_log")
-        if self._can_see_agreements: res.add("see_agreements")
-        if self._can_edit_agreements: res.add("edit_agreements")
+        if self._can_see_statements: res.add("see_statements")
+        if self._can_edit_statements: res.add("edit_statements")
         return res
 
     @cached_property
