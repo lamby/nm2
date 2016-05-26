@@ -28,43 +28,6 @@ PROCESS_MAILBOX_DIR = getattr(settings, "PROCESS_MAILBOX_DIR", "/srv/nm.debian.o
 DM_IMPORT_DATE = getattr(settings, "DM_IMPORT_DATE", None)
 
 
-# Implementation notes
-#
-#  * Multiple NULL values in UNIQUE fields
-#    They are supported in sqlite, postgresql and mysql, and that is good
-#    enough.
-#    See http://www.sqlite.org/nulls.html
-#    See http://stackoverflow.com/questions/454436/unique-fields-that-allow-nulls-in-django
-#        for possible Django gotchas
-#  * Denormalised fields
-#    Some limited redundancy is tolerated for convenience, but it is
-#    checked/enforced/recomputed during daily maintenance procedures
-#
-
-# See http://stackoverflow.com/questions/454436/unique-fields-that-allow-nulls-in-django
-class CharNullField(models.CharField):
-    description = "CharField that stores NULL but returns ''"
-
-    # this is the value right out of the db, or an instance
-    def to_python(self, value):
-       if isinstance(value, models.CharField): # if an instance, just return the instance
-           return value
-       if value is None:
-           # if the db has a NULL, convert it into the Django-friendly '' string
-           return ""
-       else:
-           # otherwise, return just the value
-           return value
-
-    # catches value right before sending to db
-    def get_db_prep_value(self, value, connection, prepared=False):
-       if value=="":
-           # if Django tries to save '' string, send the db None (NULL)
-           return None
-       else:
-           # otherwise, just pass the value
-           return value
-
 class PersonVisitorPermissions(object):
     """
     Store NM-specific permissions
