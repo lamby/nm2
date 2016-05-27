@@ -9,7 +9,6 @@ from django.core.urlresolvers import reverse
 from django.db import models, transaction
 import backend.models as bmodels
 from backend.utils import cached_property
-import statements.models as smodels
 from backend import const
 
 REQUIREMENT_TYPES = (
@@ -196,7 +195,7 @@ class Statement(models.Model):
     uploaded_by = models.ForeignKey(bmodels.Person, null=True, related_name="+", help_text=_("Person who uploaded the statement"))
 
     def __unicode__(self):
-        return "{}:{}".format(self.fpr, self.type)
+        return "{}:{}".format(self.fpr, self.requirement)
 
     @property
     def status(self):

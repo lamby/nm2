@@ -33,13 +33,15 @@ manual validation of its content:</p>
 (
   {% for line in blurb %}echo {{line}}
   {% endfor %}
-) | gpg --clearsign --default-key {{fpr.fpr}}
+) | gpg --clearsign --default-key {{visitor.fpr}}
 </pre>
 {% endif %}
 
 <p>It is a good idea to include some context information like the date and
 nm.debian.org in the text, in case someone tries to reuse the signed statement
 somewhere else.</p>
+
+<p>The signature will be verified using the key {{fpr|fingerprint}}</p>
 
 <form action="" method="post">{% csrf_token %}
   {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
@@ -51,14 +53,5 @@ somewhere else.</p>
   {{ form.non_field_errors }}
   <input type="submit" value="Submit">
 </form>
-
-{% if statement %}
-Statement is {{statement.status}}, uploaded by <a href="{{statement.uploaded_by.get_absolute_url}}">{{statement.uploaded_by}}</a>:
-<pre>
-{{statement.statement}}
-</pre>
-{% else %}
-Statement is currently missing.
-{% endif %}
 
 {% endblock %}

@@ -15,6 +15,7 @@ from backend import const
 import backend.models as bmodels
 from .mixins import VisitProcessMixin
 import datetime
+import re
 from six.moves import shlex_quote
 from . import models as pmodels
 from .forms import StatementForm
@@ -107,6 +108,17 @@ class ReqIntent(RequirementMixin, TemplateView):
     #  - edit is shown for existing ones
     #  - delete also offered as possibility
 
+class ReqAgreements(RequirementMixin, TemplateView):
+    type = "sc_dmup"
+    template_name = "process/req_sc_dmup.html"
+
+    # TODO: show existing status
+    # TODO: link to add/edit statements
+    #  - add shown if none exists, or if more can be added (advocacies)
+    #  - edit is shown for existing ones
+    #  - delete also offered as possibility
+
+
 
 class EditStatementMixin(RequirementMixin):
     form_class = StatementForm
@@ -137,7 +149,7 @@ class EditStatementMixin(RequirementMixin):
             self.blurb = ["For nm.debian.org, at {:%Y-%m-%d}:".format(now())] + self.blurb
         if "st" in self.kwargs:
             self.statement = get_object_or_404(pmodels.Statement, pk=self.kwargs["st"])
-            if self.statement.requrement != self.requirement:
+            if self.statement.requirement != self.requirement:
                 raise PermissionDenied
         else:
             self.statement = None
@@ -150,13 +162,13 @@ class EditStatementMixin(RequirementMixin):
 
     def get_form_kwargs(self):
         kw = super(EditStatementMixin, self).get_form_kwargs()
-        kw["fpr"] = self.person.fpr
+        kw["fpr"] = self.visitor.fpr
         return kw
 
     def get_context_data(self, **kw):
         ctx = super(EditStatementMixin, self).get_context_data(**kw)
-        ctx["fpr"] = self.person.fpr
-        ctx["keyid"] = self.person.fpr[-16:]
+        ctx["fpr"] = self.visitor.fpr
+        ctx["keyid"] = self.visitor.fpr[-16:]
         ctx["statement"] = self.statement
         ctx["blurb"] = [shlex_quote(x) for x in self.blurb] if self.blurb else None
         ctx["now"] = now()
@@ -169,7 +181,7 @@ class EditStatementMixin(RequirementMixin):
     def form_valid(self, form):
         statement = self.statement
         if statement is None:
-            statement = pmodels.Statement(requirement=self.requirement, fpr=self.person.fpr)
+            statement = pmodels.Statement(requirement=self.requirement, fpr=self.visitor.fingerprint)
         statement.uploaded_by = self.visitor
         statement.statement, plaintext = form.cleaned_data["statement"]
 

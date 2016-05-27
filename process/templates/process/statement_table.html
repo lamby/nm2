@@ -1,0 +1,31 @@
+<table>
+  <thead>
+    <tr>
+      <th>Statement</th>
+      <th>Uploaded by</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for s in requirement.statements.all %}
+    <tr>
+      <td><pre>{{s.statement}}</pre></td>
+      <td><a href="{{s.uploaded_by.get_absolute_url}}">{{s.uploaded_by}}</a></td>
+      <td>
+        {% if "edit_statements" in vperms.perms %}
+        <a href="{% url 'process_statement_edit' pk=process.pk type=requirement.type st=s.pk %}">{{s.status}}</a>
+        {% else %}
+        {{s.status}}
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+  <tfoot>
+    <tr>
+      <td colspan="3">
+        <a href="{% url 'process_statement_create' pk=process.pk type=requirement.type %}">add</a>
+      </td>
+    </tr>
+  </tfoot>
+</table>
