@@ -15,6 +15,7 @@ from backend import const
 import backend.models as bmodels
 from .mixins import VisitProcessMixin
 import datetime
+from six.moves import shlex_quote
 from . import models as pmodels
 from .forms import StatementForm
 
@@ -107,15 +108,6 @@ class ReqIntent(RequirementMixin, TemplateView):
     #  - delete also offered as possibility
 
 
-# Blurb used for auto-verification
-AUTO_VERIFY_BLURBS = {
-    "sc_dmup": [
-        "I agree to uphold the Social Contract and the Debian Free Software Guidelines in my Debian work.",
-        "I have read the Debian Machine Usage Policy and I accept them."
-    ]
-}
-
-
 class EditStatementMixin(RequirementMixin):
     form_class = StatementForm
     require_vperms = "edit_statements"
@@ -123,9 +115,24 @@ class EditStatementMixin(RequirementMixin):
     def get_requirement_type(self):
         return self.kwargs["type"]
 
+    def get_blurb(self):
+        """
+        Get the blurb used for auto-verification, or None if none is available
+        """
+        if self.requirement.type == "sc_dmup":
+            return [
+                "I agree to uphold the Social Contract and the Debian Free Software Guidelines in my Debian work.",
+                "I have read the Debian Machine Usage Policy and I accept them."
+            ]
+        #elif self.requirement.type == "intent":
+        #    return [
+        #        "I would like to apply to change my status in Debian to {}".format(const.ALL_STATUS_DESCS[self.process.applying_for]),
+        #    ]
+        return None
+
     def pre_dispatch(self):
         super(EditStatementMixin, self).pre_dispatch()
-        self.blurb = AUTO_VERIFY_BLURBS.get(self.type, None)
+        self.blurb = self.get_blurb()
         if self.blurb:
             self.blurb = ["For nm.debian.org, at {:%Y-%m-%d}:".format(now())] + self.blurb
         if "st" in self.kwargs:

@@ -1,0 +1,18 @@
+{% load nm %}
+<p>The most important requirement for changing status in Debian is to ask for
+it, with a signed statement of intent that can be posted to <a href="https://lists.debian.org/debian-newmaint/">debian-newmaint</a>.</p>
+
+{% if edit %}
+<p>This page allows to manage the statements of intent automatically. To add or
+change the signed agreement to SC/DFSG/DMUP, paste it in the form below.</p>
+
+<p>An example statement of intent can be something like this:
+<pre>
+For nm.debian.org, at {{now|date:"Y-m-d"}}:
+
+I would like to apply to change my status in Debian to {{process.applying_for|desc_status}}.
+
+I have worked on X and Y for a while and I would like to be able to Z.
+</pre>
+<p>
+{% endif %}
