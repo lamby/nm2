@@ -1,0 +1,43 @@
+{% load nm %}
+{% if procs %}
+<table class="proctable tablesorter {{class}}">
+<thead>
+    <tr>
+        <th>Applicant</th>
+        <th>UID</th>
+        <th>Applying for</th>
+        <th>Activity period</th>
+        <th>Requirements ok</th>
+        <th>Requirements missing</th>
+        {% if visitor.is_admin %}
+        <th>FD comments</th>
+        {% endif %}
+    </tr>
+</thead>
+<tbody>
+    {% for p in procs %}
+    <tr>
+        {% with p.compute_status as status %}
+        <td><a href="{{ p.get_absolute_url }}">{{p.person.fullname}}</a></td>
+        <td><a href="{{ p.get_absolute_url }}">{{p.person.uid}}</a></td>
+        <td val="{{ p.applying_for|seq_status }}">{{p.applying_for|sdesc_status}}</td>
+        <td>{{status.log_first.logdate|date:"Y-m-d"}} to {{status.log_last.logdate|date:"Y-m-d"}}</td>
+        <td>
+          {% for req in status.requirements_ok %}
+          <a href="{{req.get_absolute_url}}">{{req.type}}</a>
+          {% endfor %}
+        </td>
+        <td>
+          {% for req in status.requirements_missing %}
+          <a href="{{req.get_absolute_url}}">{{req.type}}</a>
+          {% endfor %}
+        </td>
+        {% if visitor.is_admin %}
+        <td>{{p.fd_comment}}</td>
+        {% endif %}
+        {% endwith %}
+    </tr>
+    {% endfor %}
+</tbody>
+</table>
+{% endif %}

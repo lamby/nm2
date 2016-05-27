@@ -497,6 +497,9 @@ class Person(VisitPersonTemplateView):
                 .annotate(started=Min("log__logdate"), ended=Max("log__logdate")) \
                 .order_by("is_active", "ended")
 
+        import process.models as pmodels
+        processes2 = pmodels.Process.objects.filter(person=self.person).order_by("-closed")
+
         if self.person.is_am:
             am = self.person.am
             am_processes = am.processed \
@@ -524,6 +527,7 @@ class Person(VisitPersonTemplateView):
         ctx.update(
             am=am,
             processes=processes,
+            processes2=processes2,
             am_processes=am_processes,
             adv_processes=self.person.advocated \
                     .annotate(started=Min("log__logdate"), ended=Max("log__logdate")) \

@@ -95,6 +95,8 @@
 
 <h2>Personal history</h2>
 
+{% include "process/process_list.html" with procs=processes2 %}
+
 {% include "public/person_process_table.html" with p=p processes=processes only %}
 
 {% if adv_processes %}

@@ -176,6 +176,7 @@ class Requirement(models.Model):
 
     class Meta:
         unique_together = ("process", "type")
+        ordering = ["type"]
 
     def __unicode__(self):
         return REQUIREMENT_TYPES_DICT.get(self.type, self.type)
