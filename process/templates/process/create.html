@@ -20,7 +20,22 @@
 
 <h1>Apply for a new status for {{person}}</h1>
 
-Current status: <b>{{person.status|desc_status}}</b>.
+<p><b>Warning:</b>Do not use this page. To start a new process, ask your
+avocates go to to <a href="{{person.get_absolute_url}}">your personal page</a>
+and click on the "advocate for…" links on the top right of the page.</p>
+
+<p><b>Warning:</b>This page is experimental, it's used by Front Desk members to
+test a feature that is not yet ready for use.</p>
+
+<p><b>Warning:</b>If you start a process using this page by accident, it will
+be impossible for you to start the same process in a way that currently works.
+Starting the process properly will require manual intervention of some Front
+Desk member. Any Front Desk member who can fix this, will however be very busy
+trying to test and fix this new part of the site, so do not expect them to be
+available anytime soon to fix the side effect of you disregarding this
+warning.</p>
+
+<p>Current status of {{person}}: <b>{{person.status|desc_status}}</b>.</p>
 
 {% if current %}
 Currently open processes:
