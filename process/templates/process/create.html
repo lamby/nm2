@@ -22,6 +22,15 @@
 
 Current status: <b>{{person.status|desc_status}}</b>.
 
+{% if current %}
+Currently open processes:
+<ul>
+{% for c in current %}
+<li><a href="{{c.get_absolute_url}}">{{c.applying_for|desc_status}}</a></li>
+{% endfor %}
+</ul>
+{% endif %}
+
 <form action="" method="post">{% csrf_token %}
   {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
   {% for field in form.visible_fields %}

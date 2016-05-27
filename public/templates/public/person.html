@@ -43,6 +43,7 @@
     {% if person.changed_before_data_import %}
     (changed before data import)
     {% endif %}
+    {% if "request_new_status" in vperms.perms and person.possible_new_statuses %}(<a href="{% url 'process_create' key=person.lookup_key %}">request new status</a>){% endif %}
     </td></tr>
     {% if person.pending %}
     <tr><th>Pending</th><td>This is a new entry that requires confirmation before {{person.expires}}. Click <a href="{% url 'public_newnm_resend_challenge' key=person.lookup_key %}">here</a> to send the email challenge again.</td></tr>

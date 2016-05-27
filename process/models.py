@@ -8,6 +8,7 @@ from django.utils.timezone import now
 from django.core.urlresolvers import reverse
 from django.db import models, transaction
 import backend.models as bmodels
+from backend.utils import cached_property
 import statements.models as smodels
 from backend import const
 
@@ -18,6 +19,34 @@ REQUIREMENT_TYPES = (
     ( "keycheck", "Key consistency checks" ),
     ( "am_ok", "Application Manager report" ),
 )
+
+
+class ProcessVisitorPermissions(bmodels.PersonVisitorPermissions):
+    def __init__(self, process, visitor):
+        super(ProcessVisitorPermissions, self).__init__(process.person, visitor)
+        self.process = process
+
+    @cached_property
+    def _can_view_email(self):
+        """
+        The visitor can view the process's email archive
+        """
+        if self.visitor is None: return False
+        # Any admins
+        if self.visitor.is_admin: return True
+        # The person themselves
+        if self.visitor.pk == self.person.pk: return True
+        # Any AM
+        if self.visitor.am_or_none: return True
+        # The advocates
+        # TODO return self.process.advocates.filter(pk=self.visitor.pk).exists()
+        return False
+
+    def _compute_perms(self):
+        res = super(ProcessVisitorPermissions, self)._compute_perms()
+        if self._can_view_email: res.add("view_mbox")
+        return res
+
 
 class ProcessManager(models.Manager):
     def compute_requirements(self, person, applying_for):
@@ -68,14 +97,14 @@ class ProcessManager(models.Manager):
         Create a new process and all its requirements
         """
         # Check that no active process of the same kind exists
-        if self.filter(person=person, applying_for=applying_for, is_active=True).exists():
+        if self.filter(person=person, applying_for=applying_for, closed__isnull=True).exists():
             raise RuntimeError("there is already an active process for {} to become {}".format(person, applying_for))
 
         # Compute requirements
         requirements = self.compute_requirements(person, applying_for)
 
         # Create the new process
-        res = self.model(person=person, applying_for=applying_for, is_complete=False, is_active=True)
+        res = self.model(person=person, applying_for=applying_for)
         # Save it to get an ID
         res.save(using=self._db)
 
@@ -99,7 +128,7 @@ class Process(models.Model):
         return u"{} to become {}".format(self.person, self.applying_for)
 
     def get_absolute_url(self):
-        return reverse("process_show", args[self.pk])
+        return reverse("process_show", args=[self.pk])
 
     def compute_status(self):
         """
@@ -125,17 +154,17 @@ class Process(models.Model):
             "log_last": self.log.order_by("-logdate")[0],
         }
 
-#    def permissions_of(self, visitor):
-#        """
-#        Compute which ProcessVisitorPermissions \a visitor has over this process
-#        """
-#        return ProcessVisitorPermissions(self, visitor)
+    def permissions_of(self, visitor):
+        """
+        Compute which ProcessVisitorPermissions \a visitor has over this process
+        """
+        return ProcessVisitorPermissions(self, visitor)
 
-    def log(self, changed_by, logtext, is_public=False):
+    def add_log(self, changed_by, logtext, is_public=False):
         """
         Add a log entry for this process
         """
-        return Log.objects.create(changed_by, self, is_public, logtext)
+        return Log.objects.create(changed_by=changed_by, process=self, is_public=is_public, logtext=logtext)
 
 
 class Requirement(models.Model):
