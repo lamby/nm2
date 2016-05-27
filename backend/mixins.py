@@ -128,5 +128,5 @@ class VisitProcessMixin(VisitPersonMixin):
 
 
 class VisitProcessTemplateView(VisitProcessMixin, TemplateView):
-    pass
+    template_name = "process/show.html"
 

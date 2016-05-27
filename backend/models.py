@@ -194,6 +194,20 @@ class PersonVisitorPermissions(object):
 
         return False
 
+    @cached_property
+    def _can_request_new_status(self):
+        """
+        The visitor can request a new status for the person
+        """
+        # Anonymous cannot see it
+        if self.visitor is None: return False
+
+        # Only the person and admins can request a new status
+        if self.visitor.pk != self.person.pk and not self.visitor.is_admin: return False
+
+        # There should be some new status possible
+        return bool(self.person.possible_new_statuses)
+
     def _compute_perms(self):
         """
         Compute the set of permission tags
@@ -205,6 +219,7 @@ class PersonVisitorPermissions(object):
         if self._can_view_person_audit_log: res.add("view_person_audit_log")
         if self._can_see_statements: res.add("see_statements")
         if self._can_edit_statements: res.add("edit_statements")
+        if self._can_request_new_status: res.add("request_new_status")
         return res
 
     @cached_property
@@ -224,7 +239,7 @@ class PersonVisitorPermissions(object):
         if self.person.pending: return []
         # Anonymous visitors cannot advocate
         if not self.visitor: return []
-        # Mere mortals cannot currently advocate
+        # Debian Contributors cannot currently advocate
         if self.visitor.status in (const.STATUS_DC, const.STATUS_DC_GA): return []
 
         def involved_pks(proc):
@@ -610,6 +625,40 @@ class Person(PermissionsMixin, models.Model):
         if self.uid:
             parms["username"] = self.uid
         return u"http://portfolio.debian.net/result?" + urllib.urlencode(parms)
+
+    _new_status_table = {
+        const.STATUS_DC: [const.STATUS_DC_GA, const.STATUS_DM, const.STATUS_DD_U, const.STATUS_DD_NU],
+        const.STATUS_DC_GA: [const.STATUS_DM_GA, const.STATUS_DD_U, const.STATUS_DD_NU],
+        const.STATUS_DM: [const.STATUS_DM_GA, const.STATUS_DD_U, const.STATUS_DD_NU],
+        const.STATUS_DM_GA: [const.STATUS_DD_U, const.STATUS_DD_NU],
+        const.STATUS_DD_NU: [const.STATUS_DD_U],
+        const.STATUS_EMERITUS_DD: [const.STATUS_DD_U, const.STATUS_DD_NU],
+        const.STATUS_REMOVED_DD: [const.STATUS_DD_U, const.STATUS_DD_NU],
+    }
+
+    @property
+    def possible_new_statuses(self):
+        """
+        Return a list of possible new statuses that can be requested for the
+        person
+        """
+        if self.pending: return []
+        statuses = list(self._new_status_table.get(self.status, []))
+        # Remove statuses from active processes
+        if statuses:
+            for proc in Process.objects.filter(person=self, is_active=True):
+                try:
+                    statuses.remove(proc.applying_for)
+                except ValueError:
+                    pass
+        if statuses:
+            import process.models as pmodels
+            for proc in pmodels.Process.objects.filter(person=self, closed__isnull=True):
+                try:
+                    statuses.remove(proc.applying_for)
+                except ValueError:
+                    pass
+        return statuses
 
     @property
     def active_processes(self):

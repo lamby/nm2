@@ -176,7 +176,7 @@ class TestVisitPersonNoProcess(PersonFixtureMixin, TestVisitPersonMixin, TestCas
         }))
 
         cls._add_method(cls._test_perms, "dc", perms=ExpectedPerms({
-            "fd dam dc": "update_keycheck edit_bio edit_ldap view_person_audit_log see_statements edit_statements",
+            "fd dam dc": "update_keycheck edit_bio edit_ldap view_person_audit_log see_statements edit_statements request_new_status",
             "dd_nu dd_u": "view_person_audit_log",
         }, {
             "fd dam dd_nu dd_u": "dc_ga dm dd_u dd_nu",
@@ -184,15 +184,14 @@ class TestVisitPersonNoProcess(PersonFixtureMixin, TestVisitPersonMixin, TestCas
         }))
 
         cls._add_method(cls._test_perms, "dc_ga", perms=ExpectedPerms({
-            "fd dam dc_ga": "update_keycheck edit_bio view_person_audit_log see_statements edit_statements",
+            "fd dam dc_ga": "update_keycheck edit_bio view_person_audit_log see_statements edit_statements request_new_status",
             "dd_nu dd_u": "view_person_audit_log",
         }, {
             "fd dam dd_nu dd_u": "dm_ga dd_u dd_nu",
         }))
 
         cls._add_method(cls._test_perms, "dm", perms=ExpectedPerms({
-            "fd dam": "update_keycheck edit_bio edit_ldap view_person_audit_log see_statements edit_statements",
-            "dm": "update_keycheck edit_bio edit_ldap view_person_audit_log see_statements edit_statements",
+            "fd dam dm": "update_keycheck edit_bio edit_ldap view_person_audit_log see_statements edit_statements request_new_status",
             "dd_nu dd_u": "view_person_audit_log",
         }, advs={
             "fd dam dd_nu dd_u": "dm_ga dd_u dd_nu",
@@ -200,14 +199,14 @@ class TestVisitPersonNoProcess(PersonFixtureMixin, TestVisitPersonMixin, TestCas
         }))
 
         cls._add_method(cls._test_perms, "dm_ga", perms=ExpectedPerms({
-            "fd dam dm_ga": "update_keycheck edit_bio view_person_audit_log see_statements edit_statements",
+            "fd dam dm_ga": "update_keycheck edit_bio view_person_audit_log see_statements edit_statements request_new_status",
             "dd_nu dd_u": "view_person_audit_log",
         }, advs={
             "fd dam dd_nu dd_u": "dd_u dd_nu",
         }))
 
         cls._add_method(cls._test_perms, "dd_nu", perms=ExpectedPerms({
-            "fd dam dd_nu": "update_keycheck edit_bio view_person_audit_log see_statements edit_statements",
+            "fd dam dd_nu": "update_keycheck edit_bio view_person_audit_log see_statements edit_statements request_new_status",
             "dd_u": "view_person_audit_log",
         }))
 
@@ -217,7 +216,7 @@ class TestVisitPersonNoProcess(PersonFixtureMixin, TestVisitPersonMixin, TestCas
         }))
 
         cls._add_method(cls._test_perms, "fd", perms=ExpectedPerms({
-            "fd dam": "update_keycheck edit_bio view_person_audit_log see_statements edit_statements",
+            "fd dam": "update_keycheck edit_bio view_person_audit_log see_statements edit_statements request_new_status",
             "dd_nu dd_u": "view_person_audit_log",
         }))
 
@@ -291,7 +290,7 @@ class TestVisitApplicant(PersonFixtureMixin, TestVisitPersonMixin, TestCase):
         self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DC_GA, progress=const.PROGRESS_APP_RCVD)
 
         expected = ExpectedPerms({
-            "fd dam app": "update_keycheck edit_bio edit_ldap view_person_audit_log see_statements edit_statements view_mbox",
+            "fd dam app": "update_keycheck edit_bio edit_ldap view_person_audit_log see_statements edit_statements view_mbox request_new_status",
             "dd_nu dd_u": "view_person_audit_log",
         }, advs={
             "fd dam dd_nu dd_u": "dc_ga dm dd_u dd_nu",
@@ -325,7 +324,7 @@ class TestVisitApplicant(PersonFixtureMixin, TestVisitPersonMixin, TestCase):
         self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DC_GA, progress=const.PROGRESS_APP_RCVD)
 
         expected = ExpectedPerms({
-            "fd dam app": "update_keycheck edit_bio edit_ldap view_person_audit_log see_statements edit_statements view_mbox",
+            "fd dam app": "update_keycheck edit_bio edit_ldap view_person_audit_log see_statements edit_statements view_mbox request_new_status",
             "adv dd_nu dd_u": "view_person_audit_log",
         }, advs={
             "fd dam adv dd_nu dd_u": "dc_ga dm dd_u dd_nu",
@@ -358,7 +357,7 @@ class TestVisitApplicant(PersonFixtureMixin, TestVisitPersonMixin, TestCase):
         self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DM_GA, progress=const.PROGRESS_APP_RCVD)
 
         expected = ExpectedPerms({
-            "fd dam app": "update_keycheck edit_bio edit_ldap view_person_audit_log see_statements edit_statements view_mbox",
+            "fd dam app": "update_keycheck edit_bio edit_ldap view_person_audit_log see_statements edit_statements view_mbox request_new_status",
             "dd_nu dd_u": "view_person_audit_log",
         }, advs={
             "fd dam dd_nu dd_u": "dm_ga dd_u dd_nu",
@@ -389,7 +388,7 @@ class TestVisitApplicant(PersonFixtureMixin, TestVisitPersonMixin, TestCase):
         self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DM_GA, progress=const.PROGRESS_APP_RCVD)
 
         expected = ExpectedPerms({
-            "fd dam app": "update_keycheck edit_bio edit_ldap view_person_audit_log see_statements edit_statements view_mbox",
+            "fd dam app": "update_keycheck edit_bio edit_ldap view_person_audit_log see_statements edit_statements view_mbox request_new_status",
             "adv dd_nu dd_u": "view_person_audit_log",
         }, advs={
             "fd dam adv dd_nu dd_u": "dm_ga dd_u dd_nu",
@@ -421,7 +420,7 @@ class TestVisitApplicant(PersonFixtureMixin, TestVisitPersonMixin, TestCase):
         self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DM, progress=const.PROGRESS_APP_RCVD)
 
         expected = ExpectedPerms({
-            "fd dam app": "update_keycheck edit_bio edit_ldap view_person_audit_log see_statements edit_statements view_mbox",
+            "fd dam app": "update_keycheck edit_bio edit_ldap view_person_audit_log see_statements edit_statements view_mbox request_new_status",
             "adv dd_nu dd_u": "view_person_audit_log",
         }, advs={
             "fd dam adv dd_nu dd_u": "dc_ga dm dd_u dd_nu",
@@ -454,7 +453,7 @@ class TestVisitApplicant(PersonFixtureMixin, TestVisitPersonMixin, TestCase):
         self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DD_NU, progress=const.PROGRESS_APP_RCVD)
 
         expected = ExpectedPerms({
-            "fd dam app": "update_keycheck edit_bio edit_ldap view_person_audit_log see_statements edit_statements view_mbox",
+            "fd dam app": "update_keycheck edit_bio edit_ldap view_person_audit_log see_statements edit_statements view_mbox request_new_status",
             "adv dd_nu dd_u": "view_person_audit_log",
         }, advs={
             "fd dam adv dd_nu dd_u": "dc_ga dm dd_u dd_nu",
@@ -487,7 +486,7 @@ class TestVisitApplicant(PersonFixtureMixin, TestVisitPersonMixin, TestCase):
         self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DD_NU, progress=const.PROGRESS_APP_RCVD)
 
         expected = ExpectedPerms({
-            "fd dam app": "update_keycheck edit_bio view_person_audit_log see_statements view_mbox edit_statements",
+            "fd dam app": "update_keycheck edit_bio view_person_audit_log see_statements view_mbox edit_statements request_new_status",
             "adv dd_nu dd_u": "view_person_audit_log",
         }, advs={
             "fd dam adv dd_nu dd_u": "dm_ga dd_u dd_nu",
@@ -518,7 +517,7 @@ class TestVisitApplicant(PersonFixtureMixin, TestVisitPersonMixin, TestCase):
         self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DD_U, progress=const.PROGRESS_APP_RCVD)
 
         expected = ExpectedPerms({
-            "fd dam app": "update_keycheck edit_bio edit_ldap view_person_audit_log see_statements edit_statements view_mbox",
+            "fd dam app": "update_keycheck edit_bio edit_ldap view_person_audit_log see_statements edit_statements view_mbox request_new_status",
             "adv dd_nu dd_u": "view_person_audit_log",
         }, advs={
             "fd dam adv dd_nu dd_u": "dc_ga dm dd_u dd_nu",
@@ -538,7 +537,7 @@ class TestVisitApplicant(PersonFixtureMixin, TestVisitPersonMixin, TestCase):
 
         self.persons.app.status = self.processes.app.applying_for
         self.persons.app.save(audit_skip=True)
-        expected.patch_perms("fd dam app", "-edit_ldap")
+        expected.patch_perms("fd dam app", "-edit_ldap -request_new_status")
         expected.patch_advs("fd dam dd_nu dd_u app dm dm_ga adv", "-dc_ga -dm")
         self.assertApplicantPermsFinal(expected)
 
@@ -551,7 +550,7 @@ class TestVisitApplicant(PersonFixtureMixin, TestVisitPersonMixin, TestCase):
         self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DD_U, progress=const.PROGRESS_APP_RCVD)
 
         expected = ExpectedPerms({
-            "fd dam app": "update_keycheck edit_bio view_person_audit_log see_statements view_mbox edit_statements",
+            "fd dam app": "update_keycheck edit_bio view_person_audit_log see_statements view_mbox edit_statements request_new_status",
             "adv dd_nu dd_u": "view_person_audit_log",
         }, advs={
             "fd dam adv dd_nu dd_u": "dm_ga dd_u dd_nu",
@@ -570,6 +569,7 @@ class TestVisitApplicant(PersonFixtureMixin, TestVisitPersonMixin, TestCase):
 
         self.persons.app.status = self.processes.app.applying_for
         self.persons.app.save(audit_skip=True)
+        expected.patch_perms("fd dam app", "-request_new_status")
         expected.patch_advs("fd dam dd_nu dd_u app dm dm_ga adv", "-dm_ga")
         self.assertApplicantPermsFinal(expected)
 
@@ -582,7 +582,7 @@ class TestVisitApplicant(PersonFixtureMixin, TestVisitPersonMixin, TestCase):
         self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DD_U, progress=const.PROGRESS_APP_RCVD)
 
         expected = ExpectedPerms({
-            "fd dam app": "update_keycheck edit_bio edit_ldap view_person_audit_log see_statements edit_statements view_mbox",
+            "fd dam app": "update_keycheck edit_bio edit_ldap view_person_audit_log see_statements edit_statements view_mbox request_new_status",
             "adv dd_nu dd_u": "view_person_audit_log",
         }, advs={
             "fd dam adv dd_nu dd_u": "dm_ga dd_u dd_nu",
@@ -602,7 +602,7 @@ class TestVisitApplicant(PersonFixtureMixin, TestVisitPersonMixin, TestCase):
 
         self.persons.app.status = self.processes.app.applying_for
         self.persons.app.save(audit_skip=True)
-        expected.patch_perms("fd dam adv app", "-edit_ldap")
+        expected.patch_perms("fd dam adv app", "-edit_ldap -request_new_status")
         expected.patch_advs("fd dam dd_nu dd_u app dm dm_ga adv", "-dm_ga")
         self.assertApplicantPermsFinal(expected)
 
@@ -615,7 +615,7 @@ class TestVisitApplicant(PersonFixtureMixin, TestVisitPersonMixin, TestCase):
         self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DD_U, progress=const.PROGRESS_APP_RCVD)
 
         expected = ExpectedPerms({
-            "fd dam app": "update_keycheck edit_bio view_person_audit_log see_statements view_mbox edit_statements",
+            "fd dam app": "update_keycheck edit_bio view_person_audit_log see_statements view_mbox edit_statements request_new_status",
             "adv dd_nu dd_u": "view_person_audit_log",
         }, advs={
             "fd dam adv dd_nu dd_u": "dd_u dd_nu",
@@ -633,4 +633,5 @@ class TestVisitApplicant(PersonFixtureMixin, TestVisitPersonMixin, TestCase):
 
         self.persons.app.status = self.processes.app.applying_for
         self.persons.app.save(audit_skip=True)
+        expected.patch_perms("fd dam app", "-request_new_status")
         self.assertApplicantPermsFinal(expected)

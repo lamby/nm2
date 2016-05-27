@@ -277,5 +277,5 @@ class PersonFixtureMixin(BaseFixtureMixin):
         fd = cls.persons.create("fd", status=const.STATUS_DD_NU)
         cls.ams.create("fd", person=fd, is_fd=True)
         # dam
-        dam = cls.persons.create("dam", status=const.STATUS_DD_NU)
+        dam = cls.persons.create("dam", status=const.STATUS_DD_U)
         cls.ams.create("dam", person=dam, is_fd=True, is_dam=True)

@@ -8,7 +8,9 @@ from django.views.generic import TemplateView, View
 from django.views.generic.edit import FormView
 from django.utils.timezone import now
 from django.db import transaction
+from django import forms
 from backend.mixins import VisitorMixin, VisitPersonMixin
+from backend import const
 from .mixins import VisitProcessMixin
 import datetime
 from . import models as pmodels
@@ -28,12 +30,23 @@ class List(VisitorMixin, TemplateView):
         return ctx
 
 
-class Create(VisitPersonMixin, View):
+class Create(VisitPersonMixin, FormView):
     """
     Create a new process
     """
-    def post(self, request, *args, **kw):
-        applying_for = kw["applying_for"]
+    require_vperms = "request_new_status"
+    template_name = "process/create.html"
+
+    def get_form_class(self):
+        whitelist = self.person.possible_new_statuses
+        options = [(x.tag, x.sdesc) for x in const.ALL_STATUS if x.tag in whitelist]
+        if not options: raise PermissionDenied
+        class Form(forms.Form):
+            applying_for = forms.CharField(label=_("Apply for status"), options=options)
+        return Form
+
+    def form_valid(self, form):
+        applying_for = form.cleaned_data["applying_for"]
         # TODO: ensure visitor can create processes for person
         # TODO: ensure that applying_for is a valid new process for person
         with transaction.atomic():
@@ -43,7 +56,10 @@ class Create(VisitPersonMixin, View):
 
 
 class Show(VisitProcessMixin, TemplateView):
-    pass
-# TODO: show process
+    """
+    Show a process
+    """
+    template_name = "process/show.html"
 
-# TODO: update requirement
+
+# TODO: update requirements

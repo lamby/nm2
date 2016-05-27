@@ -9,7 +9,7 @@ from . import views
 
 urlpatterns = [
     url(r'^$', views.List.as_view, name="process_list"),
-    url(r'^create/(?P<key>[^/]+)/(?P<applying_for>[^/]+)$', views.Create.as_view(), name="process_create"),
+    url(r'^create/(?P<key>[^/]+)$', views.Create.as_view(), name="process_create"),
     url(r'^(?P<pk>\d+)$', views.Show.as_view(), name="process_show"),
 ]
 
