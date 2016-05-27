@@ -181,6 +181,9 @@ class Requirement(models.Model):
     def __unicode__(self):
         return REQUIREMENT_TYPES_DICT.get(self.type, self.type)
 
+    def get_absolute_url(self):
+        return reverse("process_req_" + self.type, args=[self.process.pk])
+
 
 class Statement(models.Model):
     """

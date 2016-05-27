@@ -1,0 +1,40 @@
+{% extends "nm-base.html" %}
+{% load nm %}
+{% load js %}
+
+{% block head_resources %}
+{{block.super}}
+{% jsinclude "nm" %}
+{% endblock %}
+
+{% block breadcrumbs %}{{block.super}}
+/ <a href="{{ person.get_absolute_url }}">{{person.lookup_key}}</a>
+/ <a href="{{ process.get_absolute_url }}">{{process}}</a>
+{% endblock %}
+
+{% block relatedpages %}
+{{block.super}}
+{% endblock %}
+
+{% block content %}
+
+<h1>{{type_desc}}</h1>
+
+{% include explain_template with edit=False %}
+
+<ul>
+{% if "edit_statements" in vperms.perms %}
+  {% for s in requirement.statements.all %}
+  <li><a href="{% url 'process_statement_edit' pk=process.pk type=requirement.type st=s.pk %}">{{s}}</a></li>
+  {% endfor %}
+{% else %}
+  {% for s in requirement.statements.all %}
+  {# TODO: link to a show url, or just show #}
+  <li><a href="{% url 'process_statement_edit' pk=process.pk type=requirement.type st=s.pk %}">{{s}}</a></li>
+  {% endfor %}
+{% endif %}
+</ul>
+
+<a href="{% url 'process_statement_create' pk=process.pk type=requirement.type %}">create</a>
+
+{% endblock %}
