@@ -18,6 +18,7 @@ urlpatterns = [
     url(r'^(?P<pk>\d+)/am_ok$', views.ReqIntent.as_view(), name="process_req_am_ok"),
     url(r'^(?P<pk>\d+)/(?P<type>[^/]+)/statement/create$', views.StatementCreate.as_view(), name="process_statement_create"),
     url(r'^(?P<pk>\d+)/(?P<type>[^/]+)/statement/(?P<st>\d+)/edit$', views.StatementEdit.as_view(), name="process_statement_edit"),
+    url(r'^(?P<pk>\d+)/(?P<type>[^/]+)/statement/(?P<st>\d+)/raw$', views.StatementRaw.as_view(), name="process_statement_raw"),
     url(r'^(?P<pk>\d+)/add_log$', views.AddProcessLog.as_view(), name="process_add_log"),
     url(r'^(?P<pk>\d+)/(?P<type>[^/]+)/add_log$', views.AddProcessLog.as_view(), name="process_add_requirement_log"),
 ]

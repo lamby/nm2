@@ -9,7 +9,7 @@ from django.views.generic import TemplateView, View
 from django.views.generic.edit import FormView
 from django.utils.timezone import now
 from django.db import transaction
-from django import forms
+from django import forms, http
 from backend.mixins import VisitorMixin, VisitPersonMixin
 from backend import const
 import backend.models as bmodels
@@ -218,6 +218,12 @@ class StatementCreate(EditStatementMixin, FormView):
 
 class StatementEdit(EditStatementMixin, FormView):
     template_name = "process/statement_edit.html"
+
+
+class StatementRaw(EditStatementMixin, View):
+    def get(self, request, *args, **kw):
+        return http.HttpResponse(self.statement.statement, content_type="text/plain")
+
 
 
 ## coding: utf8

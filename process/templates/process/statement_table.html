@@ -4,12 +4,13 @@
       <th>Statement</th>
       <th>Uploaded by</th>
       <th>Upload time</th>
+      <th>Actions</th>
     </tr>
   </thead>
   <tbody>
     {% for s in requirement.statements.all %}
     <tr>
-      <td><pre>{{s.statement}}</pre></td>
+      <td><pre class="inline-statement">{{s.statement_clean}}</pre></td>
       <td><a href="{{s.uploaded_by.get_absolute_url}}">{{s.uploaded_by}}</a></td>
       <td>
         {% if "edit_statements" in vperms.perms %}
@@ -18,6 +19,7 @@
         {{s.uploaded_time|date:"Y-m-d"}}
         {% endif %}
       </td>
+      <td><a href="{% url 'process_statement_raw' pk=process.pk type=requirement.type st=s.pk %}">raw</a></td>
     </tr>
     {% endfor %}
   </tbody>

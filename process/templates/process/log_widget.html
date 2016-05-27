@@ -6,7 +6,7 @@
   action="{% url 'process_add_log' pk=process.pk %}"
   {% endif %}
   >{% csrf_token %}
-  New log entry:
+  Add log entry:
   <br/>
   <textarea name="logtext" rows="3" cols="80" placeholder="new log entry..."></textarea>
   <br/>

@@ -10,6 +10,7 @@ from django.db import models, transaction
 import backend.models as bmodels
 from backend.utils import cached_property
 from backend import const
+import re
 
 REQUIREMENT_TYPES = (
     ( "intent", "Declaration of intent" ),
@@ -207,6 +208,14 @@ class Statement(models.Model):
     def get_key(self):
         from keyring.models import Key
         return Key.objects.get_or_download(self.fpr.fpr)
+
+    @property
+    def statement_clean(self):
+        """
+        Return the statement without the OpenPGP wrapping
+        """
+        # https://tools.ietf.org/html/rfc4880#section-7
+        return re.sub(r".*?-----BEGIN PGP SIGNED MESSAGE-----.*?\r\n\r\n(.+?)-----BEGIN PGP SIGNATURE-----.+", r"\1", self.statement, flags=re.DOTALL)
 
 
 class Log(models.Model):
