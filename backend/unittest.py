@@ -269,6 +269,10 @@ class PersonFixtureMixin(BaseFixtureMixin):
         cls.persons.create("dd_nu", status=const.STATUS_DD_NU)
         # dd, uploading
         cls.persons.create("dd_u", status=const.STATUS_DD_U)
+        # dd, emeritus
+        cls.persons.create("dd_e", status=const.STATUS_EMERITUS_DD)
+        # dd, removed
+        cls.persons.create("dd_r", status=const.STATUS_REMOVED_DD)
         # fd
         fd = cls.persons.create("fd", status=const.STATUS_DD_NU)
         cls.ams.create("fd", person=fd, is_fd=True)

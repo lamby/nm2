@@ -177,18 +177,17 @@ class TestPersonFingerprints(PersonFixtureMixin, TestCase):
 class TestEndorsements(PersonFixtureMixin, TestCase):
     @classmethod
     def __add_extra_tests__(cls):
-        # Confirmed people with no entries in LDAP can use the agreement
-        # interface for themselves, and admins can on their behalf
-        for person in ("dc", "dm"):
+        # Confirmed people can use the agreement interface for themselves, and
+        # admins can on their behalf
+        for person in ("dc", "dc_ga", "dm", "dm_ga", "dd_nu", "dd_u", "fd", "dam"):
             cls._add_method(cls._test_get_success, person, person)
             cls._add_method(cls._test_post_success, person, person)
         for visitor in ("fd", "dam"):
-            for visited in ("dc", "dm"):
-                cls._add_method(cls._test_get_success, visitor, visited)
-                cls._add_method(cls._test_post_success, visitor, visited)
-        for person in ("pending", "dc_ga", "dm_ga", "dd_nu", "dd_u", "fd", "dam"):
-            cls._add_method(cls._test_get_forbidden, person, person)
-            cls._add_method(cls._test_post_forbidden, person, person)
+            for person in ("pending", "dc", "dc_ga", "dm", "dm_ga", "dd_nu", "dd_u"):
+                cls._add_method(cls._test_get_success, visitor, person)
+                cls._add_method(cls._test_post_success, visitor, person)
+        cls._add_method(cls._test_get_forbidden, "pending", "pending")
+        cls._add_method(cls._test_post_forbidden, "pending", "pending")
 
         # Only admins can see the agreement interface of other people
         for visitor in ("pending", "dc_ga", "dm_ga", "dd_nu", "dd_u"):
