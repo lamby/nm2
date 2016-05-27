@@ -3,7 +3,7 @@
     <tr>
       <th>Statement</th>
       <th>Uploaded by</th>
-      <th>Status</th>
+      <th>Upload time</th>
     </tr>
   </thead>
   <tbody>
@@ -13,9 +13,9 @@
       <td><a href="{{s.uploaded_by.get_absolute_url}}">{{s.uploaded_by}}</a></td>
       <td>
         {% if "edit_statements" in vperms.perms %}
-        <a href="{% url 'process_statement_edit' pk=process.pk type=requirement.type st=s.pk %}">{{s.status}}</a>
+        <a href="{% url 'process_statement_edit' pk=process.pk type=requirement.type st=s.pk %}">{{s.uploaded_time|date:"Y-m-d"}}</a>
         {% else %}
-        {{s.status}}
+        {{s.uploaded_time|date:"Y-m-d"}}
         {% endif %}
       </td>
     </tr>

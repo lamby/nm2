@@ -64,7 +64,7 @@ class Create(VisitPersonMixin, FormView):
         # TODO: ensure that applying_for is a valid new process for person
         with transaction.atomic():
             p = pmodels.Process.objects.create(self.person, applying_for)
-            p.add_log(self.visitor, "Process create", is_public=True)
+            p.add_log(self.visitor, "Process created", is_public=True)
         return redirect(p.get_absolute_url())
 
 
@@ -73,6 +73,24 @@ class Show(VisitProcessMixin, TemplateView):
     Show a process
     """
     template_name = "process/show.html"
+
+
+class AddProcessLog(VisitProcessMixin, View):
+    """
+    Add an entry to the process or requirement log
+    """
+    def post(self, request, *args, **kw):
+        if "type" in kw:
+            target = get_object_or_404(pmodels.Requirement, process=self.process, type=kw["type"])
+        else:
+            target = self.process
+
+        logtext = request.POST.get("logtext", "")
+        is_public = request.POST.get("public", "no") == "yes"
+        print("ZA", request.POST, request.POST.get("public", "--"), is_public)
+        if logtext:
+            target.add_log(self.visitor, logtext, is_public=is_public)
+        return redirect(target.get_absolute_url())
 
 
 class RequirementMixin(VisitProcessMixin):
@@ -183,17 +201,12 @@ class EditStatementMixin(RequirementMixin):
         if statement is None:
             statement = pmodels.Statement(requirement=self.requirement, fpr=self.visitor.fingerprint)
         statement.uploaded_by = self.visitor
+        statement.uploaded_time = now()
         statement.statement, plaintext = form.cleaned_data["statement"]
 
         if self.blurb is not None:
             expected = self.normalise_text("\n".join(self.blurb))
             submitted = self.normalise_text(plaintext)
-            if submitted == expected:
-                statement.statement_verified = now()
-            else:
-                statement.statement_verified = None
-        else:
-            statement.statement_verified = None
 
         statement.save()
         return redirect(self.requirement.get_absolute_url())

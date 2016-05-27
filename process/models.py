@@ -171,6 +171,7 @@ class Process(models.Model):
 class Requirement(models.Model):
     process = models.ForeignKey(Process, related_name="requirements")
     type = models.CharField(verbose_name=_("Requirement type"), max_length=16, choices=REQUIREMENT_TYPES)
+    # TODO: change is_ok into approved_by (nullable)
     is_ok = models.BooleanField(null=False, default=False)
 
     class Meta:
@@ -183,6 +184,12 @@ class Requirement(models.Model):
     def get_absolute_url(self):
         return reverse("process_req_" + self.type, args=[self.process.pk])
 
+    def add_log(self, changed_by, logtext, is_public=False):
+        """
+        Add a log entry for this requirement
+        """
+        return Log.objects.create(changed_by=changed_by, process=self.process, requirement=self, is_public=is_public, logtext=logtext)
+
 
 class Statement(models.Model):
     """
@@ -191,17 +198,11 @@ class Statement(models.Model):
     requirement = models.ForeignKey(Requirement, related_name="statements")
     fpr = models.ForeignKey(bmodels.Fingerprint, related_name="+", help_text=_("Fingerprint used to verify the statement"))
     statement = models.TextField(verbose_name=_("Signed statement"), blank=True)
-    statement_verified = models.DateTimeField(null=True, help_text=_("When the statement has been verified to have valid wording (NULL if it has not)"))
     uploaded_by = models.ForeignKey(bmodels.Person, null=True, related_name="+", help_text=_("Person who uploaded the statement"))
+    uploaded_time = models.DateTimeField(help_text=_("When the statement has been uploaded"))
 
     def __unicode__(self):
         return "{}:{}".format(self.fpr, self.requirement)
-
-    @property
-    def status(self):
-        if self.statement_verified: return "verified"
-        if self.statement: return "unverified"
-        return "missing"
 
     def get_key(self):
         from keyring.models import Key
@@ -214,9 +215,13 @@ class Log(models.Model):
     """
     changed_by = models.ForeignKey(bmodels.Person, related_name="+", null=True)
     process = models.ForeignKey(Process, related_name="log")
+    requirement = models.ForeignKey(Requirement, related_name="log", null=True, blank=True)
     is_public = models.BooleanField(default=False)
     logdate = models.DateTimeField(default=now)
     logtext = models.TextField(blank=True, default="")
+
+    class Meta:
+        ordering = ["-logdate"]
 
     def __unicode__(self):
         return u"{}: {}".format(self.logdate, self.logtext)
