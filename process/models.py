@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import unicode_literals
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
+from django.core.urlresolvers import reverse
 from django.db import models, transaction
 import backend.models as bmodels
 import statements.models as smodels
@@ -88,19 +89,62 @@ class ProcessManager(models.Manager):
 class Process(models.Model):
     person = models.ForeignKey(bmodels.Person, related_name="+")
     applying_for = models.CharField("target status", max_length=20, null=False, choices=[x[1:3] for x in const.ALL_STATUS])
-    is_complete = models.BooleanField(null=False, default=False)
-    is_active = models.BooleanField(null=False, default=False)
+    completed = models.DateTimeField(null=True, help_text=_("Date the process was reviewed and considered complete, or NULL if not complete"))
+    closed = models.DateTimeField(null=True, help_text=_("Date the process was closed, or NULL if still open"))
+    fd_comment = models.TextField("Front Desk comments", blank=True, default="")
 
     objects = ProcessManager()
 
     def __unicode__(self):
         return u"{} to become {}".format(self.person, self.applying_for)
 
+    def get_absolute_url(self):
+        return reverse("process_show", args[self.pk])
+
+    def compute_status(self):
+        """
+        Return a dict with the process status:
+        {
+            "requirements_ok": [list of Requirement],
+            "requirements_missing": [list of Requirement],
+            "log_first": Log,
+            "log_last": Log,
+        }
+        """
+        rok = []
+        rnok = []
+        for r in self.requirements.all():
+            if r.is_ok:
+                rok.append(r)
+            else:
+                rnok.append(r)
+        return {
+            "requirements_ok": rok,
+            "requirements_missing": rnok,
+            "log_first": self.log.order_by("logdate")[0],
+            "log_last": self.log.order_by("-logdate")[0],
+        }
+
+#    def permissions_of(self, visitor):
+#        """
+#        Compute which ProcessVisitorPermissions \a visitor has over this process
+#        """
+#        return ProcessVisitorPermissions(self, visitor)
+
+    def log(self, changed_by, logtext, is_public=False):
+        """
+        Add a log entry for this process
+        """
+        return Log.objects.create(changed_by, self, is_public, logtext)
+
 
 class Requirement(models.Model):
     process = models.ForeignKey(Process, related_name="requirements")
     type = models.CharField(verbose_name=_("Requirement type"), max_length=16, choices=REQUIREMENT_TYPES)
     is_ok = models.BooleanField(null=False, default=False)
+
+    class Meta:
+        unique_together = ("process", "type")
 
     def __unicode__(self):
         return u"{}:{}".format(self.process, self.type)
@@ -110,11 +154,11 @@ class Statement(models.Model):
     """
     A signed statement
     """
-    requirement = models.ForeignKey(Requirement)
-    fpr = models.ForeignKey(bmodels.Fingerprint, help_text=_("Fingerprint used to verify the statement"))
+    requirement = models.ForeignKey(Requirement, related_name="statements")
+    fpr = models.ForeignKey(bmodels.Fingerprint, related_name="+", help_text=_("Fingerprint used to verify the statement"))
     statement = models.TextField(verbose_name=_("Signed statement"), blank=True)
     statement_verified = models.DateTimeField(null=True, help_text=_("When the statement has been verified to have valid wording (NULL if it has not)"))
-    uploaded_by = models.ForeignKey(bmodels.Person, null=True, help_text=_("Person who uploaded the statement"))
+    uploaded_by = models.ForeignKey(bmodels.Person, null=True, related_name="+", help_text=_("Person who uploaded the statement"))
 
     def __unicode__(self):
         return "{}:{}".format(self.fpr, self.type)
@@ -136,9 +180,9 @@ class Log(models.Model):
     """
     changed_by = models.ForeignKey(bmodels.Person, related_name="+", null=True)
     process = models.ForeignKey(Process, related_name="log")
-    is_public = models.BooleanField(default=False, null=False)
-    logdate = models.DateTimeField(null=False, default=now)
-    logtext = models.TextField(null=False, blank=True, default="")
+    is_public = models.BooleanField(default=False)
+    logdate = models.DateTimeField(default=now)
+    logtext = models.TextField(blank=True, default="")
 
     def __unicode__(self):
         return u"{}: {}".format(self.logdate, self.logtext)
@@ -152,12 +196,6 @@ class Log(models.Model):
             return Log.objects.filter(logdate__lt=self.logdate, process=self.process).order_by("-logdate")[0]
         except IndexError:
             return None
-
-#    @classmethod
-#    def for_process(cls, proc, **kw):
-#        kw.setdefault("process", proc)
-#        kw.setdefault("progress", proc.progress)
-#        return cls(**kw)
 
 
 #def post_save_log(sender, **kw):

@@ -147,6 +147,7 @@ INSTALLED_APPS = [
     'public',
     'restricted',
     'statements',
+    'process',
     'fprs',
     'dm',
     'maintenance',
