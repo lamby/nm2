@@ -27,7 +27,7 @@
 
 <table class="personinfo">
   <tr><th>Applicant</th><td><a href="{{person.get_absolute_url}}">{{person.fullname}} &lt;{{person.preferred_email}}&gt;</a></td></tr>
-  <tr><th>Activity timespan</th><td>{{status.log_first.logdate|date:"Y-m-d"}}-{{status.log_last.logdate|date:"Y-m-d"}}</td></tr>
+  <tr><th>Activity timespan</th><td>{{status.log_first.logdate|date:"Y-m-d"}} to {{status.log_last.logdate|date:"Y-m-d"}}</td></tr>
   <tr>
     <th>Completed</th>
     <td>{% if process.completed %}{{process.completed|date:"Y-m-d"}}{% else %}no{% endif %}</td>
@@ -88,7 +88,7 @@
 </thead>
 <tbody>
   {% for req in status.requirements_missing %}
-  <tr><td>{{req}}</td><tr>
+  <tr><td><a href="{{req.get_absolute_url}}">{{req}}</a></td><tr>
   {% endfor %}
 </tbody>
 </table>
@@ -103,7 +103,7 @@
 </thead>
 <tbody>
   {% for req in status.requirements_ok %}
-  <tr><td>{{req}}</td><tr>
+  <tr><td><a href="{{req.get_absolute_url}}">{{req}}</a></td><tr>
   {% endfor %}
 </tbody>
 </table>

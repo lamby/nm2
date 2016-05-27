@@ -20,6 +20,8 @@ REQUIREMENT_TYPES = (
     ( "am_ok", "Application Manager report" ),
 )
 
+REQUIREMENT_TYPES_DICT = dict(REQUIREMENT_TYPES)
+
 
 class ProcessVisitorPermissions(bmodels.PersonVisitorPermissions):
     def __init__(self, process, visitor):
@@ -176,7 +178,7 @@ class Requirement(models.Model):
         unique_together = ("process", "type")
 
     def __unicode__(self):
-        return u"{}:{}".format(self.process, self.type)
+        return REQUIREMENT_TYPES_DICT.get(self.type, self.type)
 
 
 class Statement(models.Model):
