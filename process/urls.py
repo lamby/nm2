@@ -21,8 +21,6 @@ urlpatterns = [
     url(r'^(?P<pk>\d+)/(?P<type>[^/]+)/statement/(?P<st>\d+)/raw$', views.StatementRaw.as_view(), name="process_statement_raw"),
     url(r'^(?P<pk>\d+)/add_log$', views.AddProcessLog.as_view(), name="process_add_log"),
     url(r'^(?P<pk>\d+)/(?P<type>[^/]+)/add_log$', views.AddProcessLog.as_view(), name="process_add_requirement_log"),
-    url(r'^(?P<pk>\d+)/(?P<type>[^/]+)/approve$', views.ApproveRequirement.as_view(), name="process_requirement_approve"),
-    url(r'^(?P<pk>\d+)/(?P<type>[^/]+)/unapprove$', views.UnapproveRequirement.as_view(), name="process_requirement_unapprove"),
     url(r'^(?P<pk>\d+)/mailbox/download$', views.MailArchive.as_view(), name="process_mailbox_download"),
     url(r'^(?P<pk>\d+)/mailbox$', views.DisplayMailArchive.as_view(), name="process_mailbox_show"),
 ]

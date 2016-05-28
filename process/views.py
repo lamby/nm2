@@ -79,15 +79,47 @@ class AddProcessLog(VisitProcessMixin, View):
     """
     Add an entry to the process or requirement log
     """
+    @transaction.atomic
     def post(self, request, *args, **kw):
         if "type" in kw:
-            target = get_object_or_404(pmodels.Requirement, process=self.process, type=kw["type"])
+            requirement = get_object_or_404(pmodels.Requirement, process=self.process, type=kw["type"])
+            target = requirement
         else:
+            requirement = None
             target = self.process
 
         logtext = request.POST.get("logtext", "")
-        is_public = request.POST.get("public", "no") == "yes"
-        print("ZA", request.POST, request.POST.get("public", "--"), is_public)
+        action = request.POST.get("add_action", "undefined")
+
+        if action == "private":
+            is_public = False
+        elif action == "public":
+            is_public = True
+        elif action == "private_unapprove":
+            if not logtext: logtext = "Unapproved"
+            is_public = False
+            requirement.approved_by = None
+            requirement.approved_time = None
+            requirement.save()
+        elif action == "public_unapprove":
+            if not logtext: logtext = "Unapproved"
+            is_public = True
+            requirement.approved_by = None
+            requirement.approved_time = None
+            requirement.save()
+        elif action == "private_approve":
+            if not logtext: logtext = "Approved"
+            is_public = False
+            requirement.approved_by = self.visitor
+            requirement.approved_time = now()
+            requirement.save()
+        elif action == "public_approve":
+            if not logtext: logtext = "Approved"
+            is_public = True
+            requirement.approved_by = self.visitor
+            requirement.approved_time = now()
+            requirement.save()
+
         if logtext:
             target.add_log(self.visitor, logtext, is_public=is_public)
         return redirect(target.get_absolute_url())
@@ -232,34 +264,6 @@ class StatementEdit(EditStatementMixin, FormView):
 class StatementRaw(EditStatementMixin, View):
     def get(self, request, *args, **kw):
         return http.HttpResponse(self.statement.statement, content_type="text/plain")
-
-
-class ApproveRequirement(RequirementMixin, View):
-    def get_requirement_type(self):
-        return self.kwargs["type"]
-
-    def post(self, request, *args, **kw):
-        # TODO: check credentials
-        if not self.requirement.approved_by:
-            self.requirement.approved_by = self.visitor
-            self.requirement.approved_time = now()
-            self.requirement.save()
-            self.requirement.add_log(self.visitor, "Approved", True)
-        return redirect(self.requirement.get_absolute_url())
-
-
-class UnapproveRequirement(RequirementMixin, View):
-    def get_requirement_type(self):
-        return self.kwargs["type"]
-
-    def post(self, request, *args, **kw):
-        # TODO: check credentials
-        if self.requirement.approved_by:
-            self.requirement.approved_by = None
-            self.requirement.approved_time = None
-            self.requirement.add_log(self.visitor, "Undo approved", True)
-            self.requirement.save()
-        return redirect(self.requirement.get_absolute_url())
 
 
 class MailArchive(VisitProcessMixin, View):

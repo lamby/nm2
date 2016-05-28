@@ -10,8 +10,17 @@
   <br/>
   <textarea name="logtext" rows="3" cols="80" placeholder="new log entry..."></textarea>
   <br/>
-  <button type="submit" name="public" value="no">Add private</button>
-  <button type="submit" name="public" value="yes">Add add public</button>
+  <button type="submit" name="add_action" value="public">Comment</button>
+  <button type="submit" name="add_action" value="private">Comment (confidential)</button>
+  {% if requirement %}
+    {% if requirement.approved_by %}
+    <button type="submit" name="add_action" value="public_unapprove">Unapprove</button>
+    <button type="submit" name="add_action" value="private_unapprove">Unapprove (confidential)</button>
+    {% else %}
+    <button type="submit" name="add_action" value="public_approve">Approve</button>
+    <button type="submit" name="add_action" value="private_approve">Approve (confidential)</button>
+    {% endif %}
+  {% endif %}
 </form>
 </p>
 <table>
