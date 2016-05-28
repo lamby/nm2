@@ -37,6 +37,10 @@ manual validation of its content:</p>
 </pre>
 {% endif %}
 
+<p>Use <tt>gpg --clearsign --default-key {{fpr}}</tt> to generate the
+signed statement. Tip: pipe it to <tt>xclip</tt> to have it copied to the
+clipboard for easy pasting.</p>
+
 <p>It is a good idea to include some context information like the date and
 nm.debian.org in the text, in case someone tries to reuse the signed statement
 somewhere else.</p>
