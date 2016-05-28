@@ -5,12 +5,14 @@ from __future__ import division
 from __future__ import unicode_literals
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
+from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import models, transaction
 import backend.models as bmodels
 from backend.utils import cached_property
 from backend import const
 import re
+import os
 
 REQUIREMENT_TYPES = (
     ( "intent", "Declaration of intent" ),
@@ -112,7 +114,7 @@ class ProcessManager(models.Manager):
 
         # Create the requirements
         for req in requirements:
-            r = Requirement.objects.create(process=res, type=req, is_ok=False)
+            r = Requirement.objects.create(process=res, type=req)
 
         return res
 
@@ -144,12 +146,16 @@ class Process(models.Model):
         """
         rok = []
         rnok = []
+        requirements = {}
         for r in self.requirements.all():
-            if r.is_ok:
+            if r.approved_by:
                 rok.append(r)
             else:
                 rnok.append(r)
+            requirements[r.type] = r
         return {
+            "requirements": requirements,
+            "requirements_sorted": sorted(requirements.items()),
             "requirements_ok": rok,
             "requirements_missing": rnok,
             "log_first": self.log.order_by("logdate")[0],
@@ -168,12 +174,36 @@ class Process(models.Model):
         """
         return Log.objects.create(changed_by=changed_by, process=self, is_public=is_public, logtext=logtext)
 
+    @property
+    def archive_email(self):
+        return "archive-{}@nm.debian.org".format(self.pk)
+
+    @property
+    def mailbox_file(self):
+        """
+        The pathname of the archival mailbox, or None if it does not exist
+        """
+        PROCESS_MAILBOX_DIR = getattr(settings, "PROCESS_MAILBOX_DIR", "/srv/nm.debian.org/mbox/applicants/")
+        fname = os.path.join(PROCESS_MAILBOX_DIR, "process-{}.mbox".format(self.pk))
+        if os.path.exists(fname):
+            return fname
+        return None
+
+    @property
+    def mailbox_mtime(self):
+        """
+        The mtime of the archival mailbox, or None if it does not exist
+        """
+        fname = self.mailbox_file
+        if fname is None: return None
+        return datetime.datetime.fromtimestamp(os.path.getmtime(fname))
+
 
 class Requirement(models.Model):
     process = models.ForeignKey(Process, related_name="requirements")
     type = models.CharField(verbose_name=_("Requirement type"), max_length=16, choices=REQUIREMENT_TYPES)
-    # TODO: change is_ok into approved_by (nullable)
-    is_ok = models.BooleanField(null=False, default=False)
+    approved_by = models.ForeignKey(bmodels.Person, null=True, blank=True, help_text=_("Set to the person that reviewed and approved this requirement"))
+    approved_time = models.DateTimeField(null=True, blank=True, help_text=_("When the requirement has been approved"))
 
     class Meta:
         unique_together = ("process", "type")
@@ -190,6 +220,48 @@ class Requirement(models.Model):
         Add a log entry for this requirement
         """
         return Log.objects.create(changed_by=changed_by, process=self.process, requirement=self, is_public=is_public, logtext=logtext)
+
+    def compute_status(self):
+        """
+        Return a dict describing the status of this requirement.
+
+        The dict can contain:
+        {
+            "satisfied": bool,
+            "notes": [ ("class", "text") ],
+        }
+        """
+        meth = getattr(self, "compute_status_" + self.type, None)
+        if meth is None: return {}
+        return meth()
+
+    def compute_status_intent(self):
+        notes = []
+        satisfied = False
+        for s in self.statements.all():
+            if s.uploaded_by != self.process.person:
+                notes.append(("warn", "statement of intent signed by {} instead of the applicant".format(s.uploaded_by)))
+            satisfied = True,
+        return {
+            "satisfied": satisfied,
+            "notes": notes,
+        }
+
+    def compute_status_sc_dmup(self):
+        notes = []
+        satisfied = False
+        for s in self.statements.all():
+            if s.uploaded_by != self.process.person:
+                notes.append(("warn", "statement of intent signed by {} instead of the applicant".format(s.uploaded_by)))
+            satisfied = True,
+        return {
+            "satisfied": satisfied,
+            "notes": notes,
+        }
+
+    #def compute_status_advocate(self):
+    #def compute_status_keycheck(self):
+    #def compute_status_am_ok(self):
 
 
 class Statement(models.Model):

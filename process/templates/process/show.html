@@ -40,23 +40,51 @@
   </tr>
   {% endif %}
 
+  <tr>
+    <th>Missing requirements</th>
+    <td>
+      {% if status.requirements_missing %}
+        {% for req in status.requirements_missing %}
+        <a href="{{req.get_absolute_url}}">{{req}}</a>{% if not forloop.last %},{% endif %}
+        {% endfor %}
+      {% else %}
+        none
+      {% endif %}
+    </td>
+  </tr>
+
+  <tr>
+    <th>Requirements ok</th>
+    <td>
+      {% if status.requirements_ok %}
+        {% for req in status.requirements_ok %}
+        <a href="{{req.get_absolute_url}}">{{req}}</a>{% if not forloop.last %},{% endif %}
+        {% endfor %}
+      {% else %}
+        none
+      {% endif %}
+    </td>
+  </tr>
+
   {% if visitor.is_admin and process.fd_comment %}
   <tr><th>FD comments</th><td>{{process.fd_comment}}</td></tr>
   {% endif %}
 
-  {% comment %}
   {% if "view_mbox" in vperms.perms %}
-  <tr><th>Mail archive</th>
-      <td>
-          <tt><a href="mailto:{{process.archive_email}}">{{process.archive_email}}</a></tt>
-          {% if process.mailbox_file %}
-          <a href="{% url 'download_mail_archive' key=process.lookup_key %}">(download mail archive)</a>
-          <a href="{% url 'display_mail_archive' key=process.lookup_key %}">(display mail archive)</a>
-          {% else %}
-          (no mail archive yet)
-          {% endif %}
-      </td>
+  <tr>
+    <th>Mail archive</th>
+    <td>
+        <tt><a href="mailto:{{process.archive_email}}">{{process.archive_email}}</a></tt>
+        {% if process.mailbox_file %}
+        <a href="{% url 'process_mailbox_download' pk=process.pk %}">(download mail archive)</a>
+        <a href="{% url 'process_mailbox_show' pk=process.pk %}">(display mail archive)</a>
+        {% else %}
+        (no mail archive yet)
+        {% endif %}
+    </td>
   </tr>
+
+  {% comment %} TODO: Requires porting stats backend to new Process
   {% if mbox_stats %}
   <tr><th>Mailbox stats</th>
       <td>{{mbox_stats.date_first_py|date:"Y-m-d"}} to {{mbox_stats.date_last_py|date:"Y-m-d"}},
@@ -69,8 +97,9 @@
       </td>
   </tr>
   {% endif %}
-  {% endif %}
   {% endcomment %}
+
+  {% endif %}
 </table>
 
 {% comment %}
@@ -79,38 +108,39 @@
 {% endif %}
 {% endcomment %}
 
-{% if status.requirements_missing %}
-<h2>Missing requirements</h2>
+<h2>Requirements</h2>
 
 <table>
-<thead>
-  <tr><th>Requirement</th></tr>
-</thead>
-<tbody>
-  {% for req in status.requirements_missing %}
-  <tr><td><a href="{{req.get_absolute_url}}">{{req}}</a></td><tr>
-  {% endfor %}
-</tbody>
+  <thead>
+    <tr>
+      <th>Requirement</th>
+      <th>Satisfied</th>
+      <th>Approved by</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for type, req in status.requirements_sorted %}
+    <tr>
+      {% with req.compute_status as rstatus %}
+      <td><a href="{{req.get_absolute_url}}">{{req}}</a></td>
+      <td>{{rstatus.satisfied|yesno}}</td>
+      <td>{{req.approved_by|default:"-"}}</td>
+      <td>
+        {% for nclass, ntext in rstatus.notes %}
+        <span class="{{nclass}}">{{ntext}}</span>{% if not forloop.last %}<br>{% endif %}
+        {% endfor %}
+      </td>
+      {% endwith %}
+    </tr>
+    {% endfor %}
+  </tbody>
 </table>
-{% endif %}
 
-{% if status.requirements_ok %}
-<h2>Requirements ok</h2>
-
-<table>
-<thead>
-  <tr><th>Requirement</th></tr>
-</thead>
-<tbody>
-  {% for req in status.requirements_ok %}
-  <tr><td><a href="{{req.get_absolute_url}}">{{req}}</a></td><tr>
-  {% endfor %}
-</tbody>
-</table>
-{% endif %}
 
 {% endwith %}
 
+<h3>Log</h2>
 {% include "process/log_widget.html"  with entries=process.log.all %}
 
 {% endblock %}

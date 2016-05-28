@@ -200,6 +200,9 @@ class EditStatementMixin(RequirementMixin):
         statement = self.statement
         if statement is None:
             statement = pmodels.Statement(requirement=self.requirement, fpr=self.visitor.fingerprint)
+            action = "Added"
+        else:
+            action = "Updated"
         statement.uploaded_by = self.visitor
         statement.uploaded_time = now()
         statement.statement, plaintext = form.cleaned_data["statement"]
@@ -209,6 +212,12 @@ class EditStatementMixin(RequirementMixin):
             submitted = self.normalise_text(plaintext)
 
         statement.save()
+
+        self.requirement.approved_by = None
+        self.requirement.approved_time = None
+        self.requirement.save()
+        self.requirement.add_log(self.visitor, "{} a signed statement".format(action), True)
+
         return redirect(self.requirement.get_absolute_url())
 
 
@@ -224,6 +233,73 @@ class StatementRaw(EditStatementMixin, View):
     def get(self, request, *args, **kw):
         return http.HttpResponse(self.statement.statement, content_type="text/plain")
 
+
+class ApproveRequirement(RequirementMixin, View):
+    def get_requirement_type(self):
+        return self.kwargs["type"]
+
+    def post(self, request, *args, **kw):
+        # TODO: check credentials
+        if not self.requirement.approved_by:
+            self.requirement.approved_by = self.visitor
+            self.requirement.approved_time = now()
+            self.requirement.save()
+            self.requirement.add_log(self.visitor, "Approved", True)
+        return redirect(self.requirement.get_absolute_url())
+
+
+class UnapproveRequirement(RequirementMixin, View):
+    def get_requirement_type(self):
+        return self.kwargs["type"]
+
+    def post(self, request, *args, **kw):
+        # TODO: check credentials
+        if self.requirement.approved_by:
+            self.requirement.approved_by = None
+            self.requirement.approved_time = None
+            self.requirement.add_log(self.visitor, "Undo approved", True)
+            self.requirement.save()
+        return redirect(self.requirement.get_absolute_url())
+
+
+class MailArchive(VisitProcessMixin, View):
+    require_vperms = "view_mbox"
+
+    def get(self, request, key, *args, **kw):
+        fname = self.process.mailbox_file
+        if fname is None: raise http.Http404
+
+        user_fname = "%s.mbox" % (self.process.person.uid or self.process.person.email)
+
+        res = http.HttpResponse(content_type="application/octet-stream")
+        res["Content-Disposition"] = "attachment; filename=%s.gz" % user_fname
+
+        # Compress the mailbox and pass it to the request
+        from gzip import GzipFile
+        import os.path
+        import shutil
+        # The last mtime argument seems to only be supported in python 2.7
+        outfd = GzipFile(user_fname, "wb", 9, res) #, os.path.getmtime(fname))
+        try:
+            with open(fname) as infd:
+                shutil.copyfileobj(infd, outfd)
+        finally:
+            outfd.close()
+        return res
+
+
+class DisplayMailArchive(VisitProcessMixin, TemplateView):
+    require_vperms = "view_mbox"
+    template_name = "restricted/display-mail-archive.html"
+
+    def get_context_data(self, **kw):
+        ctx = super(DisplayMailArchive, self).get_context_data(**kw)
+        fname = self.process.mailbox_file
+        if fname is None: raise http.Http404
+        ctx["mails"] = backend.email.get_mbox_as_dicts(fname)
+        ctx["process"] = process
+        ctx["class"] = "clickable"
+        return ctx
 
 
 ## coding: utf8

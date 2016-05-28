@@ -1,3 +1,8 @@
 pre.inline-statement {
     margin: 0;
 }
+form.inline-form {
+    display: inline;
+    margin: 0;
+    padding: 0;
+}
