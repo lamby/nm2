@@ -91,6 +91,7 @@ class AddProcessLog(VisitProcessMixin, View):
         logtext = request.POST.get("logtext", "")
         action = request.POST.get("add_action", "undefined")
 
+        actionm = None
         if action == "private":
             is_public = False
         elif action == "public":
@@ -98,30 +99,31 @@ class AddProcessLog(VisitProcessMixin, View):
         elif action == "private_unapprove":
             if not logtext: logtext = "Unapproved"
             is_public = False
-            requirement.approved_by = None
-            requirement.approved_time = None
-            requirement.save()
+            action = "unapprove"
         elif action == "public_unapprove":
             if not logtext: logtext = "Unapproved"
             is_public = True
-            requirement.approved_by = None
-            requirement.approved_time = None
-            requirement.save()
+            action = "unapprove"
         elif action == "private_approve":
             if not logtext: logtext = "Approved"
             is_public = False
-            requirement.approved_by = self.visitor
-            requirement.approved_time = now()
-            requirement.save()
+            action = "approve"
         elif action == "public_approve":
             if not logtext: logtext = "Approved"
             is_public = True
+            action = "approve"
+
+        if action == "approve":
             requirement.approved_by = self.visitor
             requirement.approved_time = now()
             requirement.save()
+        elif action == "unapprove":
+            requirement.approved_by = None
+            requirement.approved_time = None
+            requirement.save()
 
         if logtext:
-            target.add_log(self.visitor, logtext, is_public=is_public)
+            target.add_log(self.visitor, logtext, action=action if action else "", is_public=is_public)
         return redirect(target.get_absolute_url())
 
 

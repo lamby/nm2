@@ -173,11 +173,11 @@ class Process(models.Model):
         """
         return ProcessVisitorPermissions(self, visitor)
 
-    def add_log(self, changed_by, logtext, is_public=False):
+    def add_log(self, changed_by, logtext, is_public=False, action=""):
         """
         Add a log entry for this process
         """
-        return Log.objects.create(changed_by=changed_by, process=self, is_public=is_public, logtext=logtext)
+        return Log.objects.create(changed_by=changed_by, process=self, is_public=is_public, logtext=logtext, action=action)
 
     @property
     def archive_email(self):
@@ -222,11 +222,11 @@ class Requirement(models.Model):
     def get_absolute_url(self):
         return reverse("process_req_" + self.type, args=[self.process.pk])
 
-    def add_log(self, changed_by, logtext, is_public=False):
+    def add_log(self, changed_by, logtext, is_public=False, action=""):
         """
         Add a log entry for this requirement
         """
-        return Log.objects.create(changed_by=changed_by, process=self.process, requirement=self, is_public=is_public, logtext=logtext)
+        return Log.objects.create(changed_by=changed_by, process=self.process, requirement=self, is_public=is_public, logtext=logtext, action=action)
 
     def compute_status(self):
         """
@@ -306,6 +306,7 @@ class Log(models.Model):
     requirement = models.ForeignKey(Requirement, related_name="log", null=True, blank=True)
     is_public = models.BooleanField(default=False)
     logdate = models.DateTimeField(default=now)
+    action = models.CharField(max_length=16, blank=True, help_text=_("Action performed with this log entry, if any"))
     logtext = models.TextField(blank=True, default="")
 
     class Meta:

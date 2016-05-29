@@ -31,6 +31,7 @@
       {% if not requirement %}
       <th>Requirement</th>
       {% endif %}
+      <th>Action</th>
       <th>Content</th>
       <th>Public</th>
       {% if visitor.is_admin %}
@@ -44,8 +45,15 @@
       <td>{{e.logdate|date:"Y-m-d H:i"}}</td>
       <td><a href="{{e.changed_by.get_absolute_url}}">{{e.changed_by.lookup_key}}</a></td>
       {% if not requirement %}
-      <td>{{e.requirement.type|default:"-"}}</td>
+      <td>
+        {% if e.requirement %}
+          <a href="{{e.requirement.get_absolute_url}}">{{e.requirement.type}}</a>
+        {% else %}
+          -
+        {% endif %}
+      </td>
       {% endif %}
+      <td>{{e.action|default:"-"}}</td>
       <td>{{e.logtext}}</td>
       <td>{{e.is_public|yesno}}</td>
       {% if visitor.is_admin %}
