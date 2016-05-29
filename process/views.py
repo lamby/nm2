@@ -175,6 +175,53 @@ class ReqAM(RequirementMixin, TemplateView):
     template_name = "process/req_am_ok.html"
 
 
+class AssignAM(RequirementMixin, TemplateView):
+    type = "am_ok"
+    template_name = "process/assign_am.html"
+
+    def pre_dispatch(self):
+        super(AssignAM, self).pre_dispatch()
+        if self.process.current_am_assignment is not None:
+            raise PermissionDenied
+
+    def get_context_data(self, **kw):
+        ctx = super(AssignAM, self).get_context_data(**kw)
+        ctx["ams"] = bmodels.AM.list_available(free_only=False)
+        return ctx
+
+    def _assign_am(self, am):
+        current = self.process.current_am_assignment
+        if current is not None:
+            current.unassigned_by = self.visitor
+            current.unassigned_time = now()
+            current.save()
+            self.requirement.add_log(self.visitor, "Unassigned AM {}".format(current.am.person.lookup_key), is_public=True, action="unassign_am")
+
+        current = pmodels.AMAssignment.objects.create(
+            process=self.process,
+            am=am,
+            assigned_by=self.visitor,
+            assigned_time=now())
+
+        self.requirement.add_log(self.visitor, "Assigned AM {}".format(am.person.lookup_key), is_public=True, action="assign_am")
+
+    def post(self, request, *args, **kw):
+        am_key = request.POST.get("am", None)
+        am = bmodels.AM.lookup_or_404(am_key)
+        self._assign_am(am)
+        return redirect(self.requirement.get_absolute_url())
+
+
+class UnassignAM(RequirementMixin, View):
+    type = "am_ok"
+    def post(self, request, *args, **kw):
+        current = self.process.current_am_assignment
+        if current is not None:
+            current.unassigned_by = self.visitor
+            current.unassigned_time = now()
+            current.save()
+            self.requirement.add_log(self.visitor, "Unassigned AM {}".format(current.am.person.lookup_key), is_public=True, action="unassign_am")
+        return redirect(self.requirement.get_absolute_url())
 
 
 class EditStatementMixin(RequirementMixin):
@@ -240,8 +287,10 @@ class EditStatementMixin(RequirementMixin):
         if statement is None:
             statement = pmodels.Statement(requirement=self.requirement, fpr=self.visitor.fingerprint)
             action = "Added"
+            log_action = "add_statement"
         else:
             action = "Updated"
+            log_action = "update_statement"
         statement.uploaded_by = self.visitor
         statement.uploaded_time = now()
         statement.statement, plaintext = form.cleaned_data["statement"]
@@ -255,7 +304,7 @@ class EditStatementMixin(RequirementMixin):
         self.requirement.approved_by = None
         self.requirement.approved_time = None
         self.requirement.save()
-        self.requirement.add_log(self.visitor, "{} a signed statement".format(action), True)
+        self.requirement.add_log(self.visitor, "{} a signed statement".format(action), True, action=log_action)
 
         return redirect(self.requirement.get_absolute_url())
 

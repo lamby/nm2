@@ -143,6 +143,17 @@ class Process(models.Model):
     def can_advocate_self(self):
         return self.applying_for == const.STATUS_DM_GA and self.person.status == const.STATUS_DM
 
+    @property
+    def current_am_assignment(self):
+        """
+        Return the current Application Manager assignment for this process, or
+        None if there is none.
+        """
+        try:
+            return self.ams.get(unassigned_by__isnull=True)
+        except AMAssignment.DoesNotExist:
+            return None
+
     def compute_status(self):
         """
         Return a dict with the process status:
@@ -261,7 +272,7 @@ class Requirement(models.Model):
         for s in self.statements.all():
             if s.uploaded_by != self.process.person:
                 notes.append(("warn", "statement of intent signed by {} instead of the applicant".format(s.uploaded_by.lookup_key)))
-            satisfied = True,
+            satisfied = True
         return {
             "satisfied": satisfied,
             "notes": notes,
@@ -273,7 +284,7 @@ class Requirement(models.Model):
         for s in self.statements.all():
             if s.uploaded_by != self.process.person:
                 notes.append(("warn", "statement of intent signed by {} instead of the applicant".format(s.uploaded_by.lookup_key)))
-            satisfied = True,
+            satisfied = True
         return {
             "satisfied": satisfied,
             "notes": notes,
@@ -296,8 +307,45 @@ class Requirement(models.Model):
             "notes": notes,
         }
 
+    def compute_status_am_ok(self):
+        # Compute the latest AM
+        latest_am = self.process.current_am_assignment
+        if latest_am is None:
+            try:
+                latest_am = self.process.ams.order_by("-unassigned_time")[0]
+            except IndexError:
+                latest_am = None
+        notes = []
+        satisfied = False
+        for s in self.statements.all():
+            if latest_am is None:
+                notes.append(("warn", "statement of intent signed by {} but no AMs have been assigned".format(s.uploaded_by.lookup_key)))
+            elif s.uploaded_by != latest_am.am.person:
+                notes.append(("warn", "statement of intent signed by {} instead of {} as the last assigned AM".format(s.uploaded_by.lookup_key, latest_am.am.person.lookup_key)))
+            satisfied = True
+        return {
+            "satisfied": satisfied,
+            "notes": notes,
+        }
+
+
     #def compute_status_keycheck(self):
-    #def compute_status_am_ok(self):
+
+
+class AMAssignment(models.Model):
+    """
+    AM assignment on a process
+    """
+    process = models.ForeignKey(Process, related_name="ams")
+    am = models.ForeignKey(bmodels.AM)
+    paused = models.BooleanField(default=False, help_text=_("Whether this process is paused and the AM is free to take another applicant in the meantime"))
+    assigned_by = models.ForeignKey(bmodels.Person, related_name="+", help_text=_("Person who did the assignment"))
+    assigned_time = models.DateTimeField(help_text=_("When the assignment happened"))
+    unassigned_by = models.ForeignKey(bmodels.Person, related_name="+", blank=True, null=True, help_text=_("Person who did the unassignment"))
+    unassigned_time = models.DateTimeField(blank=True, null=True, help_text=_("When the unassignment happened"))
+
+    class Meta:
+        ordering = ["-assigned_by"]
 
 
 class Statement(models.Model):
@@ -307,7 +355,7 @@ class Statement(models.Model):
     requirement = models.ForeignKey(Requirement, related_name="statements")
     fpr = models.ForeignKey(bmodels.Fingerprint, related_name="+", help_text=_("Fingerprint used to verify the statement"))
     statement = models.TextField(verbose_name=_("Signed statement"), blank=True)
-    uploaded_by = models.ForeignKey(bmodels.Person, null=True, related_name="+", help_text=_("Person who uploaded the statement"))
+    uploaded_by = models.ForeignKey(bmodels.Person, related_name="+", help_text=_("Person who uploaded the statement"))
     uploaded_time = models.DateTimeField(help_text=_("When the statement has been uploaded"))
 
     def __unicode__(self):

@@ -53,6 +53,15 @@
   </tr>
   {% endif %}
 
+  {% with process.current_am_assignment as am %}
+  {% if am %}
+  <tr>
+    <th>Application Manager</th>
+    <td><a href="{{am.am.person.get_absolute_url}}">{{am.am.person.lookup_key}}</a> assigned by <a href="{{am.assigned_by.get_absolute_url}}">{{am.assigned_by.lookup_key}}</a> on {{am.assigned_time|date:"Y-m-d"}}</td>
+  </tr>
+  {% endif %}
+  {% endwith %}
+
   <tr>
     <th>Missing requirements</th>
     <td>
