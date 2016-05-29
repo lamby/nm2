@@ -1,0 +1,5 @@
+{% if requirement.approved_by %}
+<p><i>This requirement has been approved by <a href="{{requirement.approved_by.get_absolute_url}}">{{requirement.approved_by}}</a> {{requirement.approved_time|timesince}} ago.</i></p>
+{% else %}
+<p><i>This requirement has not been approved yet.</i></p>
+{% endif %}
