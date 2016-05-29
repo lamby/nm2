@@ -13,16 +13,21 @@ from backend.utils import cached_property
 from backend import const
 import re
 import os
+from collections import namedtuple
+
+RequirementType = namedtuple("RequirementType", ("tag", "desc", "sort_order"))
 
 REQUIREMENT_TYPES = (
-    ( "intent", "Declaration of intent" ),
-    ( "sc_dmup", "SC/DFSG/DMUP agreement" ),
-    ( "advocate", "Advocate" ),
-    ( "keycheck", "Key consistency checks" ),
-    ( "am_ok", "Application Manager report" ),
+    RequirementType("intent", "Declaration of intent", 0),
+    RequirementType("sc_dmup", "SC/DFSG/DMUP agreement", 1),
+    RequirementType("advocate", "Advocate", 2),
+    RequirementType("keycheck", "Key consistency checks", 3),
+    RequirementType("am_ok", "Application Manager report", 4),
 )
 
-REQUIREMENT_TYPES_DICT = dict(REQUIREMENT_TYPES)
+REQUIREMENT_TYPES_CHOICES = [(x.tag, x.desc) for x in REQUIREMENT_TYPES]
+
+REQUIREMENT_TYPES_DICT = { x.tag: x for x in REQUIREMENT_TYPES }
 
 
 class ProcessVisitorPermissions(bmodels.PersonVisitorPermissions):
@@ -155,9 +160,9 @@ class Process(models.Model):
             requirements[r.type] = r
         return {
             "requirements": requirements,
-            "requirements_sorted": sorted(requirements.items()),
-            "requirements_ok": rok,
-            "requirements_missing": rnok,
+            "requirements_sorted": sorted(requirements.values(), key=lambda x: REQUIREMENT_TYPES_DICT[x.type].sort_order),
+            "requirements_ok": sorted(rok, key=lambda x: REQUIREMENT_TYPES_DICT[x.type].sort_order),
+            "requirements_missing": sorted(rnok, key=lambda x: REQUIREMENT_TYPES_DICT[x.type].sort_order),
             "log_first": self.log.order_by("logdate")[0],
             "log_last": self.log.order_by("-logdate")[0],
         }
@@ -201,7 +206,7 @@ class Process(models.Model):
 
 class Requirement(models.Model):
     process = models.ForeignKey(Process, related_name="requirements")
-    type = models.CharField(verbose_name=_("Requirement type"), max_length=16, choices=REQUIREMENT_TYPES)
+    type = models.CharField(verbose_name=_("Requirement type"), max_length=16, choices=REQUIREMENT_TYPES_CHOICES)
     approved_by = models.ForeignKey(bmodels.Person, null=True, blank=True, help_text=_("Set to the person that reviewed and approved this requirement"))
     approved_time = models.DateTimeField(null=True, blank=True, help_text=_("When the requirement has been approved"))
 
@@ -210,7 +215,9 @@ class Requirement(models.Model):
         ordering = ["type"]
 
     def __unicode__(self):
-        return REQUIREMENT_TYPES_DICT.get(self.type, self.type)
+        res = REQUIREMENT_TYPES_DICT.get(self.type, None)
+        if res is None: return self.type
+        return res.desc
 
     def get_absolute_url(self):
         return reverse("process_req_" + self.type, args=[self.process.pk])
@@ -240,7 +247,7 @@ class Requirement(models.Model):
         satisfied = False
         for s in self.statements.all():
             if s.uploaded_by != self.process.person:
-                notes.append(("warn", "statement of intent signed by {} instead of the applicant".format(s.uploaded_by)))
+                notes.append(("warn", "statement of intent signed by {} instead of the applicant".format(s.uploaded_by.lookup_key)))
             satisfied = True,
         return {
             "satisfied": satisfied,
@@ -252,7 +259,7 @@ class Requirement(models.Model):
         satisfied = False
         for s in self.statements.all():
             if s.uploaded_by != self.process.person:
-                notes.append(("warn", "statement of intent signed by {} instead of the applicant".format(s.uploaded_by)))
+                notes.append(("warn", "statement of intent signed by {} instead of the applicant".format(s.uploaded_by.lookup_key)))
             satisfied = True,
         return {
             "satisfied": satisfied,

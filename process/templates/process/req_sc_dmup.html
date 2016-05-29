@@ -20,9 +20,11 @@
 
 <h1>{{type_desc}}</h1>
 
+{% include "process/requirement_status_widget.html" %}
+
 {% include explain_template with edit=False %}
 
-{% include "process/statement_table.html" %}
+{% include "process/statement_table_widget.html" %}
 
 {% include "process/log_widget.html" with entries=requirement.log.all %}
 

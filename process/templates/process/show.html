@@ -116,16 +116,30 @@
       <th>Requirement</th>
       <th>Satisfied</th>
       <th>Approved by</th>
+      <th>Approved date</th>
       <th>Notes</th>
     </tr>
   </thead>
   <tbody>
-    {% for type, req in status.requirements_sorted %}
+    {% for req in status.requirements_sorted %}
     <tr>
       {% with req.compute_status as rstatus %}
       <td><a href="{{req.get_absolute_url}}">{{req}}</a></td>
       <td>{{rstatus.satisfied|yesno}}</td>
-      <td>{{req.approved_by|default:"-"}}</td>
+      <td>
+        {% if req.approved_by %}
+          <a href="{{req.approved_by.get_absolute_url}}">{{req.approved_by.lookup_key}}</a>
+        {% else %}
+          -
+        {% endif %}
+      </td>
+      <td>
+        {% if req.approved_time %}
+          {{req.approved_time|date:"Y-m-d"}}
+        {% else %}
+          -
+        {% endif %}
+      </td>
       <td>
         {% for nclass, ntext in rstatus.notes %}
         <span class="{{nclass}}">{{ntext}}</span>{% if not forloop.last %}<br>{% endif %}

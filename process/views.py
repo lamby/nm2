@@ -143,7 +143,7 @@ class RequirementMixin(VisitProcessMixin):
         ctx = super(RequirementMixin, self).get_context_data(**kw)
         ctx["requirement"] = self.requirement
         ctx["type"] = self.requirement.type
-        ctx["type_desc"] = pmodels.REQUIREMENT_TYPES_DICT[self.requirement.type]
+        ctx["type_desc"] = pmodels.REQUIREMENT_TYPES_DICT[self.requirement.type].desc
         ctx["explain_template"] = "process/explain_statement_" + self.requirement.type + ".html"
         return ctx
 
