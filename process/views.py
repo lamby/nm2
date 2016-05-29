@@ -160,6 +160,11 @@ class ReqAgreements(RequirementMixin, TemplateView):
     template_name = "process/req_sc_dmup.html"
 
 
+class ReqKeycheck(RequirementMixin, TemplateView):
+    type = "keycheck"
+    template_name = "process/req_keycheck.html"
+
+
 class ReqAdvocate(RequirementMixin, TemplateView):
     type = "advocate"
     template_name = "process/req_advocate.html"
