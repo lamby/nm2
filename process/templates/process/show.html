@@ -40,6 +40,19 @@
   </tr>
   {% endif %}
 
+  {% if "advocate" in status.requirements %}
+  <tr>
+    <th>Advocate{{status.advocates|pluralize}}</th>
+    <td>
+      {% for a in status.advocates %}
+      <a href="{{a.get_absolute_url}}">{{a.lookup_key}}</a>{% if not forloop.last %}, {% endif %}
+      {% empty %}
+      <a href="{{status.requirements.advocate.get_absolute_url}}">none yet</a>
+      {% endfor %}
+    </td>
+  </tr>
+  {% endif %}
+
   <tr>
     <th>Missing requirements</th>
     <td>

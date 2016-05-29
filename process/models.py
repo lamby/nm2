@@ -139,6 +139,10 @@ class Process(models.Model):
     def get_absolute_url(self):
         return reverse("process_show", args=[self.pk])
 
+    @property
+    def can_advocate_self(self):
+        return self.applying_for == const.STATUS_DM_GA and self.person.status == const.STATUS_DM
+
     def compute_status(self):
         """
         Return a dict with the process status:
@@ -158,6 +162,14 @@ class Process(models.Model):
             else:
                 rnok.append(r)
             requirements[r.type] = r
+
+        # Compute the list of advocates
+        adv = requirements.get("advocate", None)
+        advocates = set()
+        if adv is not None:
+            for s in adv.statements.all():
+                advocates.add(s.uploaded_by)
+
         return {
             "requirements": requirements,
             "requirements_sorted": sorted(requirements.values(), key=lambda x: REQUIREMENT_TYPES_DICT[x.type].sort_order),
@@ -165,6 +177,7 @@ class Process(models.Model):
             "requirements_missing": sorted(rnok, key=lambda x: REQUIREMENT_TYPES_DICT[x.type].sort_order),
             "log_first": self.log.order_by("logdate")[0],
             "log_last": self.log.order_by("-logdate")[0],
+            "advocates": sorted(advocates),
         }
 
     def permissions_of(self, visitor):
@@ -266,7 +279,23 @@ class Requirement(models.Model):
             "notes": notes,
         }
 
-    #def compute_status_advocate(self):
+    def compute_status_advocate(self):
+        notes = []
+        satisfied_count = 0
+        can_advocate_self = self.process.can_advocate_self
+        for s in self.statements.all():
+            if not can_advocate_self and s.uploaded_by == self.process.person:
+                notes.append(("warn", "statement signed by the applicant"))
+            else:
+                satisfied_count += 1
+        if self.process.applying_for in (const.STATUS_DD_U, const.STATUS_DD_NU):
+            if satisfied_count == 1:
+                notes.append(("warn", "if possible, have more than 1 advocate"))
+        return {
+            "satisfied": satisfied_count > 0,
+            "notes": notes,
+        }
+
     #def compute_status_keycheck(self):
     #def compute_status_am_ok(self):
 

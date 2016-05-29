@@ -154,22 +154,20 @@ class ReqIntent(RequirementMixin, TemplateView):
     type = "intent"
     template_name = "process/req_intent.html"
 
-    # TODO: show existing status
-    # TODO: link to add/edit statements
-    #  - add shown if none exists, or if more can be added (advocacies)
-    #  - edit is shown for existing ones
-    #  - delete also offered as possibility
 
 class ReqAgreements(RequirementMixin, TemplateView):
     type = "sc_dmup"
     template_name = "process/req_sc_dmup.html"
 
-    # TODO: show existing status
-    # TODO: link to add/edit statements
-    #  - add shown if none exists, or if more can be added (advocacies)
-    #  - edit is shown for existing ones
-    #  - delete also offered as possibility
 
+class ReqAdvocate(RequirementMixin, TemplateView):
+    type = "advocate"
+    template_name = "process/req_advocate.html"
+
+    def get_context_data(self, **kw):
+        ctx = super(ReqAdvocate, self).get_context_data(**kw)
+        ctx["warn_dm_preferred"] = self.process.applying_for == const.STATUS_DD_U and self.process.person.status not in (const.STATUS_DM, const.STATUS_DM_GA)
+        return ctx
 
 
 class EditStatementMixin(RequirementMixin):
