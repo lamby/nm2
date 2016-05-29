@@ -1,0 +1,20 @@
+{% load nm %}
+
+<p>For {{person}} to become {{process.applying_for|sdesc_status}}, an
+Application Manager who does not yet know the applicant has a look at all the
+information collected on this site, has a look to past contributions, asks a
+few questions if needed, and tries to build some trust that {{person.fullname}}
+should indeed be {{process.applying_for|desc_status}}.</p>
+
+{% if edit %}
+<p>As the Application Manager, paste a few lines describing the idea you have
+built of {{person.fullname}} during your interaction.</p>
+
+<p>An example AM endorsement can be something like this:
+<pre>
+For nm.debian.org, at {{now|date:"Y-m-d"}}:
+After looking at {{person}}'s contributions and after exchanging some emails to
+get to know them a bit better, I agree with the advocate(s) that {{person}} can
+and should indeed be a {{process.applying_for|desc_status}} right now.
+</pre>
+{% endif %}

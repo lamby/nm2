@@ -170,6 +170,13 @@ class ReqAdvocate(RequirementMixin, TemplateView):
         return ctx
 
 
+class ReqAM(RequirementMixin, TemplateView):
+    type = "am_ok"
+    template_name = "process/req_am_ok.html"
+
+
+
+
 class EditStatementMixin(RequirementMixin):
     form_class = StatementForm
     require_vperms = "edit_statements"
