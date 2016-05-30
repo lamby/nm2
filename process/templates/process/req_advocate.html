@@ -24,7 +24,11 @@
 
 {% include explain_template with edit=False %}
 
+<h2>Signed statements</h2>
+
 {% include "process/statement_table_widget.html" %}
+
+<h2>Log</h2>
 
 {% include "process/log_widget.html" with entries=requirement.log.all %}
 

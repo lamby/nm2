@@ -81,6 +81,10 @@ class AddProcessLog(VisitProcessMixin, View):
     """
     @transaction.atomic
     def post(self, request, *args, **kw):
+        logtext = request.POST.get("logtext", "")
+        action = request.POST.get("add_action", "undefined")
+        is_public = True
+
         if "type" in kw:
             requirement = get_object_or_404(pmodels.Requirement, process=self.process, type=kw["type"])
             target = requirement
@@ -88,39 +92,41 @@ class AddProcessLog(VisitProcessMixin, View):
             requirement = None
             target = self.process
 
-        logtext = request.POST.get("logtext", "")
-        action = request.POST.get("add_action", "undefined")
-
-        actionm = None
-        if action == "private":
+        if action == "log_private":
             is_public = False
-        elif action == "public":
-            is_public = True
-        elif action == "private_unapprove":
+            action = ""
+        elif action == "log_public":
+            action = ""
+        elif action == "req_unapprove":
             if not logtext: logtext = "Unapproved"
-            is_public = False
-            action = "unapprove"
-        elif action == "public_unapprove":
-            if not logtext: logtext = "Unapproved"
-            is_public = True
-            action = "unapprove"
-        elif action == "private_approve":
-            if not logtext: logtext = "Approved"
-            is_public = False
-            action = "approve"
-        elif action == "public_approve":
-            if not logtext: logtext = "Approved"
-            is_public = True
-            action = "approve"
-
-        if action == "approve":
-            requirement.approved_by = self.visitor
-            requirement.approved_time = now()
-            requirement.save()
-        elif action == "unapprove":
             requirement.approved_by = None
             requirement.approved_time = None
             requirement.save()
+        elif action == "req_approve":
+            if not logtext: logtext = "Approved"
+            requirement.approved_by = self.visitor
+            requirement.approved_time = now()
+            requirement.save()
+        elif action == "proc_freeze":
+            if not logtext: logtext = "Frozen for review"
+            self.process.frozen_by = self.visitor
+            self.process.frozen_time = now()
+            self.process.save()
+        elif action == "proc_unfreeze":
+            if not logtext: logtext = "Unfrozen for further work"
+            self.process.frozen_by = None
+            self.process.frozen_time = None
+            self.process.save()
+        elif action == "proc_approve":
+            if not logtext: logtext = "Process approved"
+            self.process.approved_by = self.visitor
+            self.process.approved_time = now()
+            self.process.save()
+        elif action == "proc_unapprove":
+            if not logtext: logtext = "Process unapproved"
+            self.process.approved_by = None
+            self.process.approved_time = None
+            self.process.save()
 
         if logtext:
             target.add_log(self.visitor, logtext, action=action if action else "", is_public=is_public)

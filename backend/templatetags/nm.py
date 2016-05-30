@@ -9,6 +9,16 @@ from .. import const
 
 register = template.Library()
 
+@register.filter(needs_autoescape=True)
+def person_link(person, autoescape=True):
+    if autoescape:
+        esc = conditional_escape
+    else:
+        esc = lambda x: x
+    return mark_safe("<a href='{}'>{}</a>".format(
+        esc(person.get_absolute_url()),
+        esc(person.lookup_key)))
+
 @register.filter
 def sdesc_progress(value):
     info = const.ALL_PROGRESS_BYTAG.get(value, None)

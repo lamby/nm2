@@ -10,15 +10,28 @@
   <br/>
   <textarea name="logtext" rows="3" cols="80" placeholder="vacation notice / remark about the process / status update / ..."></textarea>
   <br/>
-  <button type="submit" name="add_action" value="public">Comment</button>
-  <button type="submit" name="add_action" value="private">Comment (confidential)</button>
+  <button type="submit" name="add_action" value="log_public">Comment</button>
+  <button type="submit" name="add_action" value="log_private">Comment (confidential)</button>
   {% if requirement %}
     {% if requirement.approved_by %}
-    <button type="submit" name="add_action" value="public_unapprove">Unapprove</button>
-    <button type="submit" name="add_action" value="private_unapprove">Unapprove (confidential)</button>
+    <button type="submit" name="add_action" value="req_unapprove">Unapprove</button>
     {% else %}
-    <button type="submit" name="add_action" value="public_approve">Approve</button>
-    <button type="submit" name="add_action" value="private_approve">Approve (confidential)</button>
+    <button type="submit" name="add_action" value="req_approve">Approve</button>
+    {% endif %}
+  {% else %}
+    {% if not process.frozen_by %}
+      {% if not process.approved_by %}
+        <button type="submit" name="add_action" value="proc_freeze">Freeze for review</button>
+      {% else %}
+        {# no button to show here: this case should not happen and should get a warning by nightly maintenance #}
+      {% endif %}
+    {% else %}
+      {% if not process.approved_by %}
+        <button type="submit" name="add_action" value="proc_unfreeze">Unfreeze for further work</button>
+        <button type="submit" name="add_action" value="proc_approve">Approve process</button>
+      {% else %}
+        <button type="submit" name="add_action" value="proc_unapprove">Unapprove process</button>
+      {% endif %}
     {% endif %}
   {% endif %}
 </form>
