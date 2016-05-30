@@ -644,7 +644,7 @@ class Person(PermissionsMixin, models.Model):
         const.STATUS_REMOVED_DD: [const.STATUS_DD_U, const.STATUS_DD_NU],
     }
 
-    @cached_property
+    @property
     def possible_new_statuses(self):
         """
         Return a list of possible new statuses that can be requested for the
