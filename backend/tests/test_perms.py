@@ -9,7 +9,7 @@ from __future__ import unicode_literals
 from django.test import TestCase
 from backend import const
 from backend import models as bmodels
-from backend.unittest import BaseFixtureMixin, PersonFixtureMixin
+from backend.unittest import BaseFixtureMixin, PersonFixtureMixin, ExpectedPerms
 
 class TestPersonPermissions(PersonFixtureMixin, TestCase):
     @classmethod
@@ -50,79 +50,6 @@ class TestPersonPermissions(PersonFixtureMixin, TestCase):
         self.assertPerms("am_r_dd", [])
         self.assertPerms("fd", ["admin", "am", "dd"])
         self.assertPerms("dam", ["admin", "am", "dd"])
-
-
-class PatchExact(object):
-    def __init__(self, text):
-        if text:
-            self.items = set(text.split())
-        else:
-            self.items = set()
-
-    def apply(self, cur):
-        if self.items: return set(self.items)
-        return None
-
-
-class PatchDiff(object):
-    def __init__(self, text):
-        self.added = set()
-        self.removed = set()
-        for change in text.split():
-            if change[0] == "+":
-                self.added.add(change[1:])
-            elif change[0] == "-":
-                self.removed.add(change[1:])
-            else:
-                raise RuntimeError("Changes {} contain {} that is nether an add nor a remove".format(text, change))
-
-    def apply(self, cur):
-        if cur is None:
-            cur = set(self.added)
-        else:
-            cur = (cur - self.removed) | self.added
-        if not cur: return None
-        return cur
-
-
-class ExpectedPerms(object):
-    def __init__(self, perms={}, advs={}):
-        self.perms = {}
-        for visitors, expected_perms in perms.items():
-            for visitor in visitors.split():
-                self.perms[visitor] = set(expected_perms.split())
-
-        self.advs = {}
-        for visitors, expected_targets in advs.items():
-            for visitor in visitors.split():
-                self.advs[visitor] = set(expected_targets.split())
-
-    def _apply_diff(self, d, diff):
-        for visitors, change in diff.items():
-            for visitor in visitors.split():
-                cur = change.apply(d.get(visitor, None))
-                if not cur:
-                    d.pop(visitor, None)
-                else:
-                    d[visitor] = cur
-
-    def update_perms(self, diff):
-        self._apply_diff(self.perms, diff)
-
-    def set_perms(self, visitors, text):
-        self.update_perms({ visitors: PatchExact(text) })
-
-    def patch_perms(self, visitors, text):
-        self.update_perms({ visitors: PatchDiff(text) })
-
-    def update_advs(self, diff):
-        self._apply_diff(self.advs, diff)
-
-    def set_advs(self, visitors, text):
-        self.update_advs({ visitors: PatchExact(text) })
-
-    def patch_advs(self, visitors, text):
-        self.update_advs({ visitors: PatchDiff(text) })
 
 
 class TestVisitPersonMixin(object):
