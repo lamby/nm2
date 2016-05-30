@@ -101,7 +101,7 @@ class TestPersonFingerprints(PersonFixtureMixin, TestCase):
         cls.persons.create("app", status=const.STATUS_DC, alioth=True, fd_comment="FD_COMMENTS")
         cls.persons.create("adv", status=const.STATUS_DD_NU)
         cls.persons.create("am", status=const.STATUS_DD_NU)
-        cls.processes.create("app", person=cls.persons.app, applying_for=const.STATUS_DD_NU, progress=const.PROGRESS_AM, manager=cls.persons.am, advocates=[cls.persons.adv])
+        #cls.processes.create("app", person=cls.persons.app, applying_for=const.STATUS_DD_NU, progress=const.PROGRESS_AM, manager=cls.persons.am, advocates=[cls.persons.adv])
 
     @classmethod
     def __add_extra_tests__(cls):

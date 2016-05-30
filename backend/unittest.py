@@ -105,32 +105,6 @@ class TestPersons(NamedObjects):
         return o
 
 
-class TestProcesses(NamedObjects):
-    def __init__(self, **defaults):
-        super(TestProcesses, self).__init__(Process, **defaults)
-        defaults.setdefault("progress", const.PROGRESS_APP_NEW)
-
-    def create(self, _name, advocates=[], **kw):
-        self._update_kwargs_with_defaults(_name, kw)
-
-        if "process" in kw:
-            kw.setdefault("is_active", kw["process"] not in (const.PROGRESS_DONE, const.PROGRESS_CANCELLED))
-        else:
-            kw.setdefault("is_active", True)
-
-        if "manager" in kw:
-            try:
-                am = kw["manager"].am
-            except AM.DoesNotExist:
-                am = AM.objects.create(person=kw["manager"])
-            kw["manager"] = am
-
-        self[_name] = o = self._model.objects.create(**kw)
-        for a in advocates:
-            o.advocates.add(a)
-        return o
-
-
 class TestKeys(NamedObjects):
     def __init__(self, **defaults):
         from keyring.models import Key
@@ -214,17 +188,9 @@ class BaseFixtureMixin(TestBase):
         return {}
 
     @classmethod
-    def get_processes_defaults(cls):
-        """
-        Get default arguments for test processes
-        """
-        return {}
-
-    @classmethod
     def setUpClass(cls):
         super(BaseFixtureMixin, cls).setUpClass()
         cls.persons = TestPersons(**cls.get_persons_defaults())
-        cls.processes = TestProcesses(**cls.get_processes_defaults())
         cls.ams = NamedObjects(AM)
         cls.keys = TestKeys()
 
@@ -236,14 +202,12 @@ class BaseFixtureMixin(TestBase):
     def tearDownClass(cls):
         cls.keys.delete_all()
         cls.ams.delete_all()
-        cls.processes.delete_all()
         cls.persons.delete_all()
         super(BaseFixtureMixin, cls).tearDownClass()
 
     def setUp(self):
         super(BaseFixtureMixin, self).setUp()
         self.persons.refresh();
-        self.processes.refresh();
         self.ams.refresh();
         self.keys.refresh();
 
