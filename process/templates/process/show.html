@@ -11,11 +11,11 @@
 {% endblock %}
 
 {% block breadcrumbs %}{{block.super}}
-/ <a href="{{ person.get_absolute_url }}">{{person.lookup_key}}</a>
+/ {{person.a_link}}
 {% endblock %}
 
 {% block relatedpages %}
-<a href="{{person.get_absolute_url}}">{{person.lookup_key}}</a>
+{{person.a_link}}
 {{block.super}}
 {% endblock %}
 
@@ -33,13 +33,13 @@
     <td>
       {% if process.frozen_by %}
         {% if process.approved_by %}
-          Approved by {{process.approved_by|person_link}} on {{process.approved_time|date:"Y-m-d"}}.
+          Approved by {{process.approved_by.a_link}} on {{process.approved_time|date:"Y-m-d"}}.
         {% else %}
-          Frozen for review by {{process.frozen_by|person_link}} on {{process.frozen_time|date:"Y-m-d"}}.
+          Frozen for review by {{process.frozen_by.a_link}} on {{process.frozen_time|date:"Y-m-d"}}.
         {% endif %}
       {% else %}
         {% if process.approved_by %}
-          Inconsistent state: approved by {{process.approved_by|person_link}} on {{process.approved_time|date:"Y-m-d"}}, but not frozen for review.
+          Inconsistent state: approved by {{process.approved_by.a_link}} on {{process.approved_time|date:"Y-m-d"}}, but not frozen for review.
         {% else %}
           Collecting requirements.
         {% endif %}
@@ -59,7 +59,7 @@
     <th>Advocate{{status.advocates|pluralize}}</th>
     <td>
       {% for a in status.advocates %}
-      <a href="{{a.get_absolute_url}}">{{a.lookup_key}}</a>{% if not forloop.last %}, {% endif %}
+      {{a.a_link}}{% if not forloop.last %}, {% endif %}
       {% empty %}
       <a href="{{status.requirements.advocate.get_absolute_url}}">none yet</a>
       {% endfor %}
@@ -71,7 +71,7 @@
   {% if am %}
   <tr>
     <th>Application Manager</th>
-    <td><a href="{{am.am.person.get_absolute_url}}">{{am.am.person.lookup_key}}</a> assigned by <a href="{{am.assigned_by.get_absolute_url}}">{{am.assigned_by.lookup_key}}</a> on {{am.assigned_time|date:"Y-m-d"}}</td>
+    <td>{{am.am.person.a_link}} assigned by {{am.assigned_by.a_link}} on {{am.assigned_time|date:"Y-m-d"}}</td>
   </tr>
   {% endif %}
   {% endwith %}
@@ -164,7 +164,7 @@
       <td>{{rstatus.satisfied|yesno}}</td>
       <td>
         {% if req.approved_by %}
-          <a href="{{req.approved_by.get_absolute_url}}">{{req.approved_by.lookup_key}}</a>
+          {{req.approved_by.a_link}}
         {% else %}
           -
         {% endif %}

@@ -249,6 +249,14 @@ class Requirement(models.Model):
     def get_absolute_url(self):
         return reverse("process_req_" + self.type, args=[self.process.pk])
 
+    @property
+    def a_link(self):
+        from django.utils.safestring import mark_safe
+        from django.utils.html import conditional_escape
+        return mark_safe("<a href='{}'>{}</a>".format(
+            conditional_escape(self.get_absolute_url()),
+            conditional_escape(self.type)))
+
     def add_log(self, changed_by, logtext, is_public=False, action=""):
         """
         Add a log entry for this requirement

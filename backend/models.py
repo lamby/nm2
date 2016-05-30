@@ -606,6 +606,14 @@ class Person(PermissionsMixin, models.Model):
     def get_absolute_url(self):
         return ("person", (), dict(key=self.lookup_key))
 
+    @property
+    def a_link(self):
+        from django.utils.safestring import mark_safe
+        from django.utils.html import conditional_escape
+        return mark_safe("<a href='{}'>{}</a>".format(
+            conditional_escape(self.get_absolute_url()),
+            conditional_escape(self.lookup_key)))
+
     def get_ddpo_url(self):
         return u"http://qa.debian.org/developer.php?{}".format(urllib.urlencode(dict(login=self.preferred_email)))
 

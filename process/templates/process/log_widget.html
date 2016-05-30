@@ -56,11 +56,11 @@
     {% for e in entries %}
     <tr>
       <td>{{e.logdate|date:"Y-m-d H:i"}}</td>
-      <td><a href="{{e.changed_by.get_absolute_url}}">{{e.changed_by.lookup_key}}</a></td>
+      <td>{{e.changed_by.a_link}}</a></td>
       {% if not requirement %}
       <td>
         {% if e.requirement %}
-          <a href="{{e.requirement.get_absolute_url}}">{{e.requirement.type}}</a>
+          {{e.requirement.a_link}}
         {% else %}
           -
         {% endif %}
