@@ -98,10 +98,8 @@ class TestPersonFingerprints(PersonFixtureMixin, TestCase):
     @classmethod
     def setUpClass(cls):
         super(TestPersonFingerprints, cls).setUpClass()
-        cls.persons.create("app", status=const.STATUS_DC, alioth=True, fd_comment="FD_COMMENTS")
-        cls.persons.create("adv", status=const.STATUS_DD_NU)
         cls.persons.create("am", status=const.STATUS_DD_NU)
-        #cls.processes.create("app", person=cls.persons.app, applying_for=const.STATUS_DD_NU, progress=const.PROGRESS_AM, manager=cls.persons.am, advocates=[cls.persons.adv])
+        cls.ams.create("am", person=cls.persons.am)
 
     @classmethod
     def __add_extra_tests__(cls):
@@ -118,13 +116,16 @@ class TestPersonFingerprints(PersonFixtureMixin, TestCase):
             cls._add_method(cls._test_get_forbidden, person, person)
             cls._add_method(cls._test_post_forbidden, person, person)
 
-        # Only applicant, advocate, am, fd and dam can see and edit the keys of an applicant
-        for person in ("app", "am", "fd", "dam"):
-            cls._add_method(cls._test_get_success, person, "app")
-            cls._add_method(cls._test_post_success, person, "app")
-        for person in ("pending", "dc", "dc_ga", "dm", "dm_ga", "adv", "dd_nu", "dd_u"):
-            cls._add_method(cls._test_get_forbidden, person, "app")
-            cls._add_method(cls._test_post_forbidden, person, "app")
+        # active ams, fd and dam can see and edit the keys of anyone who is not in LDAP
+        for visitor in ("am", "fd", "dam"):
+            for visited in ("dc", "dm"):
+                cls._add_method(cls._test_get_success, visitor, visited)
+                cls._add_method(cls._test_post_success, visitor, visited)
+        for visitor in ("pending", "dc", "dc_ga", "dm", "dm_ga", "dd_nu", "dd_u"):
+            for visited in ("dc", "dm"):
+                if visitor == visited: continue
+                cls._add_method(cls._test_get_forbidden, visitor, visited)
+                cls._add_method(cls._test_post_forbidden, visitor, visited)
 
     def _test_get_success(self, visitor, visited):
         client = self.make_test_client(visitor)

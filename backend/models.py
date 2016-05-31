@@ -63,24 +63,6 @@ class PersonVisitorPermissions(object):
         return False
 
     @cached_property
-    def _is_current_am(self):
-        """
-        Return True if the visitor is the am of any active process not in
-        FD/DAM hands
-        """
-        if self.visitor is None: return False
-        try:
-            am = self.visitor.am
-        except AM.DoesNotExist:
-            return False
-
-        for p in self.processes:
-            if not p.is_active: continue
-            if p.progress in self.fddam_states: continue
-            if p.manager == am: return True
-        return False
-
-    @cached_property
     def _can_edit_bio(self):
         """
         Visitor can edit the person's bio
@@ -89,7 +71,7 @@ class PersonVisitorPermissions(object):
         if self.visitor.is_admin: return True
         if self.person.pending: return False
         if self.visitor.pk == self.person.pk: return True
-        return self._is_current_advocate or self._is_current_am
+        return self.visitor.is_active_am
 
     @cached_property
     def _can_update_keycheck(self):
@@ -100,7 +82,7 @@ class PersonVisitorPermissions(object):
         if self.visitor.is_admin: return True
         if self.person.pending: return False
         if self.visitor.pk == self.person.pk: return True
-        return self._is_current_advocate or self._is_current_am
+        return self.visitor.is_active_am or self._is_current_advocate
 
     @cached_property
     def _has_ldap_record(self):
@@ -127,7 +109,7 @@ class PersonVisitorPermissions(object):
 
         # Only the person themselves, or an am, can potentially edit LDAP
         # fields
-        if self.person.pk != self.visitor.pk and not self._is_current_am: return False
+        if self.person.pk != self.visitor.pk and not self.visitor.is_active_am: return False
 
         # Check if there is some process in a state for which nobody should
         # interfere
@@ -519,6 +501,13 @@ class Person(PermissionsMixin, models.Model):
     @property
     def is_am(self):
         return "am" in self.perms
+
+    @property
+    def is_active_am(self):
+        try:
+            return self.am.is_am
+        except AM.DoesNotExist:
+            return False
 
     @property
     def is_admin(self):

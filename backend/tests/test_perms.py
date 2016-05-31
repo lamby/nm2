@@ -276,7 +276,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
         self.assertApplicantPermsInitialProcess(expected)
 
         self.processes.app.advocates.add(self.persons.adv)
-        expected.set_perms("adv", "update_keycheck edit_bio view_person_audit_log view_mbox")
+        expected.set_perms("adv", "update_keycheck view_person_audit_log view_mbox")
         expected.patch_advs("adv", "-dc_ga")
         self.assertApplicantPermsHasAdvocate(expected)
 
@@ -310,7 +310,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
         self.assertApplicantPermsInitialProcess(expected)
 
         self.processes.app.advocates.add(self.persons.adv)
-        expected.set_perms("adv", "update_keycheck edit_bio view_person_audit_log view_mbox")
+        expected.set_perms("adv", "update_keycheck view_person_audit_log view_mbox")
         expected.patch_advs("adv", "-dc_ga")
         self.assertApplicantPermsHasAdvocate(expected)
 
@@ -374,7 +374,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
         self.assertApplicantPermsInitialProcess(expected)
 
         self.processes.app.advocates.add(self.persons.adv)
-        expected.set_perms("adv", "update_keycheck edit_bio view_person_audit_log view_mbox")
+        expected.set_perms("adv", "update_keycheck view_person_audit_log view_mbox")
         expected.patch_advs("adv", "-dm_ga")
         self.assertApplicantPermsHasAdvocate(expected)
 
@@ -406,7 +406,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
         self.assertApplicantPermsInitialProcess(expected)
 
         self.processes.app.advocates.add(self.persons.adv)
-        expected.set_perms("adv", "update_keycheck edit_bio view_person_audit_log view_mbox")
+        expected.set_perms("adv", "update_keycheck view_person_audit_log view_mbox")
         expected.patch_advs("adv", "-dm")
         self.assertApplicantPermsHasAdvocate(expected)
 
@@ -439,7 +439,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
         self.assertApplicantPermsInitialProcess(expected)
 
         self.processes.app.advocates.add(self.persons.adv)
-        expected.set_perms("adv", "update_keycheck edit_bio view_person_audit_log view_mbox")
+        expected.set_perms("adv", "update_keycheck view_person_audit_log view_mbox")
         expected.patch_advs("adv", "-dd_nu -dd_u")
         self.assertApplicantPermsHasAdvocate(expected)
 
@@ -471,7 +471,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
         self.assertApplicantPermsInitialProcess(expected)
 
         self.processes.app.advocates.add(self.persons.adv)
-        expected.set_perms("adv", "update_keycheck edit_bio view_person_audit_log view_mbox")
+        expected.set_perms("adv", "update_keycheck view_person_audit_log view_mbox")
         expected.patch_advs("adv", "-dd_nu -dd_u")
         self.assertApplicantPermsHasAdvocate(expected)
 
@@ -503,7 +503,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
         self.assertApplicantPermsInitialProcess(expected)
 
         self.processes.app.advocates.add(self.persons.adv)
-        expected.set_perms("adv", "update_keycheck edit_bio view_person_audit_log view_mbox")
+        expected.set_perms("adv", "update_keycheck view_person_audit_log view_mbox")
         expected.patch_advs("adv", "-dd_nu -dd_u")
         self.assertApplicantPermsHasAdvocate(expected)
 
@@ -535,7 +535,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
         self.assertApplicantPermsInitialProcess(expected)
 
         self.processes.app.advocates.add(self.persons.adv)
-        expected.set_perms("adv", "update_keycheck edit_bio view_person_audit_log view_mbox")
+        expected.set_perms("adv", "update_keycheck view_person_audit_log view_mbox")
         expected.patch_advs("adv", "-dd_nu -dd_u")
         self.assertApplicantPermsHasAdvocate(expected)
 
@@ -568,7 +568,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
         self.assertApplicantPermsInitialProcess(expected)
 
         self.processes.app.advocates.add(self.persons.adv)
-        expected.set_perms("adv", "update_keycheck edit_bio view_person_audit_log view_mbox")
+        expected.set_perms("adv", "update_keycheck view_person_audit_log view_mbox")
         expected.patch_advs("adv", "-dd_nu -dd_u")
         self.assertApplicantPermsHasAdvocate(expected)
 
@@ -600,7 +600,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
         self.assertApplicantPermsInitialProcess(expected)
 
         self.processes.app.advocates.add(self.persons.adv)
-        expected.set_perms("adv", "update_keycheck edit_bio view_person_audit_log view_mbox")
+        expected.set_perms("adv", "update_keycheck view_person_audit_log view_mbox")
         expected.patch_advs("adv", "-dd_nu -dd_u")
         self.assertApplicantPermsHasAdvocate(expected)
 
