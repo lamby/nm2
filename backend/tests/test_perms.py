@@ -592,7 +592,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
         self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DD_U, progress=const.PROGRESS_APP_RCVD)
 
         expected = ExpectedPerms({
-            "fd dam app": "update_keycheck edit_bio view_person_audit_log see_statements view_mbox edit_statements request_new_status",
+            "fd dam app": "update_keycheck edit_bio view_person_audit_log see_statements view_mbox edit_statements",
             "adv dd_nu dd_u": "view_person_audit_log",
         }, advs={
             "fd dam adv dd_nu dd_u": "dd_u dd_nu",
