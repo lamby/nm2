@@ -14,14 +14,15 @@
       <td>{{s.uploaded_by.a_link}}</td>
       <td>{{s.uploaded_time|date:"Y-m-d"}}</td>
       <td>
-        <a href="{% url 'process_statement_raw' pk=process.pk type=requirement.type st=s.pk %}">raw</a>
+        <a href="{% url 'process_statement_raw' pk=process.pk type=requirement.type st=s.pk %}">[view raw]</a>
         {% if "edit_statements" in vperms.perms %}
-        <a href="{% url 'process_statement_edit' pk=process.pk type=requirement.type st=s.pk %}">edit</a>
+        <a href="{% url 'process_statement_delete' pk=process.pk type=requirement.type st=s.pk %}">[delete]</a>
         {% endif %}
       </td>
     </tr>
     {% endfor %}
   </tbody>
+  {% if "edit_statements" in vperms.perms %}
   <tfoot>
     <tr>
       <td colspan="3">
@@ -29,4 +30,5 @@
       </td>
     </tr>
   </tfoot>
+  {% endif %}
 </table>

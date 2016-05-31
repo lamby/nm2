@@ -245,12 +245,42 @@ class UnassignAM(RequirementMixin, View):
         return redirect(self.requirement.get_absolute_url())
 
 
-class EditStatementMixin(RequirementMixin):
+class StatementMixin(RequirementMixin):
+    require_vperms = "see_statements"
+
+    def load_objects(self):
+        super(StatementMixin, self).load_objects()
+        if "st" in self.kwargs:
+            self.statement = get_object_or_404(pmodels.Statement, pk=self.kwargs["st"])
+            if self.statement.requirement != self.requirement:
+                raise PermissionDenied
+        else:
+            self.statement = None
+
+    def get_form_kwargs(self):
+        kw = super(StatementMixin, self).get_form_kwargs()
+        kw["fpr"] = self.visitor.fpr
+        return kw
+
+    def get_context_data(self, **kw):
+        ctx = super(StatementMixin, self).get_context_data(**kw)
+        ctx["fpr"] = self.visitor.fpr
+        ctx["keyid"] = self.visitor.fpr[-16:]
+        ctx["statement"] = self.statement
+        ctx["now"] = now()
+        return ctx
+
+
+class StatementCreate(StatementMixin, FormView):
     form_class = StatementForm
     require_vperms = "edit_statements"
+    template_name = "process/statement_edit.html"
 
-    def get_requirement_type(self):
-        return self.kwargs["type"]
+    def load_objects(self):
+        super(StatementCreate, self).load_objects()
+        self.blurb = self.get_blurb()
+        if self.blurb:
+            self.blurb = ["For nm.debian.org, at {:%Y-%m-%d}:".format(now())] + self.blurb
 
     def get_blurb(self):
         """
@@ -267,40 +297,19 @@ class EditStatementMixin(RequirementMixin):
         #    ]
         return None
 
-    def pre_dispatch(self):
-        super(EditStatementMixin, self).pre_dispatch()
-        self.blurb = self.get_blurb()
-        if self.blurb:
-            self.blurb = ["For nm.debian.org, at {:%Y-%m-%d}:".format(now())] + self.blurb
-        if "st" in self.kwargs:
-            self.statement = get_object_or_404(pmodels.Statement, pk=self.kwargs["st"])
-            if self.statement.requirement != self.requirement:
-                raise PermissionDenied
-        else:
-            self.statement = None
-
     def get_initial(self):
         if self.statement is None:
-            return super(EditStatementMixin, self).get_initial()
+            return super(StatementCreate, self).get_initial()
         else:
             return { "statement": self.statement.statement }
 
-    def get_form_kwargs(self):
-        kw = super(EditStatementMixin, self).get_form_kwargs()
-        kw["fpr"] = self.visitor.fpr
-        return kw
-
-    def get_context_data(self, **kw):
-        ctx = super(EditStatementMixin, self).get_context_data(**kw)
-        ctx["fpr"] = self.visitor.fpr
-        ctx["keyid"] = self.visitor.fpr[-16:]
-        ctx["statement"] = self.statement
-        ctx["blurb"] = [shlex_quote(x) for x in self.blurb] if self.blurb else None
-        ctx["now"] = now()
-        return ctx
-
     def normalise_text(self, text):
         return re.sub("\s+", " ", text).lower().strip()
+
+    def get_context_data(self, **kw):
+        ctx = super(StatementCreate, self).get_context_data(**kw)
+        ctx["blurb"] = [shlex_quote(x) for x in self.blurb] if self.blurb else None
+        return ctx
 
     @transaction.atomic
     def form_valid(self, form):
@@ -330,15 +339,16 @@ class EditStatementMixin(RequirementMixin):
         return redirect(self.requirement.get_absolute_url())
 
 
-class StatementCreate(EditStatementMixin, FormView):
-    template_name = "process/statement_edit.html"
+class StatementDelete(StatementMixin, TemplateView):
+    require_vperms = "edit_statements"
+    template_name = "process/statement_delete.html"
+
+    def post(self, request, *args, **kw):
+        self.statement.delete()
+        return redirect(self.requirement.get_absolute_url())
 
 
-class StatementEdit(EditStatementMixin, FormView):
-    template_name = "process/statement_edit.html"
-
-
-class StatementRaw(EditStatementMixin, View):
+class StatementRaw(StatementMixin, View):
     def get(self, request, *args, **kw):
         return http.HttpResponse(self.statement.statement, content_type="text/plain")
 
