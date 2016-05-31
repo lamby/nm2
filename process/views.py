@@ -147,7 +147,7 @@ class RequirementMixin(VisitProcessMixin):
         process = get_object_or_404(pmodels.Process, pk=self.kwargs["pk"])
         return get_object_or_404(pmodels.Requirement, process=process, type=self.get_requirement_type())
 
-    def get_vperms(self):
+    def get_visit_perms(self):
         return self.requirement.permissions_of(self.visitor)
 
     def get_process(self):

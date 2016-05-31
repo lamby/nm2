@@ -84,23 +84,24 @@ class VisitPersonMixin(VisitorMixin):
         else:
             return bmodels.Person.lookup_or_404(key)
 
-    def get_vperms(self):
+    def get_visit_perms(self):
         return self.person.permissions_of(self.visitor)
 
     def load_objects(self):
         super(VisitPersonMixin, self).load_objects()
         self.person = self.get_person()
-        self.vperms = self.get_vperms()
+        self.visit_perms = self.get_visit_perms()
 
     def check_permissions(self):
         super(VisitPersonMixin, self).check_permissions()
-        if self.require_vperms and self.require_vperms not in self.vperms.perms:
+        if self.require_vperms and self.require_vperms not in self.visit_perms.perms:
             raise PermissionDenied
 
     def get_context_data(self, **kw):
         ctx = super(VisitPersonMixin, self).get_context_data(**kw)
         ctx["person"] = self.person
-        ctx["vperms"] = self.vperms
+        ctx["vperms"] = self.visit_perms
+        ctx["visit_perms"] = self.visit_perms
         return ctx
 
 
@@ -116,12 +117,15 @@ class VisitProcessMixin(VisitPersonMixin):
     def get_person(self):
         return self.process.person
 
-    def get_vperms(self):
+    def get_process(self):
+        return bmodels.Process.lookup_or_404(self.kwargs["key"])
+
+    def get_visit_perms(self):
         return self.process.permissions_of(self.visitor)
 
-    def pre_dispatch(self):
-        self.process = bmodels.Process.lookup_or_404(self.kwargs["key"])
-        super(VisitProcessMixin, self).pre_dispatch()
+    def load_objects(self):
+        self.process = self.get_process()
+        super(VisitProcessMixin, self).load_objects()
 
     def get_context_data(self, **kw):
         ctx = super(VisitProcessMixin, self).get_context_data(**kw)

@@ -11,13 +11,13 @@ from . import models as pmodels
 
 class VisitProcessMixin(VisitPersonMixin):
     """
-    Visit a person process. Adds self.person, self.process and self.vperms with
-    the permissions the visitor has over the person
+    Visit a person process. Adds self.person, self.process and
+    self.visit_perms with the permissions the visitor has over the person
     """
     def get_person(self):
         return self.process.person
 
-    def get_vperms(self):
+    def get_visit_perms(self):
         return self.process.permissions_of(self.visitor)
 
     def get_process(self):

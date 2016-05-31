@@ -181,7 +181,7 @@ class Person(VisitPersonTemplateView):
     template_name = "restricted/person.html"
 
     def get_person_form(self):
-        perms = self.vperms.perms
+        perms = self.visit_perms.perms
 
         # Check permissions
         if "edit_bio" not in perms and "edit_ldap" not in perms:
@@ -245,7 +245,7 @@ class NewProcess(VisitPersonTemplateView):
         from django.db.models import Min, Max
         ctx = super(NewProcess, self).get_context_data(**kw)
         applying_for = self.kwargs["applying_for"]
-        if applying_for not in self.vperms.advocate_targets:
+        if applying_for not in self.visit_perms.advocate_targets:
             raise PermissionDenied
 
         # Checks and warnings
@@ -276,7 +276,7 @@ class NewProcess(VisitPersonTemplateView):
 
     def post(self, request, applying_for, key, *args, **kw):
         applying_for = self.kwargs["applying_for"]
-        if applying_for not in self.vperms.advocate_targets:
+        if applying_for not in self.visit_perms.advocate_targets:
             raise PermissionDenied
 
         advtext = request.POST["text"].strip()

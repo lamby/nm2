@@ -141,7 +141,7 @@ class Process(VisitProcessTemplateView):
         # Process form ASAP, so we compute the rest with updated values
         am = self.visitor.am_or_none if self.visitor else None
         if am and (self.process.manager == am or am.is_admin) and (
-            "edit_bio" in self.vperms.perms or "edit_ldap" in self.vperms.perms):
+            "edit_bio" in self.visit_perms.perms or "edit_ldap" in self.visit_perms.perms):
             StatusUpdateForm = make_statusupdateform(am)
             form = StatusUpdateForm(initial=dict(progress=self.process.progress))
         else:
@@ -510,7 +510,7 @@ class Person(VisitPersonTemplateView):
             am_processes = []
 
         audit_log = []
-        if "view_person_audit_log" in self.vperms.perms:
+        if "view_person_audit_log" in self.visit_perms.perms:
             is_admin = self.visitor.is_admin
             for e in self.person.audit_log.order_by("-logdate"):
                 if is_admin:
