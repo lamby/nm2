@@ -379,3 +379,21 @@ class ExpectedPerms(object):
         self.update_advs({ visitors: PatchDiff(text) })
 
 
+class PageElements(dict):
+    """
+    List of all page elements possibly expected in the results of a view.
+
+    dict matching name used to refer to the element with regexp matching the
+    element.
+    """
+    def add_id(self, id):
+        self[id] = re.compile(r"""id\s*=\s*["']{}["']""".format(re.escape(id)))
+
+    def add_class(self, cls):
+        self[cls] = re.compile(r"""class\s*=\s*["']{}["']""".format(re.escape(cls)))
+
+    def add_href(self, name, url):
+        self[name] = re.compile(r"""href\s*=\s*["']{}["']""".format(re.escape(url)))
+
+    def add_string(self, name, term):
+        self[name] = re.compile(r"""{}""".format(re.escape(term)))
