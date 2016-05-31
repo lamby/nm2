@@ -419,7 +419,7 @@ class Process(VisitProcessTemplateView):
 
 
 class ProcessUpdateKeycheck(VisitProcessMixin, View):
-    require_vperms = "update_keycheck"
+    require_visit_perms = "update_keycheck"
 
     def post(self, request, key, *args, **kw):
         from keyring.models import Key

@@ -23,7 +23,7 @@ class NewFingerprintForm(forms.ModelForm):
 
 class PersonFingerprints(VisitPersonMixin, FormView):
     template_name = "fprs/list.html"
-    require_vperms = "edit_ldap"
+    require_visit_perms = "edit_ldap"
     form_class = NewFingerprintForm
 
     @transaction.atomic
@@ -52,7 +52,7 @@ class FingerprintMixin(VisitPersonMixin):
 
 
 class SetActiveFingerprint(FingerprintMixin, View):
-    require_vperms = "edit_ldap"
+    require_visit_perms = "edit_ldap"
 
     @transaction.atomic
     def post(self, request, *args, **kw):

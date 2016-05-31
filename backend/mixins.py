@@ -70,12 +70,12 @@ class VisitorTemplateView(VisitorMixin, TemplateView):
 
 class VisitPersonMixin(VisitorMixin):
     """
-    Visit a person record. Adds self.person and self.vperms with the
+    Visit a person record. Adds self.person and self.visit_perms with the
     permissions the visitor has over the person
     """
     # Define to "edit_bio" "edit_ldap" or "view_person_audit_log" to raise
     # PermissionDenied if the given test on the person-visitor fails
-    require_vperms = None
+    require_visit_perms = None
 
     def get_person(self):
         key = self.kwargs.get("key", None)
@@ -94,7 +94,7 @@ class VisitPersonMixin(VisitorMixin):
 
     def check_permissions(self):
         super(VisitPersonMixin, self).check_permissions()
-        if self.require_vperms and self.require_vperms not in self.visit_perms.perms:
+        if self.require_visit_perms and self.require_visit_perms not in self.visit_perms.perms:
             raise PermissionDenied
 
     def get_context_data(self, **kw):
@@ -111,7 +111,7 @@ class VisitPersonTemplateView(VisitPersonMixin, TemplateView):
 
 class VisitProcessMixin(VisitPersonMixin):
     """
-    Visit a person process. Adds self.person, self.process and self.vperms with
+    Visit a person process. Adds self.person, self.process and self.visit_perms with
     the permissions the visitor has over the person
     """
     def get_person(self):

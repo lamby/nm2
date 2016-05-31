@@ -39,7 +39,7 @@ class Create(VisitPersonMixin, FormView):
     """
     Create a new process
     """
-    require_vperms = "request_new_status"
+    require_visit_perms = "request_new_status"
     template_name = "process/create.html"
 
     def get_context_data(self, **kw):
@@ -246,7 +246,7 @@ class UnassignAM(RequirementMixin, View):
 
 
 class StatementMixin(RequirementMixin):
-    require_vperms = "see_statements"
+    require_visit_perms = "see_statements"
 
     def load_objects(self):
         super(StatementMixin, self).load_objects()
@@ -273,7 +273,7 @@ class StatementMixin(RequirementMixin):
 
 class StatementCreate(StatementMixin, FormView):
     form_class = StatementForm
-    require_vperms = "edit_statements"
+    require_visit_perms = "edit_statements"
     template_name = "process/statement_edit.html"
 
     def load_objects(self):
@@ -340,7 +340,7 @@ class StatementCreate(StatementMixin, FormView):
 
 
 class StatementDelete(StatementMixin, TemplateView):
-    require_vperms = "edit_statements"
+    require_visit_perms = "edit_statements"
     template_name = "process/statement_delete.html"
 
     def post(self, request, *args, **kw):
@@ -354,7 +354,7 @@ class StatementRaw(StatementMixin, View):
 
 
 class MailArchive(VisitProcessMixin, View):
-    require_vperms = "view_mbox"
+    require_visit_perms = "view_mbox"
 
     def get(self, request, key, *args, **kw):
         fname = self.process.mailbox_file
@@ -380,7 +380,7 @@ class MailArchive(VisitProcessMixin, View):
 
 
 class DisplayMailArchive(VisitProcessMixin, TemplateView):
-    require_vperms = "view_mbox"
+    require_visit_perms = "view_mbox"
     template_name = "restricted/display-mail-archive.html"
 
     def get_context_data(self, **kw):
@@ -510,10 +510,10 @@ class DisplayMailArchive(VisitProcessMixin, TemplateView):
 #
 #class Show(StatementMixin, VisitStatementMixin, TemplateView):
 #    template_name = "statements/show.html"
-#    require_vperms = "see_statements"
+#    require_visit_perms = "see_statements"
 #
 #
 #class Edit(EditStatementMixin, VisitStatementMixin, FormView):
 #    template_name = "statements/edit.html"
 #    form_class = StatementForm
-#    require_vperms = "edit_statements"
+#    require_visit_perms = "edit_statements"
