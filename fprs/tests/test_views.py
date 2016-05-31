@@ -119,10 +119,10 @@ class TestPersonFingerprints(PersonFixtureMixin, TestCase):
             cls._add_method(cls._test_post_forbidden, person, person)
 
         # Only applicant, advocate, am, fd and dam can see and edit the keys of an applicant
-        for person in ("app", "adv", "am", "fd", "dam"):
+        for person in ("app", "am", "fd", "dam"):
             cls._add_method(cls._test_get_success, person, "app")
             cls._add_method(cls._test_post_success, person, "app")
-        for person in ("pending", "dc", "dc_ga", "dm", "dm_ga", "dd_nu", "dd_u"):
+        for person in ("pending", "dc", "dc_ga", "dm", "dm_ga", "adv", "dd_nu", "dd_u"):
             cls._add_method(cls._test_get_forbidden, person, "app")
             cls._add_method(cls._test_post_forbidden, person, "app")
 

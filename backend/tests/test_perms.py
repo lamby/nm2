@@ -276,7 +276,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
         self.assertApplicantPermsInitialProcess(expected)
 
         self.processes.app.advocates.add(self.persons.adv)
-        expected.set_perms("adv", "update_keycheck edit_bio edit_ldap view_person_audit_log view_mbox")
+        expected.set_perms("adv", "update_keycheck edit_bio view_person_audit_log view_mbox")
         expected.patch_advs("adv", "-dc_ga")
         self.assertApplicantPermsHasAdvocate(expected)
 
@@ -310,7 +310,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
         self.assertApplicantPermsInitialProcess(expected)
 
         self.processes.app.advocates.add(self.persons.adv)
-        expected.set_perms("adv", "update_keycheck edit_bio edit_ldap view_person_audit_log view_mbox")
+        expected.set_perms("adv", "update_keycheck edit_bio view_person_audit_log view_mbox")
         expected.patch_advs("adv", "-dc_ga")
         self.assertApplicantPermsHasAdvocate(expected)
 
@@ -374,7 +374,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
         self.assertApplicantPermsInitialProcess(expected)
 
         self.processes.app.advocates.add(self.persons.adv)
-        expected.set_perms("adv", "update_keycheck edit_bio edit_ldap view_person_audit_log view_mbox")
+        expected.set_perms("adv", "update_keycheck edit_bio view_person_audit_log view_mbox")
         expected.patch_advs("adv", "-dm_ga")
         self.assertApplicantPermsHasAdvocate(expected)
 
@@ -406,7 +406,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
         self.assertApplicantPermsInitialProcess(expected)
 
         self.processes.app.advocates.add(self.persons.adv)
-        expected.set_perms("adv", "update_keycheck edit_bio edit_ldap view_person_audit_log view_mbox")
+        expected.set_perms("adv", "update_keycheck edit_bio view_person_audit_log view_mbox")
         expected.patch_advs("adv", "-dm")
         self.assertApplicantPermsHasAdvocate(expected)
 
@@ -439,7 +439,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
         self.assertApplicantPermsInitialProcess(expected)
 
         self.processes.app.advocates.add(self.persons.adv)
-        expected.set_perms("adv", "update_keycheck edit_bio edit_ldap view_person_audit_log view_mbox")
+        expected.set_perms("adv", "update_keycheck edit_bio view_person_audit_log view_mbox")
         expected.patch_advs("adv", "-dd_nu -dd_u")
         self.assertApplicantPermsHasAdvocate(expected)
 
@@ -503,7 +503,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
         self.assertApplicantPermsInitialProcess(expected)
 
         self.processes.app.advocates.add(self.persons.adv)
-        expected.set_perms("adv", "update_keycheck edit_bio edit_ldap view_person_audit_log view_mbox")
+        expected.set_perms("adv", "update_keycheck edit_bio view_person_audit_log view_mbox")
         expected.patch_advs("adv", "-dd_nu -dd_u")
         self.assertApplicantPermsHasAdvocate(expected)
 
@@ -568,7 +568,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
         self.assertApplicantPermsInitialProcess(expected)
 
         self.processes.app.advocates.add(self.persons.adv)
-        expected.set_perms("adv", "update_keycheck edit_bio edit_ldap view_person_audit_log view_mbox")
+        expected.set_perms("adv", "update_keycheck edit_bio view_person_audit_log view_mbox")
         expected.patch_advs("adv", "-dd_nu -dd_u")
         self.assertApplicantPermsHasAdvocate(expected)
 
@@ -579,7 +579,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
 
         self.persons.app.status = self.processes.app.applying_for
         self.persons.app.save(audit_skip=True)
-        expected.patch_perms("fd dam adv app", "-edit_ldap -request_new_status")
+        expected.patch_perms("fd dam app", "-edit_ldap -request_new_status")
         expected.patch_advs("fd dam dd_nu dd_u app dm dm_ga adv", "-dm_ga")
         self.assertApplicantPermsFinal(expected)
 

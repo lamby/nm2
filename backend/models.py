@@ -125,9 +125,9 @@ class PersonVisitorPermissions(object):
         # FD and DAM can do everything except mess with LDAP
         if self.visitor.is_admin: return True
 
-        # Only the person themselves, an advocate or an am can potentially edit
-        # LDAP fields
-        if self.person.pk != self.visitor.pk and not self._is_current_advocate and not self._is_current_am: return False
+        # Only the person themselves, or an am, can potentially edit LDAP
+        # fields
+        if self.person.pk != self.visitor.pk and not self._is_current_am: return False
 
         # Check if there is some process in a state for which nobody should
         # interfere
