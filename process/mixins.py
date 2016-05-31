@@ -20,9 +20,12 @@ class VisitProcessMixin(VisitPersonMixin):
     def get_vperms(self):
         return self.process.permissions_of(self.visitor)
 
-    def pre_dispatch(self):
-        self.process = get_object_or_404(pmodels.Process, pk=self.kwargs["pk"])
-        super(VisitProcessMixin, self).pre_dispatch()
+    def get_process(self):
+        return get_object_or_404(pmodels.Process, pk=self.kwargs["pk"])
+
+    def load_objects(self):
+        self.process = self.get_process()
+        super(VisitProcessMixin, self).load_objects()
 
     def get_context_data(self, **kw):
         ctx = super(VisitProcessMixin, self).get_context_data(**kw)

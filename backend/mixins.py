@@ -1,21 +1,4 @@
 # coding: utf8
-# nm.debian.org view mixins
-#
-# Copyright (C) 2014  Enrico Zini <enrico@debian.org>
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as
-# published by the Free Software Foundation, either version 3 of the
-# License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
@@ -50,13 +33,29 @@ class VisitorMixin(object):
                         self.impersonator = self.visitor
                         self.visitor = p
 
-    def pre_dispatch(self):
+    def load_objects(self):
+        """
+        Hook to set self.* members from request parameters, so that they are
+        available to the rest of the view members.
+        """
         self.set_visitor_info()
 
+    def check_permissions(self):
+        """
+        Raise PermissionDenied if some of the permissions requested by the view
+        configuration are not met.
+
+        Subclasses can extend this to check their own permissions.
+        """
         if self.require_visitor and (self.visitor is None or self.require_visitor not in self.visitor.perms):
             raise PermissionDenied
 
+    def pre_dispatch(self):
+        pass
+
     def dispatch(self, request, *args, **kwargs):
+        self.load_objects()
+        self.check_permissions()
         self.pre_dispatch()
         return super(VisitorMixin, self).dispatch(request, *args, **kwargs)
 
@@ -88,10 +87,13 @@ class VisitPersonMixin(VisitorMixin):
     def get_vperms(self):
         return self.person.permissions_of(self.visitor)
 
-    def pre_dispatch(self):
-        super(VisitPersonMixin, self).pre_dispatch()
+    def load_objects(self):
+        super(VisitPersonMixin, self).load_objects()
         self.person = self.get_person()
         self.vperms = self.get_vperms()
+
+    def check_permissions(self):
+        super(VisitPersonMixin, self).check_permissions()
         if self.require_vperms and self.require_vperms not in self.vperms.perms:
             raise PermissionDenied
 

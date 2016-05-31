@@ -57,6 +57,17 @@ class ProcessVisitorPermissions(bmodels.PersonVisitorPermissions):
         return res
 
 
+class RequirementVisitorPermissions(ProcessVisitorPermissions):
+    def __init__(self, requirement, visitor):
+        super(RequirementVisitorPermissions, self).__init__(requirement.process, visitor)
+        self.requirement = requirement
+
+    def _compute_perms(self):
+        res = super(RequirementVisitorPermissions, self)._compute_perms()
+        #if self._can_view_email: res.add("view_mbox")
+        return res
+
+
 class ProcessManager(models.Manager):
     def compute_requirements(self, person, applying_for):
         """
@@ -256,6 +267,12 @@ class Requirement(models.Model):
         return mark_safe("<a href='{}'>{}</a>".format(
             conditional_escape(self.get_absolute_url()),
             conditional_escape(self.type)))
+
+    def permissions_of(self, visitor):
+        """
+        Compute which permissions \a visitor has over this requirement
+        """
+        return RequirementVisitorPermissions(self, visitor)
 
     def add_log(self, changed_by, logtext, is_public=False, action=""):
         """

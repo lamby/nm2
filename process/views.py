@@ -134,18 +134,28 @@ class AddProcessLog(VisitProcessMixin, View):
 
 
 class RequirementMixin(VisitProcessMixin):
-    # Requirement type
+    # Requirement type. If not found, check self.kwargs["type"]
     type = None
 
     def get_requirement_type(self):
-        return self.type
+        if self.type:
+            return self.type
+        else:
+            return self.kwargs.get("type", None)
 
     def get_requirement(self):
-        return get_object_or_404(pmodels.Requirement, process=self.process, type=self.get_requirement_type())
+        process = get_object_or_404(pmodels.Process, pk=self.kwargs["pk"])
+        return get_object_or_404(pmodels.Requirement, process=process, type=self.get_requirement_type())
 
-    def pre_dispatch(self):
-        super(RequirementMixin, self).pre_dispatch()
+    def get_vperms(self):
+        return self.requirement.permissions_of(self.visitor)
+
+    def get_process(self):
+        return self.requirement.process
+
+    def load_objects(self):
         self.requirement = self.get_requirement()
+        super(RequirementMixin, self).load_objects()
 
     def get_context_data(self, **kw):
         ctx = super(RequirementMixin, self).get_context_data(**kw)
