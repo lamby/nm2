@@ -153,28 +153,6 @@ class PersonVisitorPermissions(object):
         return True
 
     @cached_property
-    def _can_see_statements(self):
-        """
-        Visitor can see SC/DFSG/DMUP agreements
-        """
-        if self.visitor is None: return False
-        if self.visitor.is_admin: return True
-        if self.person.pending: return False
-        if self.visitor.pk == self.person.pk: return True
-        return self._is_current_advocate or self._is_current_am
-
-    @cached_property
-    def _can_edit_statements(self):
-        """
-        Visitor can edit SC/DFSG/DMUP agreements
-        """
-        if self.visitor is None: return False
-        if self.visitor.is_admin: return True
-        if self.person.pending: return False
-        if self.visitor.pk == self.person.pk: return True
-        return False
-
-    @cached_property
     def _can_view_person_audit_log(self):
         """
         The visitor can view the person's audit log
@@ -217,8 +195,6 @@ class PersonVisitorPermissions(object):
         if self._can_update_keycheck: res.add("update_keycheck")
         if self._can_edit_ldap_fields: res.add("edit_ldap")
         if self._can_view_person_audit_log: res.add("view_person_audit_log")
-        if self._can_see_statements: res.add("see_statements")
-        if self._can_edit_statements: res.add("edit_statements")
         if self._can_request_new_status: res.add("request_new_status")
         return res
 
@@ -801,17 +777,9 @@ class Fingerprint(models.Model):
     person = models.ForeignKey(Person, related_name="fprs")
     fpr = FingerprintField(verbose_name="OpenPGP key fingerprint", max_length=40, unique=True)
     is_active = models.BooleanField(default=False, help_text="whether this key is curently in use")
-    agreement = models.TextField(blank=True, help_text="Agreement of DC and SMUP signed with this key")
-    agreement_valid = models.BooleanField(default=False, help_text="True if the agreement has been verified to have valid wording")
 
     def __unicode__(self):
         return self.fpr
-
-    @property
-    def agreement_status(self):
-        if self.agreement_valid: return "verified"
-        if self.agreement: return "unverified"
-        return "missing"
 
     def get_key(self):
         from keyring.models import Key
@@ -856,6 +824,7 @@ class Fingerprint(models.Model):
             if existing_fingerprint is not None and existing_fingerprint.person.pk != self.person.pk:
                 PersonAuditLog.objects.create(person=existing_fingerprint.person, author=author, notes=notes, changes=PersonAuditLog.serialize_changes(changes))
             PersonAuditLog.objects.create(person=self.person, author=author, notes=notes, changes=PersonAuditLog.serialize_changes(changes))
+
 
 class PersonAuditLog(models.Model):
     person = models.ForeignKey(Person, related_name="audit_log")
