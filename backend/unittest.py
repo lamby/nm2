@@ -278,6 +278,64 @@ class PatchDiff(object):
         return cur
 
 
+class ExpectedSets(dict):
+    """
+    Store the permissions expected out of a *VisitorPermissions object
+    """
+    def __init__(self, action_msg="{visitor}", issue_msg="{problem} {mismatch}"):
+        self.action_msg = action_msg
+        self.issue_msg = issue_msg
+
+    @property
+    def visitors(self):
+        return self.keys()
+
+    def update(self, diff):
+        for visitors, change in diff.items():
+            for visitor in visitors.split():
+                cur = change.apply(self.get(visitor, None))
+                if not cur:
+                    self.pop(visitor, None)
+                else:
+                    self[visitor] = cur
+
+    def set(self, visitors, text):
+        self.update({ visitors: PatchExact(text) })
+
+    def patch(self, visitors, text):
+        self.update({ visitors: PatchDiff(text) })
+
+    def select_others(self, persons):
+        other_visitors = set(persons.keys())
+        other_visitors.add(None)
+        other_visitors -= set(self.keys())
+        return other_visitors
+
+    def combine(self, other):
+        res = ExpectedSets(action_msg=self.action_msg, issue_msg=self.issue_msg)
+        for k, v in self.items():
+            res[k] = v
+        for k, v in other.items():
+            res.setdefault(k, set()).update(v)
+        return res
+
+    def assertEqual(self, visitor, got):
+        got = set(got)
+        wanted = self.get(visitor, set())
+        if got == wanted: return
+        extra = got - wanted
+        missing = wanted - got
+        msgs = []
+        if missing: msgs.append(self.action_msg.format(problem="misses", mismatch=", ".join(sorted(missing))))
+        if extra: msgs.append(self.action_msg.format(problem="has extra", mismatch=", ".join(sorted(extra))))
+        self.fail(self.action_msg.format(visitor=visitor) + " " + " and ".join(msgs))
+
+    def assertEmpty(self, visitor, got):
+        extra = set(got)
+        if not extra: return
+        self.fail(self.action_msg.format(visitor=visitor) + " " + self.action_msg.format(problem="has", mismatch=", ".join(sorted(extra))))
+
+
 class ExpectedPerms(object):
     """
     Store the permissions expected out of a *VisitorPermissions object
