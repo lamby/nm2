@@ -319,21 +319,21 @@ class ExpectedSets(dict):
             res.setdefault(k, set()).update(v)
         return res
 
-    def assertEqual(self, visitor, got):
+    def assertEqual(self, testcase, visitor, got):
         got = set(got)
         wanted = self.get(visitor, set())
         if got == wanted: return
         extra = got - wanted
         missing = wanted - got
         msgs = []
-        if missing: msgs.append(self.action_msg.format(problem="misses", mismatch=", ".join(sorted(missing))))
-        if extra: msgs.append(self.action_msg.format(problem="has extra", mismatch=", ".join(sorted(extra))))
-        self.fail(self.action_msg.format(visitor=visitor) + " " + " and ".join(msgs))
+        if missing: msgs.append(self.issue_msg.format(problem="misses", mismatch=", ".join(sorted(missing))))
+        if extra: msgs.append(self.issue_msg.format(problem="has extra", mismatch=", ".join(sorted(extra))))
+        testcase.fail(self.action_msg.format(visitor=visitor) + " " + " and ".join(msgs))
 
-    def assertEmpty(self, visitor, got):
+    def assertEmpty(self, testcase, visitor, got):
         extra = set(got)
         if not extra: return
-        self.fail(self.action_msg.format(visitor=visitor) + " " + self.action_msg.format(problem="has", mismatch=", ".join(sorted(extra))))
+        testcase.fail(self.action_msg.format(visitor=visitor) + " " + self.issue_msg.format(problem="has", mismatch=", ".join(sorted(extra))))
 
 
 class ExpectedPerms(object):

@@ -45,10 +45,8 @@ class ProcessVisitorPermissions(bmodels.PersonVisitorPermissions):
         if self.visitor.is_admin: return True
         # The person themselves
         if self.visitor.pk == self.person.pk: return True
-        # Any AM
-        if self.visitor.am_or_none: return True
-        # The advocates
-        # TODO return self.process.advocates.filter(pk=self.visitor.pk).exists()
+        # Any active AM
+        if self.visitor.is_active_am: return True
         return False
 
     def _compute_perms(self):
@@ -62,9 +60,37 @@ class RequirementVisitorPermissions(ProcessVisitorPermissions):
         super(RequirementVisitorPermissions, self).__init__(requirement.process, visitor)
         self.requirement = requirement
 
+    @cached_property
+    def _can_edit_statements(self):
+        if self.visitor is None: return False
+        if self.visitor.is_admin: return True
+
+        if self.requirement.type == "intent":
+            return self.visitor == self.person
+        elif self.requirement.type == "sc_dmup":
+            return self.visitor == self.person
+        elif self.requirement.type == "advocate":
+            if self.process.applying_for == const.STATUS_DC_GA:
+                return self.visitor.status in (const.STATUS_DM, const.STATUS_DM_GA, const.STATUS_DD_NU, const.STATUS_DD_U)
+            elif self.process.applying_for == const.STATUS_DM:
+                return self.visitor.status in (const.STATUS_DD_NU, const.STATUS_DD_U)
+            elif self.process.applying_for == const.STATUS_DM_GA:
+                return self.visitor == self.person or self.visitor.status in (const.STATUS_DD_NU, const.STATUS_DD_U)
+            elif self.process.applying_for == const.STATUS_DD_NU:
+                return self.visitor.status in (const.STATUS_DD_NU, const.STATUS_DD_U)
+            elif self.process.applying_for == const.STATUS_DD_U:
+                return self.visitor.status in (const.STATUS_DD_NU, const.STATUS_DD_U)
+            return False
+        elif self.requirement.type == "am_ok":
+            a = self.process.current_am_assignment
+            if a is None: return False
+            return a.am.person == self.visitor
+
+        return False
+
     def _compute_perms(self):
         res = super(RequirementVisitorPermissions, self)._compute_perms()
-        #if self._can_view_email: res.add("view_mbox")
+        if self._can_edit_statements: res.add("edit_statements")
         return res
 
 
