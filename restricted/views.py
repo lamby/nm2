@@ -174,28 +174,26 @@ class AMProfile(VisitPersonTemplateView):
         context = self.get_context_data(**kw)
         return self.render_to_response(context)
 
+
 class Person(VisitPersonTemplateView):
     """
     Edit a person's information
     """
     template_name = "restricted/person.html"
 
-    def get_person_form(self):
-        perms = self.visit_perms.perms
-
-        # Check permissions
-        if "edit_bio" not in perms and "edit_ldap" not in perms:
+    def check_permissions(self):
+        super(Person, self).check_permissions()
+        if "edit_bio" not in self.visit_perms and "edit_ldap" not in self.visit_perms:
             raise PermissionDenied
 
-        # Build the form to edit the person
+    def get_person_form(self):
         includes = []
-        if "edit_ldap" in perms:
+        if "edit_ldap" in self.visit_perms:
             includes.extend(("cn", "mn", "sn", "email", "uid"))
         if self.visitor.is_admin:
             includes.extend(("status", "fd_comment", "expires", "pending"))
-        if "edit_bio" in perms:
+        if "edit_bio" in self.visit_perms:
             includes.append("bio")
-
         class PersonForm(forms.ModelForm):
             class Meta:
                 model = bmodels.Person

@@ -3,6 +3,7 @@ from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
+import backend.models as bmodels
 from backend.models import Person, Process, AM
 from backend import const
 from django.utils.timezone import now
@@ -397,3 +398,52 @@ class PageElements(dict):
 
     def add_string(self, name, term):
         self[name] = re.compile(r"""{}""".format(re.escape(term)))
+
+
+class TestOldProcesses(NamedObjects):
+    def __init__(self, **defaults):
+        super(TestOldProcesses, self).__init__(bmodels.Process, **defaults)
+        defaults.setdefault("progress", const.PROGRESS_APP_NEW)
+
+    def create(self, _name, advocates=[], **kw):
+        self._update_kwargs_with_defaults(_name, kw)
+
+        if "process" in kw:
+            kw.setdefault("is_active", kw["process"] not in (const.PROGRESS_DONE, const.PROGRESS_CANCELLED))
+        else:
+            kw.setdefault("is_active", True)
+
+        if "manager" in kw:
+            try:
+                am = kw["manager"].am
+            except bmodels.AM.DoesNotExist:
+                am = bmodels.AM.objects.create(person=kw["manager"])
+            kw["manager"] = am
+
+        self[_name] = o = self._model.objects.create(**kw)
+        for a in advocates:
+            o.advocates.add(a)
+        return o
+
+
+class OldProcessFixtureMixin(PersonFixtureMixin):
+    @classmethod
+    def get_processes_defaults(cls):
+        """
+        Get default arguments for test processes
+        """
+        return {}
+
+    @classmethod
+    def setUpClass(cls):
+        super(OldProcessFixtureMixin, cls).setUpClass()
+        cls.processes = TestOldProcesses(**cls.get_processes_defaults())
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.processes.delete_all()
+        super(OldProcessFixtureMixin, cls).tearDownClass()
+
+    def setUp(self):
+        super(OldProcessFixtureMixin, self).setUp()
+        self.processes.refresh();

@@ -1,7 +1,4 @@
 # coding: utf8
-"""
-Test permissions
-"""
 from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
@@ -9,59 +6,9 @@ from __future__ import unicode_literals
 from django.test import TestCase
 from backend import const
 from backend import models as bmodels
-from backend.unittest import BaseFixtureMixin, PersonFixtureMixin, ExpectedPerms, NamedObjects
+from backend.unittest import BaseFixtureMixin, PersonFixtureMixin, ExpectedPerms, NamedObjects, OldProcessFixtureMixin
 
-class TestProcesses(NamedObjects):
-    def __init__(self, **defaults):
-        super(TestProcesses, self).__init__(bmodels.Process, **defaults)
-        defaults.setdefault("progress", const.PROGRESS_APP_NEW)
-
-    def create(self, _name, advocates=[], **kw):
-        self._update_kwargs_with_defaults(_name, kw)
-
-        if "process" in kw:
-            kw.setdefault("is_active", kw["process"] not in (const.PROGRESS_DONE, const.PROGRESS_CANCELLED))
-        else:
-            kw.setdefault("is_active", True)
-
-        if "manager" in kw:
-            try:
-                am = kw["manager"].am
-            except bmodels.AM.DoesNotExist:
-                am = bmodels.AM.objects.create(person=kw["manager"])
-            kw["manager"] = am
-
-        self[_name] = o = self._model.objects.create(**kw)
-        for a in advocates:
-            o.advocates.add(a)
-        return o
-
-
-class ProcessFixtureMixin(PersonFixtureMixin):
-    @classmethod
-    def get_processes_defaults(cls):
-        """
-        Get default arguments for test processes
-        """
-        return {}
-
-    @classmethod
-    def setUpClass(cls):
-        super(ProcessFixtureMixin, cls).setUpClass()
-        cls.processes = TestProcesses(**cls.get_processes_defaults())
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.processes.delete_all()
-        super(ProcessFixtureMixin, cls).tearDownClass()
-
-    def setUp(self):
-        super(ProcessFixtureMixin, self).setUp()
-        self.processes.refresh();
-
-
-
-class TestPersonPermissions(ProcessFixtureMixin, TestCase):
+class TestPersonPermissions(OldProcessFixtureMixin, TestCase):
     @classmethod
     def setUpClass(cls):
         super(TestPersonPermissions, cls).setUpClass()
@@ -114,6 +61,66 @@ class TestVisitPersonMixin(object):
         if extra: msg.append("has extra {} {}".format(perms_type, ", ".join(sorted(extra))))
         self.fail(action + " " + " and ".join(msg))
 
+
+class TestVisitPersonNoProcess(OldProcessFixtureMixin, TestVisitPersonMixin, TestCase):
+    @classmethod
+    def __add_extra_tests__(cls):
+        cls._add_method(cls._test_perms, "pending", perms=ExpectedPerms({
+            "fd dam": "update_keycheck edit_bio edit_ldap view_person_audit_log",
+            "pending": "view_person_audit_log update_keycheck edit_bio",
+            "dd_nu dd_u": "view_person_audit_log update_keycheck",
+        }))
+
+        cls._add_method(cls._test_perms, "dc", perms=ExpectedPerms({
+            "fd dam dc": "update_keycheck edit_bio edit_ldap view_person_audit_log request_new_status",
+            "dd_nu dd_u": "view_person_audit_log update_keycheck",
+        }, {
+            "fd dam dd_nu dd_u": "dc_ga dm dd_u dd_nu",
+            "dm dm_ga": "dc_ga",
+        }))
+
+        cls._add_method(cls._test_perms, "dc_ga", perms=ExpectedPerms({
+            "fd dam dc_ga": "update_keycheck edit_bio view_person_audit_log request_new_status",
+            "dd_nu dd_u": "view_person_audit_log update_keycheck",
+        }, {
+            "fd dam dd_nu dd_u": "dm_ga dd_u dd_nu",
+        }))
+
+        cls._add_method(cls._test_perms, "dm", perms=ExpectedPerms({
+            "fd dam dm": "update_keycheck edit_bio edit_ldap view_person_audit_log request_new_status",
+            "dd_nu dd_u": "view_person_audit_log update_keycheck",
+        }, advs={
+            "fd dam dd_nu dd_u": "dm_ga dd_u dd_nu",
+            "dm dm_ga": "dm_ga",
+        }))
+
+        cls._add_method(cls._test_perms, "dm_ga", perms=ExpectedPerms({
+            "fd dam dm_ga": "update_keycheck edit_bio view_person_audit_log request_new_status",
+            "dd_nu dd_u": "view_person_audit_log update_keycheck",
+        }, advs={
+            "fd dam dd_nu dd_u": "dd_u dd_nu",
+        }))
+
+        cls._add_method(cls._test_perms, "dd_nu", perms=ExpectedPerms({
+            "fd dam dd_nu": "update_keycheck edit_bio view_person_audit_log request_new_status",
+            "dd_u": "view_person_audit_log update_keycheck",
+        }))
+
+        cls._add_method(cls._test_perms, "dd_u", perms=ExpectedPerms({
+            "fd dam dd_u": "update_keycheck edit_bio view_person_audit_log",
+            "dd_nu": "view_person_audit_log update_keycheck",
+        }))
+
+        cls._add_method(cls._test_perms, "fd", perms=ExpectedPerms({
+            "fd dam": "update_keycheck edit_bio view_person_audit_log request_new_status",
+            "dd_nu dd_u": "view_person_audit_log update_keycheck",
+        }))
+
+        cls._add_method(cls._test_perms, "dam", perms=ExpectedPerms({
+            "fd dam": "update_keycheck edit_bio view_person_audit_log",
+            "dd_nu dd_u": "view_person_audit_log update_keycheck",
+        }))
+
     def _test_perms(self, visited, perms):
         other_visitors = set(self.persons.keys())
         other_visitors.add(None)
@@ -144,66 +151,7 @@ class TestVisitPersonMixin(object):
                 [], vperms.advocate_targets)
 
 
-class TestVisitPersonNoProcess(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
-    @classmethod
-    def __add_extra_tests__(cls):
-        cls._add_method(cls._test_perms, "pending", perms=ExpectedPerms({
-            "fd dam": "update_keycheck edit_bio edit_ldap view_person_audit_log",
-            "pending dd_nu dd_u": "view_person_audit_log",
-        }))
-
-        cls._add_method(cls._test_perms, "dc", perms=ExpectedPerms({
-            "fd dam dc": "update_keycheck edit_bio edit_ldap view_person_audit_log request_new_status",
-            "dd_nu dd_u": "view_person_audit_log",
-        }, {
-            "fd dam dd_nu dd_u": "dc_ga dm dd_u dd_nu",
-            "dm dm_ga": "dc_ga",
-        }))
-
-        cls._add_method(cls._test_perms, "dc_ga", perms=ExpectedPerms({
-            "fd dam dc_ga": "update_keycheck edit_bio view_person_audit_log request_new_status",
-            "dd_nu dd_u": "view_person_audit_log",
-        }, {
-            "fd dam dd_nu dd_u": "dm_ga dd_u dd_nu",
-        }))
-
-        cls._add_method(cls._test_perms, "dm", perms=ExpectedPerms({
-            "fd dam dm": "update_keycheck edit_bio edit_ldap view_person_audit_log request_new_status",
-            "dd_nu dd_u": "view_person_audit_log",
-        }, advs={
-            "fd dam dd_nu dd_u": "dm_ga dd_u dd_nu",
-            "dm dm_ga": "dm_ga",
-        }))
-
-        cls._add_method(cls._test_perms, "dm_ga", perms=ExpectedPerms({
-            "fd dam dm_ga": "update_keycheck edit_bio view_person_audit_log request_new_status",
-            "dd_nu dd_u": "view_person_audit_log",
-        }, advs={
-            "fd dam dd_nu dd_u": "dd_u dd_nu",
-        }))
-
-        cls._add_method(cls._test_perms, "dd_nu", perms=ExpectedPerms({
-            "fd dam dd_nu": "update_keycheck edit_bio view_person_audit_log request_new_status",
-            "dd_u": "view_person_audit_log",
-        }))
-
-        cls._add_method(cls._test_perms, "dd_u", perms=ExpectedPerms({
-            "fd dam dd_u": "update_keycheck edit_bio view_person_audit_log",
-            "dd_nu": "view_person_audit_log",
-        }))
-
-        cls._add_method(cls._test_perms, "fd", perms=ExpectedPerms({
-            "fd dam": "update_keycheck edit_bio view_person_audit_log request_new_status",
-            "dd_nu dd_u": "view_person_audit_log",
-        }))
-
-        cls._add_method(cls._test_perms, "dam", perms=ExpectedPerms({
-            "fd dam": "update_keycheck edit_bio view_person_audit_log",
-            "dd_nu dd_u": "view_person_audit_log",
-        }))
-
-
-class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
+class TestVisitApplicant(OldProcessFixtureMixin, TestVisitPersonMixin, TestCase):
     def assertApplicantPerms(self, perms):
         other_visitors = set(self.persons.keys())
         other_visitors.add(None)
@@ -268,7 +216,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
 
         expected = ExpectedPerms({
             "fd dam app": "update_keycheck edit_bio edit_ldap view_person_audit_log view_mbox request_new_status",
-            "dd_nu dd_u": "view_person_audit_log",
+            "dd_nu dd_u": "view_person_audit_log update_keycheck",
         }, advs={
             "fd dam dd_nu dd_u": "dc_ga dm dd_u dd_nu",
             "adv dm dm_ga": "dc_ga",
@@ -276,18 +224,18 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
         self.assertApplicantPermsInitialProcess(expected)
 
         self.processes.app.advocates.add(self.persons.adv)
-        expected.set_perms("adv", "update_keycheck view_person_audit_log view_mbox")
+        expected.set_perms("adv", "view_mbox")
         expected.patch_advs("adv", "-dc_ga")
         self.assertApplicantPermsHasAdvocate(expected)
 
-        expected.patch_perms("app", "-edit_ldap")
-        expected.set_perms("adv", "view_mbox")
+        expected.patch_perms("app", "-edit_ldap -edit_bio")
         expected.patch_advs("fd dam dd_nu dd_u", "-dc_ga")
         expected.patch_advs("dm dm_ga", "-dc_ga")
         self.assertApplicantPermsAMApproved(expected)
 
         self.persons.app.status = self.processes.app.applying_for
         self.persons.app.save(audit_skip=True)
+        expected.patch_perms("app", "+edit_bio")
         expected.patch_perms("fd dam app", "-edit_ldap")
         expected.patch_advs("fd dam dd_nu dd_u", "-dm +dm_ga")
         self.assertApplicantPermsFinal(expected)
@@ -302,7 +250,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
 
         expected = ExpectedPerms({
             "fd dam app": "update_keycheck edit_bio edit_ldap view_person_audit_log view_mbox request_new_status",
-            "adv dd_nu dd_u": "view_person_audit_log",
+            "adv dd_nu dd_u": "view_person_audit_log update_keycheck",
         }, advs={
             "fd dam adv dd_nu dd_u": "dc_ga dm dd_u dd_nu",
             "dm dm_ga": "dc_ga",
@@ -314,14 +262,14 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
         expected.patch_advs("adv", "-dc_ga")
         self.assertApplicantPermsHasAdvocate(expected)
 
-        expected.patch_perms("app", "-edit_ldap")
-        expected.set_perms("adv", "view_person_audit_log view_mbox")
+        expected.patch_perms("app", "-edit_ldap -edit_bio")
         expected.patch_advs("fd dam dd_nu dd_u", "-dc_ga")
         expected.patch_advs("dm dm_ga", "-dc_ga")
         self.assertApplicantPermsAMApproved(expected)
 
         self.persons.app.status = self.processes.app.applying_for
         self.persons.app.save(audit_skip=True)
+        expected.patch_perms("app", "+edit_bio")
         expected.patch_perms("fd dam app", "-edit_ldap")
         expected.patch_advs("fd dam adv dd_nu dd_u", "-dm +dm_ga")
         self.assertApplicantPermsFinal(expected)
@@ -335,7 +283,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
 
         expected = ExpectedPerms({
             "fd dam app": "update_keycheck edit_bio edit_ldap view_person_audit_log view_mbox request_new_status",
-            "dd_nu dd_u": "view_person_audit_log",
+            "dd_nu dd_u": "view_person_audit_log update_keycheck",
         }, advs={
             "fd dam dd_nu dd_u": "dm_ga dd_u dd_nu",
             "app dm dm_ga": "dm_ga",
@@ -346,13 +294,14 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
         expected.patch_advs("app", "-dm_ga")
         self.assertApplicantPermsHasAdvocate(expected)
 
-        expected.patch_perms("app", "-edit_ldap")
+        expected.patch_perms("app", "-edit_ldap -edit_bio")
         expected.patch_advs("fd dam dd_nu dd_u", "-dm_ga")
         expected.patch_advs("dm dm_ga", "-dm_ga")
         self.assertApplicantPermsAMApproved(expected)
 
         self.persons.app.status = self.processes.app.applying_for
         self.persons.app.save(audit_skip=True)
+        expected.patch_perms("app", "+edit_bio")
         expected.patch_perms("fd dam app", "-edit_ldap")
         self.assertApplicantPermsFinal(expected)
 
@@ -366,7 +315,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
 
         expected = ExpectedPerms({
             "fd dam app": "update_keycheck edit_bio edit_ldap view_person_audit_log view_mbox request_new_status",
-            "adv dd_nu dd_u": "view_person_audit_log",
+            "adv dd_nu dd_u": "view_person_audit_log update_keycheck",
         }, advs={
             "fd dam adv dd_nu dd_u": "dm_ga dd_u dd_nu",
             "app dm dm_ga": "dm_ga",
@@ -378,13 +327,14 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
         expected.patch_advs("adv", "-dm_ga")
         self.assertApplicantPermsHasAdvocate(expected)
 
-        expected.patch_perms("app", "-edit_ldap")
-        expected.set_perms("adv", "view_person_audit_log view_mbox")
+        expected.patch_perms("app", "-edit_ldap -edit_bio")
+        expected.set_perms("adv", "view_person_audit_log update_keycheck view_mbox")
         expected.patch_advs("fd dam dd_nu dd_u app dm dm_ga", "-dm_ga")
         self.assertApplicantPermsAMApproved(expected)
 
         self.persons.app.status = self.processes.app.applying_for
         self.persons.app.save(audit_skip=True)
+        expected.patch_perms("app", "+edit_bio")
         expected.patch_perms("fd dam app", "-edit_ldap")
         self.assertApplicantPermsFinal(expected)
 
@@ -398,7 +348,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
 
         expected = ExpectedPerms({
             "fd dam app": "update_keycheck edit_bio edit_ldap view_person_audit_log view_mbox request_new_status",
-            "adv dd_nu dd_u": "view_person_audit_log",
+            "adv dd_nu dd_u": "view_person_audit_log update_keycheck",
         }, advs={
             "fd dam adv dd_nu dd_u": "dc_ga dm dd_u dd_nu",
             "dm dm_ga": "dc_ga",
@@ -410,14 +360,14 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
         expected.patch_advs("adv", "-dm")
         self.assertApplicantPermsHasAdvocate(expected)
 
-        expected.patch_perms("app", "-edit_ldap")
-        expected.set_perms("adv", "view_person_audit_log view_mbox")
+        expected.patch_perms("app", "-edit_ldap -edit_bio")
+        expected.set_perms("adv", "view_person_audit_log update_keycheck view_mbox")
         expected.patch_advs("fd dam dd_nu dd_u app dm dm_ga", "-dm")
         self.assertApplicantPermsAMApproved(expected)
 
         self.persons.app.status = self.processes.app.applying_for
         self.persons.app.save(audit_skip=True)
-        expected.patch_perms("app", "+edit_ldap")
+        expected.patch_perms("app", "+edit_ldap +edit_bio")
         expected.patch_advs("fd dam dd_nu dd_u app adv dm dm_ga", "-dc_ga +dm_ga")
         self.assertApplicantPermsFinal(expected)
 
@@ -431,7 +381,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
 
         expected = ExpectedPerms({
             "fd dam app": "update_keycheck edit_bio edit_ldap view_person_audit_log view_mbox request_new_status",
-            "adv dd_nu dd_u": "view_person_audit_log",
+            "adv dd_nu dd_u": "view_person_audit_log update_keycheck",
         }, advs={
             "fd dam adv dd_nu dd_u": "dc_ga dm dd_u dd_nu",
             "dm dm_ga": "dc_ga",
@@ -443,13 +393,14 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
         expected.patch_advs("adv", "-dd_nu -dd_u")
         self.assertApplicantPermsHasAdvocate(expected)
 
-        expected.patch_perms("app", "-edit_ldap")
-        expected.set_perms("adv", "view_person_audit_log view_mbox")
+        expected.patch_perms("app", "-edit_ldap -edit_bio")
+        expected.set_perms("adv", "view_person_audit_log update_keycheck view_mbox")
         expected.patch_advs("fd dam dd_nu dd_u app dm dm_ga", "-dd_nu -dd_u")
         self.assertApplicantPermsAMApproved(expected)
 
         self.persons.app.status = self.processes.app.applying_for
         self.persons.app.save(audit_skip=True)
+        expected.patch_perms("app", "+edit_bio")
         expected.patch_perms("fd dam app", "-edit_ldap")
         expected.patch_advs("fd dam dd_nu dd_u app dm dm_ga adv", "-dc_ga -dm")
         self.assertApplicantPermsFinal(expected)
@@ -464,7 +415,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
 
         expected = ExpectedPerms({
             "fd dam app": "update_keycheck edit_bio view_person_audit_log view_mbox request_new_status",
-            "adv dd_nu dd_u": "view_person_audit_log",
+            "adv dd_nu dd_u": "view_person_audit_log update_keycheck",
         }, advs={
             "fd dam adv dd_nu dd_u": "dm_ga dd_u dd_nu",
         })
@@ -475,13 +426,14 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
         expected.patch_advs("adv", "-dd_nu -dd_u")
         self.assertApplicantPermsHasAdvocate(expected)
 
-        expected.patch_perms("app", "-edit_ldap")
-        expected.set_perms("adv", "view_person_audit_log view_mbox")
+        expected.patch_perms("app", "-edit_ldap -edit_bio")
+        expected.set_perms("adv", "view_person_audit_log update_keycheck view_mbox")
         expected.patch_advs("fd dam dd_nu dd_u app dm dm_ga", "-dd_nu -dd_u")
         self.assertApplicantPermsAMApproved(expected)
 
         self.persons.app.status = self.processes.app.applying_for
         self.persons.app.save(audit_skip=True)
+        expected.patch_perms("app", "+edit_bio")
         expected.patch_advs("fd dam dd_nu dd_u app dm dm_ga adv", "-dm_ga")
         self.assertApplicantPermsFinal(expected)
 
@@ -495,7 +447,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
 
         expected = ExpectedPerms({
             "fd dam app": "update_keycheck edit_bio edit_ldap view_person_audit_log view_mbox request_new_status",
-            "adv dd_nu dd_u": "view_person_audit_log",
+            "adv dd_nu dd_u": "view_person_audit_log update_keycheck",
         }, advs={
             "fd dam adv dd_nu dd_u": "dc_ga dm dd_u dd_nu",
             "dm dm_ga": "dc_ga",
@@ -507,13 +459,14 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
         expected.patch_advs("adv", "-dd_nu -dd_u")
         self.assertApplicantPermsHasAdvocate(expected)
 
-        expected.patch_perms("app", "-edit_ldap")
-        expected.set_perms("adv", "view_person_audit_log view_mbox")
+        expected.patch_perms("app", "-edit_ldap -edit_bio")
+        expected.set_perms("adv", "view_person_audit_log update_keycheck view_mbox")
         expected.patch_advs("fd dam dd_nu dd_u app dm dm_ga", "-dd_nu -dd_u")
         self.assertApplicantPermsAMApproved(expected)
 
         self.persons.app.status = self.processes.app.applying_for
         self.persons.app.save(audit_skip=True)
+        expected.patch_perms("app", "+edit_bio")
         expected.patch_perms("fd dam app", "-edit_ldap -request_new_status")
         expected.patch_advs("fd dam dd_nu dd_u app dm dm_ga adv", "-dc_ga -dm")
         self.assertApplicantPermsFinal(expected)
@@ -528,7 +481,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
 
         expected = ExpectedPerms({
             "fd dam app": "update_keycheck edit_bio view_person_audit_log view_mbox request_new_status",
-            "adv dd_nu dd_u": "view_person_audit_log",
+            "adv dd_nu dd_u": "view_person_audit_log update_keycheck",
         }, advs={
             "fd dam adv dd_nu dd_u": "dm_ga dd_u dd_nu",
         })
@@ -539,13 +492,14 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
         expected.patch_advs("adv", "-dd_nu -dd_u")
         self.assertApplicantPermsHasAdvocate(expected)
 
-        expected.patch_perms("app", "-edit_ldap")
-        expected.set_perms("adv", "view_person_audit_log view_mbox")
+        expected.patch_perms("app", "-edit_ldap -edit_bio")
+        expected.set_perms("adv", "view_person_audit_log update_keycheck view_mbox")
         expected.patch_advs("fd dam dd_nu dd_u app dm dm_ga", "-dd_nu -dd_u")
         self.assertApplicantPermsAMApproved(expected)
 
         self.persons.app.status = self.processes.app.applying_for
         self.persons.app.save(audit_skip=True)
+        expected.patch_perms("app", "+edit_bio")
         expected.patch_perms("fd dam app", "-request_new_status")
         expected.patch_advs("fd dam dd_nu dd_u app dm dm_ga adv", "-dm_ga")
         self.assertApplicantPermsFinal(expected)
@@ -560,7 +514,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
 
         expected = ExpectedPerms({
             "fd dam app": "update_keycheck edit_bio edit_ldap view_person_audit_log view_mbox request_new_status",
-            "adv dd_nu dd_u": "view_person_audit_log",
+            "adv dd_nu dd_u": "view_person_audit_log update_keycheck",
         }, advs={
             "fd dam adv dd_nu dd_u": "dm_ga dd_u dd_nu",
             "dm dm_ga app": "dm_ga",
@@ -572,13 +526,14 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
         expected.patch_advs("adv", "-dd_nu -dd_u")
         self.assertApplicantPermsHasAdvocate(expected)
 
-        expected.patch_perms("app", "-edit_ldap")
-        expected.set_perms("adv", "view_person_audit_log view_mbox")
+        expected.patch_perms("app", "-edit_ldap -edit_bio")
+        expected.set_perms("adv", "view_person_audit_log update_keycheck view_mbox")
         expected.patch_advs("fd dam dd_nu dd_u app dm dm_ga", "-dd_nu -dd_u")
         self.assertApplicantPermsAMApproved(expected)
 
         self.persons.app.status = self.processes.app.applying_for
         self.persons.app.save(audit_skip=True)
+        expected.patch_perms("app", "+edit_bio")
         expected.patch_perms("fd dam app", "-edit_ldap -request_new_status")
         expected.patch_advs("fd dam dd_nu dd_u app dm dm_ga adv", "-dm_ga")
         self.assertApplicantPermsFinal(expected)
@@ -593,7 +548,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
 
         expected = ExpectedPerms({
             "fd dam app": "update_keycheck edit_bio view_person_audit_log view_mbox",
-            "adv dd_nu dd_u": "view_person_audit_log",
+            "adv dd_nu dd_u": "view_person_audit_log update_keycheck",
         }, advs={
             "fd dam adv dd_nu dd_u": "dd_u dd_nu",
         })
@@ -604,11 +559,13 @@ class TestVisitApplicant(ProcessFixtureMixin, TestVisitPersonMixin, TestCase):
         expected.patch_advs("adv", "-dd_nu -dd_u")
         self.assertApplicantPermsHasAdvocate(expected)
 
-        expected.set_perms("adv", "view_person_audit_log view_mbox")
+        expected.patch_perms("app", "-edit_bio")
+        expected.set_perms("adv", "view_person_audit_log update_keycheck view_mbox")
         expected.patch_advs("fd dam dd_nu dd_u app dm dm_ga", "-dd_nu -dd_u")
         self.assertApplicantPermsAMApproved(expected)
 
         self.persons.app.status = self.processes.app.applying_for
         self.persons.app.save(audit_skip=True)
+        expected.patch_perms("app", "+edit_bio")
         expected.patch_perms("fd dam app", "-request_new_status")
         self.assertApplicantPermsFinal(expected)

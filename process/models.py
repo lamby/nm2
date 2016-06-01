@@ -35,24 +35,16 @@ class ProcessVisitorPermissions(bmodels.PersonVisitorPermissions):
         super(ProcessVisitorPermissions, self).__init__(process.person, visitor)
         self.process = process
 
-    @cached_property
-    def _can_view_email(self):
-        """
-        The visitor can view the process's email archive
-        """
-        if self.visitor is None: return False
-        # Any admins
-        if self.visitor.is_admin: return True
-        # The person themselves
-        if self.visitor.pk == self.person.pk: return True
-        # Any active AM
-        if self.visitor.is_active_am: return True
-        return False
-
-    def _compute_perms(self):
-        res = super(ProcessVisitorPermissions, self)._compute_perms()
-        if self._can_view_email: res.add("view_mbox")
-        return res
+        if self.visitor is None:
+            pass
+        elif self.visitor.is_admin:
+            self.add("view_mbox")
+        elif self.visitor == self.person:
+            self.add("view_mbox")
+        elif self.visitor.is_active_am:
+            self.add("view_mbox")
+        #elif self.process.advocates.filter(pk=self.visitor.pk).exists():
+        #    self.add("view_mbox")
 
 
 class RequirementVisitorPermissions(ProcessVisitorPermissions):
@@ -60,38 +52,36 @@ class RequirementVisitorPermissions(ProcessVisitorPermissions):
         super(RequirementVisitorPermissions, self).__init__(requirement.process, visitor)
         self.requirement = requirement
 
-    @cached_property
-    def _can_edit_statements(self):
-        if self.visitor is None: return False
-        if self.visitor.is_admin: return True
-
-        if self.requirement.type == "intent":
-            return self.visitor == self.person
-        elif self.requirement.type == "sc_dmup":
-            return self.visitor == self.person
-        elif self.requirement.type == "advocate":
-            if self.process.applying_for == const.STATUS_DC_GA:
-                return self.visitor.status in (const.STATUS_DM, const.STATUS_DM_GA, const.STATUS_DD_NU, const.STATUS_DD_U)
-            elif self.process.applying_for == const.STATUS_DM:
-                return self.visitor.status in (const.STATUS_DD_NU, const.STATUS_DD_U)
-            elif self.process.applying_for == const.STATUS_DM_GA:
-                return self.visitor == self.person or self.visitor.status in (const.STATUS_DD_NU, const.STATUS_DD_U)
-            elif self.process.applying_for == const.STATUS_DD_NU:
-                return self.visitor.status in (const.STATUS_DD_NU, const.STATUS_DD_U)
-            elif self.process.applying_for == const.STATUS_DD_U:
-                return self.visitor.status in (const.STATUS_DD_NU, const.STATUS_DD_U)
-            return False
-        elif self.requirement.type == "am_ok":
-            a = self.process.current_am_assignment
-            if a is None: return False
-            return a.am.person == self.visitor
-
-        return False
-
-    def _compute_perms(self):
-        res = super(RequirementVisitorPermissions, self)._compute_perms()
-        if self._can_edit_statements: res.add("edit_statements")
-        return res
+        if self.visitor is None:
+            pass
+        elif self.visitor.is_admin:
+            self.add("edit_statements")
+        else:
+            if self.requirement.type == "intent":
+                if self.visitor == self.person: self.add("edit_statements")
+            elif self.requirement.type == "sc_dmup":
+                if self.visitor == self.person: self.add("edit_statements")
+            elif self.requirement.type == "advocate":
+                if self.process.applying_for == const.STATUS_DC_GA:
+                    if self.visitor.status in (const.STATUS_DM, const.STATUS_DM_GA, const.STATUS_DD_NU, const.STATUS_DD_U):
+                        self.add("edit_statements")
+                elif self.process.applying_for == const.STATUS_DM:
+                    if self.visitor.status in (const.STATUS_DD_NU, const.STATUS_DD_U):
+                        self.add("edit_statements")
+                elif self.process.applying_for == const.STATUS_DM_GA:
+                    if self.visitor == self.person or self.visitor.status in (const.STATUS_DD_NU, const.STATUS_DD_U):
+                        self.add("edit_statements")
+                elif self.process.applying_for == const.STATUS_DD_NU:
+                    if self.visitor.status in (const.STATUS_DD_NU, const.STATUS_DD_U):
+                        self.add("edit_statements")
+                elif self.process.applying_for == const.STATUS_DD_U:
+                    if self.visitor.status in (const.STATUS_DD_NU, const.STATUS_DD_U):
+                        self.add("edit_statements")
+            elif self.requirement.type == "am_ok":
+                a = self.process.current_am_assignment
+                if a is not None:
+                    if a.am.person == self.visitor:
+                        self.add("edit_statements")
 
 
 class ProcessManager(models.Manager):

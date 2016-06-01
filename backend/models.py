@@ -28,7 +28,27 @@ PROCESS_MAILBOX_DIR = getattr(settings, "PROCESS_MAILBOX_DIR", "/srv/nm.debian.o
 DM_IMPORT_DATE = getattr(settings, "DM_IMPORT_DATE", None)
 
 
-class PersonVisitorPermissions(object):
+class Permissions(set):
+    """
+    Set of strings, each string represent a permission
+    """
+    @property
+    def perms(self):
+        """
+        Compatibility property for old code doing if "foo" in vperms.perms
+        """
+        return self
+
+
+class VisitorPermissions(Permissions):
+    """
+    Permissions of a visitor regardless of context
+    """
+    def __init__(self, visitor):
+        self.visitor = visitor
+
+
+class PersonVisitorPermissions(VisitorPermissions):
     """
     Store NM-specific permissions
     """
@@ -42,156 +62,79 @@ class PersonVisitorPermissions(object):
     dd = frozenset((const.STATUS_DD_U, const.STATUS_DD_NU))
 
     def __init__(self, person, visitor):
+        super(PersonVisitorPermissions, self).__init__(visitor)
         # Person being visited
         self.person = person.person
-        # Person doing the visit
-        self.visitor = visitor.person if visitor else None
         # Processes of self.person
-        self.processes = list(self.person.processes.all())
+        #self.processes = list(self.person.processes.all())
 
-    @cached_property
-    def _is_current_advocate(self):
-        """
-        Return True if the visitor is the advocate of any active process not in
-        FD/DAM hands
-        """
-        if self.visitor is None: return False
-        for p in self.processes:
-            if not p.is_active: continue
-            if p.progress in self.fddam_states: continue
-            if p.advocates.filter(pk=self.visitor.pk).exists(): return True
-        return False
-
-    @cached_property
-    def _can_edit_bio(self):
-        """
-        Visitor can edit the person's bio
-        """
-        if self.visitor is None: return False
-        if self.visitor.is_admin: return True
-        if self.person.pending: return False
-        if self.visitor.pk == self.person.pk: return True
-        return self.visitor.is_active_am
-
-    @cached_property
-    def _can_update_keycheck(self):
-        """
-        Visitor can refresh keycheck results
-        """
-        if self.visitor is None: return False
-        if self.visitor.is_admin: return True
-        if self.person.pending: return False
-        if self.visitor.pk == self.person.pk: return True
-        return self.visitor.is_active_am or self._is_current_advocate
-
-    @cached_property
-    def _has_ldap_record(self):
-        """
-        The person already has an LDAP record
-        """
         # If the person is already in LDAP, then nobody can edit their LDAP
         # info, since this database then becomes a read-only mirror of LDAP
-        return self.person.status not in (const.STATUS_DC, const.STATUS_DM)
+        self.person_has_ldap_record = self.person.status not in (const.STATUS_DC, const.STATUS_DM)
 
-    @cached_property
-    def _can_edit_ldap_fields(self):
-        """
-        The visitor can edit the person's LDAP fields
-        """
-        if self.visitor is None: return False
+        # Possible new statuses that the person can have
+        self.person_possible_new_statuses = self.person.possible_new_statuses
 
-        # LDAP fields are immutable in nm.debian.org when there is already an
-        # LDAP record
-        if self._has_ldap_record: return False
+        # True if there are active processes currently frozen for review
+        self.person_has_frozen_processes = False
+        old_frozen_progesses = frozenset((
+            const.PROGRESS_AM_OK,
+            const.PROGRESS_FD_HOLD,
+            const.PROGRESS_FD_OK,
+            const.PROGRESS_DAM_HOLD,
+            const.PROGRESS_DAM_OK,
+            const.PROGRESS_DONE,
+            const.PROGRESS_CANCELLED,
+        ))
+        import process.models as pmodels
+        if pmodels.Process.objects.filter(person=self.person, frozen_by__isnull=False).exists():
+            self.person_has_frozen_processes = True
+        elif Process.objects.filter(person=self.person, is_active=True, progress__in=old_frozen_progesses).exists():
+            self.person_has_frozen_processes = True
 
-        # FD and DAM can do everything except mess with LDAP
-        if self.visitor.is_admin: return True
+        if self.visitor is None:
+            pass
+        elif self.visitor.is_admin:
+            self._compute_admin_perms()
+        elif self.visitor == self.person:
+            self._compute_own_perms()
+        elif self.visitor.is_active_am:
+            self._compute_active_am_perms()
+        elif self.visitor.is_dd:
+            self._compute_dd_perms()
 
-        # Only the person themselves, or an am, can potentially edit LDAP
-        # fields
-        if self.person.pk != self.visitor.pk and not self.visitor.is_active_am: return False
+    def _compute_admin_perms(self):
+        self.update(("edit_bio", "update_keycheck", "view_person_audit_log"))
+        if self.person_possible_new_statuses: self.add("request_new_status")
+        if not self.person_has_ldap_record: self.add("edit_ldap")
 
-        # Check if there is some process in a state for which nobody should
-        # interfere
+    def _compute_own_perms(self):
+        self.update(("update_keycheck", "view_person_audit_log"))
+        if not self.person_has_frozen_processes:
+            if not self.person_has_ldap_record and not self.person.pending:
+                self.add("edit_ldap")
+            self.add("edit_bio")
+        if self.person.pending: return
+        if self.person_possible_new_statuses: self.add("request_new_status")
 
-        # Pending person records cannot be changed
-        if self.person.pending: return False
+    def _compute_active_am_perms(self):
+        self.update(("update_keycheck", "view_person_audit_log"))
+        if not self.person_has_frozen_processes:
+            self.add("edit_bio")
+            if not self.person_has_ldap_record: self.add("edit_ldap")
 
-        # If there are active processes in FD or DAM's hand, only them can
-        # change them
-        for p in self.processes:
-            if not p.is_active: continue
-            if p.progress in (
-                    const.PROGRESS_AM_OK,
-                    const.PROGRESS_FD_HOLD,
-                    const.PROGRESS_FD_OK,
-                    const.PROGRESS_DAM_HOLD,
-                    const.PROGRESS_DAM_OK,
-                    const.PROGRESS_DONE,
-                    const.PROGRESS_CANCELLED,
-                ):
-                return False
+    def _compute_dd_perms(self):
+        self.update(("update_keycheck", "view_person_audit_log"))
 
-        return True
-
-    @cached_property
-    def _can_view_person_audit_log(self):
-        """
-        The visitor can view the person's audit log
-        """
-        # Anonymous cannot see it
-        if self.visitor is None: return False
-
-        # The person can see it
-        if self.visitor.pk == self.person.pk: return True
-
-        # Any DD can see it
-        if self.visitor.status in self.dd: return True
-
-        # The advocate can see it
-        # (note, a DM can be advocate for a DC requesting a guest account)
-        if self._is_current_advocate: return True
-
-        return False
-
-    @cached_property
-    def _can_request_new_status(self):
-        """
-        The visitor can request a new status for the person
-        """
-        # Anonymous cannot see it
-        if self.visitor is None: return False
-
-        # Only the person and admins can request a new status
-        if self.visitor.pk != self.person.pk and not self.visitor.is_admin: return False
-
-        # There should be some new status possible
-        return bool(self.person.possible_new_statuses)
-
-    def _compute_perms(self):
-        """
-        Compute the set of permission tags
-        """
-        res = set()
-        if self._can_edit_bio: res.add("edit_bio")
-        if self._can_update_keycheck: res.add("update_keycheck")
-        if self._can_edit_ldap_fields: res.add("edit_ldap")
-        if self._can_view_person_audit_log: res.add("view_person_audit_log")
-        if self._can_request_new_status: res.add("request_new_status")
-        return res
-
-    @cached_property
-    def perms(self):
-        """
-        Compute the set of permission tags
-        """
-        return frozenset(self._compute_perms())
+    # TODO: advocate view audit log
 
     @cached_property
     def advocate_targets(self):
         """
         Return a list of statuses for which the current visitor can become an
         advocate
+
+        This is used only when starting old-style processes
         """
         # Nothing can happen while the person is pending confirmation
         if self.person.pending: return []
@@ -206,9 +149,10 @@ class PersonVisitorPermissions(object):
             if am is not None: pks.add(am.person.pk)
             return pks
 
+        active_processes = list(self.person.processes.filter(is_active=True))
+
         def can_add_advocate(*applying_for):
-            for p in self.processes:
-                if not p.is_active: continue
+            for p in active_processes:
                 if p.applying_for not in applying_for: continue
                 if p.progress in self.fddam_states: return False
                 if self.visitor.pk in involved_pks(p): return False
@@ -257,29 +201,23 @@ class PersonVisitorPermissions(object):
     #    ))
 
 class ProcessVisitorPermissions(PersonVisitorPermissions):
+    """
+    Permissions for visiting old-style Processes
+    """
     def __init__(self, process, visitor):
         super(ProcessVisitorPermissions, self).__init__(process.person, visitor)
         self.process = process
 
-    @cached_property
-    def _can_view_email(self):
-        """
-        The visitor can view the process's email archive
-        """
-        if self.visitor is None: return False
-        # Any admins
-        if self.visitor.is_admin: return True
-        # The person themselves
-        if self.visitor.pk == self.person.pk: return True
-        # Any AM
-        if self.visitor.am_or_none: return True
-        # The advocates
-        return self.process.advocates.filter(pk=self.visitor.pk).exists()
-
-    def _compute_perms(self):
-        res = super(ProcessVisitorPermissions, self)._compute_perms()
-        if self._can_view_email: res.add("view_mbox")
-        return res
+        if self.visitor is None:
+            pass
+        elif self.visitor.is_admin:
+            self.add("view_mbox")
+        elif self.visitor == self.person:
+            self.add("view_mbox")
+        elif self.visitor.is_active_am:
+            self.add("view_mbox")
+        elif self.process.advocates.filter(pk=self.visitor.pk).exists():
+            self.add("view_mbox")
 
 
 class PersonManager(BaseUserManager):

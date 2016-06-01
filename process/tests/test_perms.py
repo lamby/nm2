@@ -253,7 +253,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         expected.advs.set("fd dam dd_nu dd_u", "dc_ga dm dd_u dd_nu")
         expected.advs.set("adv dm dm_ga", "dc_ga")
         expected.proc.set("fd dam app", "update_keycheck edit_bio edit_ldap view_person_audit_log view_mbox request_new_status")
-        expected.proc.set("dd_nu dd_u", "view_person_audit_log")
+        expected.proc.set("dd_nu dd_u", "view_person_audit_log update_keycheck")
         expected.intent.set("fd dam app", "edit_statements")
         expected.sc_dmup.set("fd dam app", "edit_statements")
         expected.advocate.set("fd dam adv dd_nu dd_u dm dm_ga", "edit_statements")
