@@ -13,8 +13,6 @@ import process.models as pmodels
 import datetime
 import uuid
 
-# TODO:  list log entries, check confidentiality filter
-
 mock_ts = datetime.datetime(2016, 1, 1, 0, 0, 0)
 
 class TestLog(ProcessFixtureMixin, TestCase):
