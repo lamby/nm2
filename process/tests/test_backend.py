@@ -10,20 +10,16 @@ from process import models as pmodels
 from backend.unittest import BaseFixtureMixin, PersonFixtureMixin
 
 class TestRequirements(PersonFixtureMixin, TestCase):
-    def assertRequirements(self, person, applying_for, expected):
-        computed = pmodels.Process.objects.compute_requirements(self.persons[person], applying_for)
+    def assertRequirements(self, status, applying_for, expected):
+        computed = pmodels.Process.objects.compute_requirements(status, applying_for)
         self.assertItemsEqual(computed, expected)
 
-    def assertInvalid(self, person, applying_for):
+    def assertInvalid(self, status, applying_for):
         with self.assertRaises(RuntimeError) as re:
-            pmodels.Process.objects.compute_requirements(self.persons[person], applying_for)
+            pmodels.Process.objects.compute_requirements(status, applying_for)
 
     def test_requirements(self):
         all_statuses = {s.tag for s in const.ALL_STATUS}
-
-        # Pending users cannot apply for anything yet
-        for dest in all_statuses:
-            self.assertInvalid("pending", dest)
 
         for dest in all_statuses - { const.STATUS_DC_GA, const.STATUS_DM, const.STATUS_DD_NU, const.STATUS_DD_U }:
             self.assertInvalid("dc", dest)

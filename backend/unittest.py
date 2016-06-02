@@ -180,6 +180,28 @@ class TestBase(object):
             if match.search(errmsg): return
         self.fail("{} dit not match any in {}".format(regex, repr(errors)))
 
+    def assertContainsElements(self, response, elements, *names):
+        """
+        Check that the response contains only the elements in `names` from PageElements `elements`
+        """
+        want = set(names)
+        extras = want - set(elements.keys())
+        if extras: raise RuntimeError("Wanted elements not found in the list of possible ones: {}".format(", ".join(extras)))
+        should_have = []
+        should_not_have = []
+        content = response.content.decode("utf-8")
+        for name, regex in elements.items():
+            if name in want:
+                if not regex.search(content):
+                    should_have.append(name)
+            else:
+                if regex.search(content):
+                    should_not_have.append(name)
+        if should_have or should_not_have:
+            msg = []
+            if should_have: msg.append("should have element(s) {}".format(", ".join(should_have)))
+            if should_not_have: msg.append("should not have element(s) {}".format(", ".join(should_not_have)))
+            self.fail("page " + " and ".join(msg))
 
 class BaseFixtureMixin(TestBase):
     @classmethod

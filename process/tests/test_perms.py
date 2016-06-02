@@ -8,7 +8,7 @@ from django.core.urlresolvers import reverse
 from django.utils.timezone import now
 from backend import const
 from backend import models as bmodels
-from backend.unittest import BaseFixtureMixin, PersonFixtureMixin, ExpectedSets, NamedObjects, TestSet
+from backend.unittest import PersonFixtureMixin, ExpectedSets, TestSet
 import process.models as pmodels
 from .common import ProcessFixtureMixin
 

@@ -103,11 +103,11 @@
   </tr>
 
   {% if visitor.is_admin and process.fd_comment %}
-  <tr><th>FD comments</th><td>{{process.fd_comment}}</td></tr>
+  <tr id="view_fd_comment"><th>FD comments</th><td>{{process.fd_comment}}</td></tr>
   {% endif %}
 
   {% if "view_mbox" in visit_perms %}
-  <tr>
+  <tr id="view_mbox">
     <th>Mail archive</th>
     <td>
         <tt><a href="mailto:{{process.archive_email}}">{{process.archive_email}}</a></tt>

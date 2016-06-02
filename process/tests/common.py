@@ -61,7 +61,7 @@ def get_all_process_types():
     Generate all valid (source_status, applying_for) pairs for all possible
     processes.
     """
-    for src, tgts in bmodels.Process._new_status_table:
+    for src, tgts in bmodels.Person._new_status_table.items():
         for tgt in tgts:
             yield src, tgt
 

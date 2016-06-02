@@ -105,42 +105,40 @@ class RequirementVisitorPermissions(ProcessVisitorPermissions):
 
 
 class ProcessManager(models.Manager):
-    def compute_requirements(self, person, applying_for):
+    def compute_requirements(self, status, applying_for):
         """
         Compute the process requirements for person applying for applying_for
         """
-        if person.status == applying_for:
-            raise RuntimeError("Invalid applying_for value {} for a person with status {}".format(applying_for, person.status))
-        if person.pending:
-            raise RuntimeError("Invalid applying_for value {} for a person whose account is still pending".format(applying_for))
-        if person.status == const.STATUS_DD_U:
-            raise RuntimeError("Invalid applying_for value {} for a person with status {}".format(applying_for, person.status))
+        if status == applying_for:
+            raise RuntimeError("Invalid applying_for value {} for a person with status {}".format(applying_for, status))
+        if status == const.STATUS_DD_U:
+            raise RuntimeError("Invalid applying_for value {} for a person with status {}".format(applying_for, status))
 
         requirements = ["intent", "sc_dmup"]
         if applying_for == const.STATUS_DC_GA:
-            if person.status != const.STATUS_DC:
-                raise RuntimeError("Invalid applying_for value {} for a person with status {}".format(applying_for, person.status))
+            if status != const.STATUS_DC:
+                raise RuntimeError("Invalid applying_for value {} for a person with status {}".format(applying_for, status))
             requirements.append("advocate")
         elif applying_for == const.STATUS_DM:
-            if person.status != const.STATUS_DC:
-                raise RuntimeError("Invalid applying_for value {} for a person with status {}".format(applying_for, person.status))
+            if status != const.STATUS_DC:
+                raise RuntimeError("Invalid applying_for value {} for a person with status {}".format(applying_for, status))
             requirements.append("advocate")
             requirements.append("keycheck")
         elif applying_for == const.STATUS_DM_GA:
-            if person.status == const.STATUS_DC_GA:
+            if status == const.STATUS_DC_GA:
                 requirements.append("advocate")
                 requirements.append("keycheck")
-            elif person.status == const.STATUS_DM:
+            elif status == const.STATUS_DM:
                 # No extra requirement: the declaration of intents is
                 # sufficient
                 pass
             else:
-                raise RuntimeError("Invalid applying_for value {} for a person with status {}".format(applying_for, person.status))
+                raise RuntimeError("Invalid applying_for value {} for a person with status {}".format(applying_for, status))
         elif applying_for in (const.STATUS_DD_U, const.STATUS_DD_NU):
-            if person.status != const.STATUS_DD_NU:
+            if status != const.STATUS_DD_NU:
                 requirements.append("keycheck")
                 requirements.append("am_ok")
-            if person.status not in (const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD):
+            if status not in (const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD):
                 requirements.append("advocate")
         else:
             raise RuntimeError("Invalid applying_for value {}".format(applying_for))
@@ -152,12 +150,16 @@ class ProcessManager(models.Manager):
         """
         Create a new process and all its requirements
         """
+        # Forbid pending persons to start processes
+        if person.pending:
+            raise RuntimeError("Invalid applying_for value {} for a person whose account is still pending".format(applying_for))
+
         # Check that no active process of the same kind exists
         if self.filter(person=person, applying_for=applying_for, closed__isnull=True).exists():
             raise RuntimeError("there is already an active process for {} to become {}".format(person, applying_for))
 
         # Compute requirements
-        requirements = self.compute_requirements(person, applying_for)
+        requirements = self.compute_requirements(person.status, applying_for)
 
         # Create the new process
         res = self.model(person=person, applying_for=applying_for)
@@ -231,13 +233,15 @@ class Process(models.Model):
             for s in adv.statements.all():
                 advocates.add(s.uploaded_by)
 
+        log = self.log.order_by("logdate")
+
         return {
             "requirements": requirements,
             "requirements_sorted": sorted(requirements.values(), key=lambda x: REQUIREMENT_TYPES_DICT[x.type].sort_order),
             "requirements_ok": sorted(rok, key=lambda x: REQUIREMENT_TYPES_DICT[x.type].sort_order),
             "requirements_missing": sorted(rnok, key=lambda x: REQUIREMENT_TYPES_DICT[x.type].sort_order),
-            "log_first": self.log.order_by("logdate")[0],
-            "log_last": self.log.order_by("-logdate")[0],
+            "log_first": log[0] if log else None,
+            "log_last": log[-1] if log else None,
             "advocates": sorted(advocates),
         }
 
