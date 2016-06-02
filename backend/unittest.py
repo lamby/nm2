@@ -4,7 +4,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 import backend.models as bmodels
-from backend.models import Person, Process, AM
+from backend.models import Person, Process, AM, Fingerprint
 from backend import const
 from django.utils.timezone import now
 from django.test import Client
@@ -216,6 +216,7 @@ class BaseFixtureMixin(TestBase):
         super(BaseFixtureMixin, cls).setUpClass()
         cls.persons = TestPersons(**cls.get_persons_defaults())
         cls.ams = NamedObjects(AM)
+        cls.fingerprints = NamedObjects(Fingerprint)
         cls.keys = TestKeys()
 
         # Preload two keys
@@ -226,6 +227,7 @@ class BaseFixtureMixin(TestBase):
     def tearDownClass(cls):
         cls.keys.delete_all()
         cls.ams.delete_all()
+        cls.fingerprints.delete_all()
         cls.persons.delete_all()
         super(BaseFixtureMixin, cls).tearDownClass()
 
@@ -233,6 +235,7 @@ class BaseFixtureMixin(TestBase):
         super(BaseFixtureMixin, self).setUp()
         self.persons.refresh();
         self.ams.refresh();
+        self.fingerprints.refresh();
         self.keys.refresh();
 
 
@@ -454,6 +457,11 @@ class PageElements(dict):
 
     def add_string(self, name, term):
         self[name] = re.compile(r"""{}""".format(re.escape(term)))
+
+    def clone(self):
+        res = PageElements()
+        res.update(self.items())
+        return res
 
 
 class TestOldProcesses(NamedObjects):

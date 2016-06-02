@@ -16,7 +16,7 @@
       <td>
         <a href="{% url 'process_statement_raw' pk=process.pk type=requirement.type st=s.pk %}">[view raw]</a>
         {% if "edit_statements" in visit_perms %}
-        <a href="{% url 'process_statement_delete' pk=process.pk type=requirement.type st=s.pk %}">[delete]</a>
+        <a class="statement_delete" href="{% url 'process_statement_delete' pk=process.pk type=requirement.type st=s.pk %}">[delete]</a>
         {% endif %}
       </td>
     </tr>
@@ -26,7 +26,7 @@
   <tfoot>
     <tr>
       <td colspan="3">
-        <a href="{% url 'process_statement_create' pk=process.pk type=requirement.type %}">add</a>
+        <a id="statement_add" href="{% url 'process_statement_create' pk=process.pk type=requirement.type %}">add</a>
       </td>
     </tr>
   </tfoot>
