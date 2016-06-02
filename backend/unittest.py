@@ -8,6 +8,7 @@ from backend.models import Person, Process, AM
 from backend import const
 from django.utils.timezone import now
 from django.test import Client
+from collections import defaultdict
 import datetime
 import os
 import io
@@ -246,6 +247,33 @@ class PersonFixtureMixin(BaseFixtureMixin):
         cls.ams.create("dam", person=dam, is_fd=True, is_dam=True)
 
 
+class TestSet(set):
+    """
+    Set of strings that can be initialized from space-separated strings, and
+    changed with simple text patches.
+    """
+    def __init__(self, initial=""):
+        if initial: self.update(initial.split())
+
+    def set(self, vals):
+        self.clear()
+        self.update(vals.split())
+
+    def patch(self, diff):
+        for change in diff.split():
+            if change[0] == "+":
+                self.add(change[1:])
+            elif change[0] == "-":
+                self.discard(change[1:])
+            else:
+                raise RuntimeError("Changes {} contain {} that is nether an add nor a remove".format(repr(text), repr(change)))
+
+    def clone(self):
+        res = TestSet()
+        res.update(self)
+        return res
+
+
 class PatchExact(object):
     def __init__(self, text):
         if text:
@@ -279,11 +307,12 @@ class PatchDiff(object):
         return cur
 
 
-class ExpectedSets(dict):
+class ExpectedSets(defaultdict):
     """
     Store the permissions expected out of a *VisitorPermissions object
     """
     def __init__(self, action_msg="{visitor}", issue_msg="{problem} {mismatch}"):
+        super(ExpectedSets, self).__init__(TestSet)
         self.action_msg = action_msg
         self.issue_msg = issue_msg
 
@@ -291,20 +320,13 @@ class ExpectedSets(dict):
     def visitors(self):
         return self.keys()
 
-    def update(self, diff):
-        for visitors, change in diff.items():
-            for visitor in visitors.split():
-                cur = change.apply(self.get(visitor, None))
-                if not cur:
-                    self.pop(visitor, None)
-                else:
-                    self[visitor] = cur
-
     def set(self, visitors, text):
-        self.update({ visitors: PatchExact(text) })
+        for v in visitors.split():
+            self[v].set(text)
 
     def patch(self, visitors, text):
-        self.update({ visitors: PatchDiff(text) })
+        for v in visitors.split():
+            self[v].patch(text)
 
     def select_others(self, persons):
         other_visitors = set(persons.keys())
@@ -315,9 +337,9 @@ class ExpectedSets(dict):
     def combine(self, other):
         res = ExpectedSets(action_msg=self.action_msg, issue_msg=self.issue_msg)
         for k, v in self.items():
-            res[k] = v
+            res[k] = v.clone()
         for k, v in other.items():
-            res.setdefault(k, set()).update(v)
+            res[k].update(v)
         return res
 
     def assertEqual(self, testcase, visitor, got):

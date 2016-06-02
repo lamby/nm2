@@ -8,7 +8,7 @@ from django.core.urlresolvers import reverse
 from django.utils.timezone import now
 from backend import const
 from backend import models as bmodels
-from backend.unittest import BaseFixtureMixin, PersonFixtureMixin, ExpectedSets, NamedObjects
+from backend.unittest import BaseFixtureMixin, PersonFixtureMixin, ExpectedSets, NamedObjects, TestSet
 import process.models as pmodels
 from .common import ProcessFixtureMixin
 
@@ -55,7 +55,7 @@ from .common import ProcessFixtureMixin
 
 class ProcExpected(object):
     def __init__(self):
-        self.advs = ExpectedSets("{visitor} advocating app", "{problem} target {mismatch}")
+        self.starts = TestSet()
         self.proc = ExpectedSets("{visitor} visiting app's process", "{problem} permissions {mismatch}")
         self.intent = ExpectedSets("{visitor} visiting app's intent requirement", "{problem} permissions {mismatch}")
         self.sc_dmup = ExpectedSets("{visitor} visiting app's sc_dmup requirement", "{problem} permissions {mismatch}")
@@ -139,12 +139,17 @@ class ProcExpected(object):
 class TestVisitApplicant(ProcessFixtureMixin, TestCase):
     def assertPerms(self, perms):
         # Check advocacy targets
-        for visitor in perms.advs.visitors:
-            visit_perms = self.processes.app.permissions_of(self.persons[visitor])
-            perms.advs.assertEqual(self, visitor, visit_perms.advocate_targets)
-        for visitor in perms.advs.select_others(self.persons):
-            visit_perms = self.processes.app.permissions_of(self.persons[visitor] if visitor else None)
-            perms.advs.assertEmpty(self, visitor, visit_perms.advocate_targets)
+        can_start = set(self.persons.app.possible_new_statuses)
+        if can_start != perms.starts:
+            extra = can_start - perms.starts
+            missing = perms.starts - can_start
+            msgs = []
+            if missing: msgs.append("missing: {}".format(", ".join(missing)))
+            if extra: msgs.append("extra: {}".format(", ".join(extra)))
+            self.fail("adv startable processes mismatch: " + "; ".join(msgs))
+
+        # If the process has not yet been created, we skip testing it
+        if "app" not in self.processes: return
 
         # Check process permissions
         for visitor in perms.proc.visitors:
@@ -152,7 +157,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
             perms.proc.assertEqual(self, visitor, visit_perms)
         for visitor in perms.proc.select_others(self.persons):
             visit_perms = self.processes.app.permissions_of(self.persons[visitor] if visitor else None)
-            perms.advs.assertEmpty(self, visitor, visit_perms)
+            perms.proc.assertEmpty(self, visitor, visit_perms)
 
         # Check requirements
         for req in ("intent", "sc_dmup", "advocate", "keycheck", "am_ok"):
@@ -232,6 +237,14 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         self.processes.app.frozen_time = now()
         self.processes.app.save()
 
+    def _approve_process(self, visitor):
+        """
+        Set a process as approved by DAM
+        """
+        self.processes.app.approved_by = self.persons[visitor]
+        self.processes.app.approved_time = now()
+        self.processes.app.save()
+
     def _close_process(self):
         """
         Finalize a process
@@ -245,37 +258,56 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         """
         Test all visit combinations for an applicant from dc to dc_ga, with a dm advocate
         """
-        # Start process
         self.persons.create("app", status=const.STATUS_DC)
+        expected = ProcExpected()
+        expected.starts.set("dc_ga dm dd_u dd_nu")
+        self.assertPerms(expected)
+
+        # Start process
         self.persons.create("adv", status=const.STATUS_DM)
         self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DC_GA)
-        expected = ProcExpected()
-        expected.advs.set("fd dam dd_nu dd_u", "dc_ga dm dd_u dd_nu")
-        expected.advs.set("adv dm dm_ga", "dc_ga")
-        expected.proc.set("fd dam app", "update_keycheck edit_bio edit_ldap view_person_audit_log view_mbox request_new_status")
+        expected.starts.patch("-dc_ga")
+        expected.proc.set("fd dam", "update_keycheck edit_bio edit_ldap view_person_audit_log view_mbox request_new_status proc_freeze")
+        expected.proc.set("app", "update_keycheck edit_bio edit_ldap view_person_audit_log view_mbox request_new_status")
         expected.proc.set("dd_nu dd_u", "view_person_audit_log update_keycheck")
-        expected.intent.set("fd dam app", "edit_statements")
-        expected.sc_dmup.set("fd dam app", "edit_statements")
-        expected.advocate.set("fd dam adv dd_nu dd_u dm dm_ga", "edit_statements")
+        expected.proc.patch("dc dc_ga dm dm_ga dd_nu dd_u dd_e dd_r fd dam app adv", "+add_log")
+        expected.intent.patch("fd dam app", "+edit_statements")
+        expected.intent.patch("fd dam dd_nu dd_u", "+req_approve +req_unapprove")
+        expected.sc_dmup.patch("fd dam app", "+edit_statements")
+        expected.sc_dmup.patch("fd dam dd_nu dd_u", "+req_approve +req_unapprove")
+        expected.advocate.patch("fd dam adv dd_nu dd_u dm dm_ga", "+edit_statements")
+        expected.advocate.patch("fd dam dd_nu dd_u", "+req_approve +req_unapprove")
         expected.keycheck = None
         expected.am_ok = None
         self.assertPerms(expected)
 
         # Freeze for review
         self._freeze_process("fd")
+        expected.proc.patch("fd dam", "-proc_freeze +proc_unfreeze +proc_approve")
         expected.proc.patch("app", "-edit_bio -edit_ldap")
         expected.intent.patch("app", "-edit_statements")
+        expected.intent.patch("dd_nu dd_u", "-req_approve -req_unapprove")
         expected.sc_dmup.patch("app", "-edit_statements")
+        expected.sc_dmup.patch("dd_nu dd_u", "-req_approve -req_unapprove")
         expected.advocate.patch("adv dd_nu dd_u dm dm_ga", "-edit_statements")
+        expected.advocate.patch("dd_nu dd_u", "-req_approve -req_unapprove")
         self.assertPerms(expected)
+
+        # Approve
+        self._approve_process("dam")
+        expected.proc.patch("fd dam", "-proc_unfreeze -proc_approve +proc_unapprove")
 
         # Finalize
-        self._close_process("fd")
-        expected.advs.patch("fd dam dd_nu dd_u adv dm dm_ga", "-dc_ga")
-        expected.proc.patch("fd dam", "-edit_ldap")
+        self._close_process()
+        expected.starts.patch("-dc_ga -dm +dm_ga")
+        expected.proc.patch("fd dam", "-edit_ldap -proc_unapprove")
+        expected.proc.patch("dc dc_ga dm dm_ga dd_nu dd_u dd_e dd_r fd dam app adv", "-add_log")
+        expected.intent.patch("fd dam", "-edit_statements -req_approve -req_unapprove")
+        expected.sc_dmup.patch("fd dam", "-edit_statements -req_approve -req_unapprove")
+        expected.advocate.patch("fd dam", "-edit_statements -req_approve -req_unapprove")
         self.assertPerms(expected)
 
-
+        # TODO: test log actions
         # TODO: intent with no statements
         # TODO: intent with a statement
         # TODO: intent approved

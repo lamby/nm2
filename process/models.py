@@ -34,15 +34,28 @@ class ProcessVisitorPermissions(bmodels.PersonVisitorPermissions):
     def __init__(self, process, visitor):
         super(ProcessVisitorPermissions, self).__init__(process.person, visitor)
         self.process = process
+        self.process_frozen = self.process.frozen_by is not None
+        self.process_approved = self.process.approved_by is not None
+
+        if not self.process.closed and self.visitor is not None and not self.visitor.pending:
+            self.add("add_log")
 
         if self.visitor is None:
             pass
         elif self.visitor.is_admin:
             self.add("view_mbox")
+            if not self.process.closed:
+                if not self.process_frozen:
+                    self.add("proc_freeze")
+                elif self.process_approved:
+                    self.add("proc_unapprove")
+                else:
+                    self.update(("proc_unfreeze", "proc_approve"))
         elif self.visitor == self.person:
             self.add("view_mbox")
         elif self.visitor.is_active_am:
             self.add("view_mbox")
+        # TODO: advocates of this process can see the mailbox(?)
         #elif self.process.advocates.filter(pk=self.visitor.pk).exists():
         #    self.add("view_mbox")
 
@@ -55,12 +68,15 @@ class RequirementVisitorPermissions(ProcessVisitorPermissions):
         if self.visitor is None:
             pass
         elif self.visitor.is_admin:
-            self.add("edit_statements")
-        else:
+            if not self.process.closed:
+                self.update(("edit_statements", "req_approve", "req_unapprove"))
+        elif not self.process_frozen:
             if self.requirement.type == "intent":
                 if self.visitor == self.person: self.add("edit_statements")
+                if self.visitor.is_dd: self.update(("req_approve", "req_unapprove"))
             elif self.requirement.type == "sc_dmup":
                 if self.visitor == self.person: self.add("edit_statements")
+                if self.visitor.is_dd: self.update(("req_approve", "req_unapprove"))
             elif self.requirement.type == "advocate":
                 if self.process.applying_for == const.STATUS_DC_GA:
                     if self.visitor.status in (const.STATUS_DM, const.STATUS_DM_GA, const.STATUS_DD_NU, const.STATUS_DD_U):
@@ -77,11 +93,14 @@ class RequirementVisitorPermissions(ProcessVisitorPermissions):
                 elif self.process.applying_for == const.STATUS_DD_U:
                     if self.visitor.status in (const.STATUS_DD_NU, const.STATUS_DD_U):
                         self.add("edit_statements")
+                if self.visitor.is_dd: self.update(("req_approve", "req_unapprove"))
             elif self.requirement.type == "am_ok":
                 a = self.process.current_am_assignment
                 if a is not None:
                     if a.am.person == self.visitor:
                         self.add("edit_statements")
+                    elif self.visitor.is_active_am:
+                        self.update(("req_approve", "req_unapprove"))
 
 
 class ProcessManager(models.Manager):

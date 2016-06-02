@@ -131,6 +131,8 @@ class PersonVisitorPermissions(VisitorPermissions):
 
         This is used only when starting old-style processes
         """
+        # TODO: remove this once old-style processes get deprecated
+
         # Nothing can happen while the person is pending confirmation
         if self.person.pending: return []
         # Anonymous visitors cannot advocate
