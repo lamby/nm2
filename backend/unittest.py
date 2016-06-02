@@ -219,9 +219,10 @@ class BaseFixtureMixin(TestBase):
         cls.fingerprints = NamedObjects(Fingerprint)
         cls.keys = TestKeys()
 
-        # Preload two keys
+        # Preload keys
         cls.keys.create("66B4DFB68CB24EBBD8650BC4F4B4B0CC797EBFAB")
         cls.keys.create("1793D6AB75663E6BF104953A634F4BD1E7AD5568")
+        cls.keys.create("0EED77DC41D760FDE44035FF5556A34E04A3610B")
 
     @classmethod
     def tearDownClass(cls):

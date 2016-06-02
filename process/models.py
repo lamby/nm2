@@ -69,7 +69,8 @@ class RequirementVisitorPermissions(ProcessVisitorPermissions):
             pass
         elif self.visitor.is_admin:
             if not self.process.closed:
-                self.add("edit_statements")
+                if self.requirement.type != "keycheck":
+                    self.add("edit_statements")
                 self.add("req_unapprove" if self.requirement.approved_by else "req_approve")
         elif not self.process_frozen:
             if self.requirement.type == "intent":

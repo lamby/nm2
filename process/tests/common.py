@@ -9,6 +9,7 @@ import process.models as pmodels
 
 test_fingerprint1 = "1793D6AB75663E6BF104953A634F4BD1E7AD5568"
 test_fingerprint2 = "66B4DFB68CB24EBBD8650BC4F4B4B0CC797EBFAB"
+test_fingerprint3 = "0EED77DC41D760FDE44035FF5556A34E04A3610B"
 
 # Signed with key 1793D6AB75663E6BF104953A634F4BD1E7AD5568
 test_fpr1_signed_invalid_text = """
@@ -87,6 +88,32 @@ vEKSopp/HEL4wBq8JYlvA0DuHTB7+X91XI6LreJQAe+6Jo07iuqmeZd9/pl1Anch
 -----END PGP SIGNATURE-----
 """
 
+
+# Signed with key 0EED77DC41D760FDE44035FF5556A34E04A3610B
+test_fpr3_signed_valid_text = """
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA256
+
+I agree to uphold the Social Contract and the Debian Free Software Guidelines in my Debian work.
+I have read the Debian Machine Usage Policy and I accept them.
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQIcBAEBCAAGBQJXPZKwAAoJEOjTeuLwn0hy1McP/iZPp6N/ng+P5jXGpuVoAJOa
+Fn5b4RHAVZoQ+6k4NruN56bzn4NysAD4KMaMOOO5Wbu8Q+3CYlA1Kc6sVCHCTK47
+34/oOszvW6WKD4Lf0H8KEiUcpdTMvVktiLjyCHlZDnnydWPG+72KzDm/TqoTxFW9
+mFB1KIbYe2kJPV8yZOoxIEvmyrV4SgwZwG2FkdBn/0JFfJCbE7cXt0KKP0lUctka
+ymB2mLLikXpJepd32ehUs15UAQZMbUSVbyLq28176og6lSWPVpEEeEdUmVuaii99
+qNIKEA0k4UJPmgtJZxnPiGUgIMB9wRarnoZb2rAP0RhQ1lFYfIEz2tAMZ1o9c+Ia
+5KEYnoLEHsF6nWZhrKKFm7TjaseQ5tcYCoZmG6pgraVnjdpUavH54mneQFmO5B7l
+etrcCic0zb2/gDovjFPqJ2xDK+K0LOapUXrrLSOvdwB6tm3e7sGCSOZbibVpIrvC
+WpgKnjrntfADnPx44xRS/RvAqr3TUUICbJq/czKr1+mDKwV/WKCYOWwe8GXRR0IR
+uxODvexBbPuPeImQbpUVPvuIL7gyoxvdlNQwzKX12/GI5CZOEWx87MemRMB0r5oh
+XD3vxTAcdhGDNK+LdTichQxp8nUs1IX5ziPP92jRXF2LjE58a9O4XC2vtEwm8wLm
+kFBhaqNexUs/V1sIBuY5
+=tMbR
+-----END PGP SIGNATURE-----
+"""
 
 class TestProcesses(NamedObjects):
     def __init__(self, **defaults):
