@@ -314,8 +314,9 @@ class ExpectedSets(defaultdict):
     """
     Store the permissions expected out of a *VisitorPermissions object
     """
-    def __init__(self, action_msg="{visitor}", issue_msg="{problem} {mismatch}"):
+    def __init__(self, testcase, action_msg="{visitor}", issue_msg="{problem} {mismatch}"):
         super(ExpectedSets, self).__init__(TestSet)
+        self.testcase = testcase
         self.action_msg = action_msg
         self.issue_msg = issue_msg
 
@@ -338,14 +339,14 @@ class ExpectedSets(defaultdict):
         return other_visitors
 
     def combine(self, other):
-        res = ExpectedSets(action_msg=self.action_msg, issue_msg=self.issue_msg)
+        res = ExpectedSets(self.testcase, action_msg=self.action_msg, issue_msg=self.issue_msg)
         for k, v in self.items():
             res[k] = v.clone()
         for k, v in other.items():
             res[k].update(v)
         return res
 
-    def assertEqual(self, testcase, visitor, got):
+    def assertEqual(self, visitor, got):
         got = set(got)
         wanted = self.get(visitor, set())
         if got == wanted: return
@@ -354,12 +355,12 @@ class ExpectedSets(defaultdict):
         msgs = []
         if missing: msgs.append(self.issue_msg.format(problem="misses", mismatch=", ".join(sorted(missing))))
         if extra: msgs.append(self.issue_msg.format(problem="has extra", mismatch=", ".join(sorted(extra))))
-        testcase.fail(self.action_msg.format(visitor=visitor) + " " + " and ".join(msgs))
+        self.testcase.fail(self.action_msg.format(visitor=visitor) + " " + " and ".join(msgs))
 
-    def assertEmpty(self, testcase, visitor, got):
+    def assertEmpty(self, visitor, got):
         extra = set(got)
         if not extra: return
-        testcase.fail(self.action_msg.format(visitor=visitor) + " " + self.issue_msg.format(problem="has", mismatch=", ".join(sorted(extra))))
+        self.testcase.fail(self.action_msg.format(visitor=visitor) + " " + self.issue_msg.format(problem="has", mismatch=", ".join(sorted(extra))))
 
 
 class ExpectedPerms(object):

@@ -12,56 +12,16 @@ from backend.unittest import BaseFixtureMixin, PersonFixtureMixin, ExpectedSets,
 import process.models as pmodels
 from .common import ProcessFixtureMixin
 
-#class TestPersonPermissions(PersonFixtureMixin, TestCase):
-#    @classmethod
-#    def setUpClass(cls):
-#        super(TestPersonPermissions, cls).setUpClass()
-#        cls.persons.create("applicant", status=const.STATUS_DC)
-#        cls.persons.create("am", status=const.STATUS_DD_NU)
-#        cls.processes.create("applicant", person=cls.persons.applicant, applying_for=const.STATUS_DD_NU, progress=const.PROGRESS_AM, manager=cls.persons.am)
-#        cls.persons.create("e_dd", status=const.STATUS_EMERITUS_DD)
-#        cls.persons.create("e_dm", status=const.STATUS_EMERITUS_DM)
-#        cls.persons.create("r_dd", status=const.STATUS_REMOVED_DD)
-#        cls.persons.create("r_dm", status=const.STATUS_REMOVED_DM)
-#        cls.persons.create("am_e_dd", status=const.STATUS_EMERITUS_DD)
-#        cls.persons.create("am_r_dd", status=const.STATUS_REMOVED_DD)
-#        cls.persons.create("applicant1", status=const.STATUS_DC)
-#        cls.processes.create("applicant1", person=cls.persons.applicant1, applying_for=const.STATUS_DD_NU, progress=const.PROGRESS_AM, manager=cls.persons.am_e_dd)
-#        cls.persons.create("applicant2", status=const.STATUS_DC)
-#        cls.processes.create("applicant2", person=cls.persons.applicant2, applying_for=const.STATUS_DD_NU, progress=const.PROGRESS_AM, manager=cls.persons.am_r_dd)
-#
-#    def assertPerms(self, pname, perms):
-#        self.assertItemsEqual(self.persons[pname].perms, perms)
-#
-#    def test_person(self):
-#        self.assertPerms("pending", [])
-#        self.assertPerms("dc", [])
-#        self.assertPerms("dc_ga", [])
-#        self.assertPerms("dm", [])
-#        self.assertPerms("dm_ga", [])
-#        self.assertPerms("applicant", [])
-#        self.assertPerms("dd_nu", ["am_candidate", "dd"])
-#        self.assertPerms("dd_u", ["am_candidate", "dd"])
-#        self.assertPerms("am", ["am", "dd"])
-#        self.assertPerms("e_dd", [])
-#        self.assertPerms("e_dm", [])
-#        self.assertPerms("r_dd", [])
-#        self.assertPerms("r_dm", [])
-#        self.assertPerms("am_e_dd", [])
-#        self.assertPerms("am_r_dd", [])
-#        self.assertPerms("fd", ["admin", "am", "dd"])
-#        self.assertPerms("dam", ["admin", "am", "dd"])
-
 
 class ProcExpected(object):
-    def __init__(self):
+    def __init__(self, testcase):
         self.starts = TestSet()
-        self.proc = ExpectedSets("{visitor} visiting app's process", "{problem} permissions {mismatch}")
-        self.intent = ExpectedSets("{visitor} visiting app's intent requirement", "{problem} permissions {mismatch}")
-        self.sc_dmup = ExpectedSets("{visitor} visiting app's sc_dmup requirement", "{problem} permissions {mismatch}")
-        self.advocate = ExpectedSets("{visitor} visiting app's advocate requirement", "{problem} permissions {mismatch}")
-        self.keycheck = ExpectedSets("{visitor} visiting app's keycheck requirement", "{problem} permissions {mismatch}")
-        self.am_ok = ExpectedSets("{visitor} visiting app's am_ok requirement", "{problem} permissions {mismatch}")
+        self.proc = ExpectedSets(testcase, "{visitor} visiting app's process", "{problem} permissions {mismatch}")
+        self.intent = ExpectedSets(testcase, "{visitor} visiting app's intent requirement", "{problem} permissions {mismatch}")
+        self.sc_dmup = ExpectedSets(testcase, "{visitor} visiting app's sc_dmup requirement", "{problem} permissions {mismatch}")
+        self.advocate = ExpectedSets(testcase, "{visitor} visiting app's advocate requirement", "{problem} permissions {mismatch}")
+        self.keycheck = ExpectedSets(testcase, "{visitor} visiting app's keycheck requirement", "{problem} permissions {mismatch}")
+        self.am_ok = ExpectedSets(testcase, "{visitor} visiting app's am_ok requirement", "{problem} permissions {mismatch}")
 
     def patch_generic_process_started(self):
         self.proc.set("app dd_nu dd_u activeam fd dam", "update_keycheck view_person_audit_log")
@@ -120,6 +80,492 @@ class ProcExpected(object):
         if self.am_ok is not None:
             self.proc.patch("am", "-add_log")
             self.am_ok.patch("fd dam", "-edit_statements -req_approve")
+
+
+class TestVisitApplicant(ProcessFixtureMixin, TestCase):
+    def assertPerms(self, perms):
+        # Check advocacy targets
+        can_start = set(self.persons.app.possible_new_statuses)
+        if can_start != perms.starts:
+            extra = can_start - perms.starts
+            missing = perms.starts - can_start
+            msgs = []
+            if missing: msgs.append("missing: {}".format(", ".join(missing)))
+            if extra: msgs.append("extra: {}".format(", ".join(extra)))
+            self.fail("adv startable processes mismatch: " + "; ".join(msgs))
+
+        # If the process has not yet been created, we skip testing it
+        if "app" not in self.processes: return
+
+        # Check process permissions
+        for visitor in perms.proc.visitors:
+            visit_perms = self.processes.app.permissions_of(self.persons[visitor])
+            perms.proc.assertEqual(visitor, visit_perms)
+        for visitor in perms.proc.select_others(self.persons):
+            visit_perms = self.processes.app.permissions_of(self.persons[visitor] if visitor else None)
+            perms.proc.assertEmpty(visitor, visit_perms)
+
+        # Check requirements
+        for req in ("intent", "sc_dmup", "advocate", "keycheck", "am_ok"):
+            p = getattr(perms, req, None)
+            if p is None: continue
+            wanted = p.combine(perms.proc)
+
+            requirement = pmodels.Requirement.objects.get(process=self.processes.app, type=req)
+            for visitor in wanted.visitors:
+                visit_perms = requirement.permissions_of(self.persons[visitor])
+                wanted.assertEqual(visitor, visit_perms)
+            for visitor in wanted.select_others(self.persons):
+                visit_perms = requirement.permissions_of(self.persons[visitor] if visitor else None)
+                wanted.assertEmpty(visitor, visit_perms)
+
+
+    def _assign_am(self, visitor):
+        pmodels.AMAssignment.objects.create(process=self.processes.app, am=self.ams.am, assigned_by=self.persons[visitor], assigned_time=now())
+
+    def _freeze_process(self, visitor):
+        """
+        Set a process as frozen for FD/DAM review
+        """
+        self.processes.app.frozen_by = self.persons[visitor]
+        self.processes.app.frozen_time = now()
+        self.processes.app.save()
+
+    def _approve_process(self, visitor):
+        """
+        Set a process as approved by DAM
+        """
+        self.processes.app.approved_by = self.persons[visitor]
+        self.processes.app.approved_time = now()
+        self.processes.app.save()
+
+    def _close_process(self):
+        """
+        Finalize a process
+        """
+        self.processes.app.closed = now()
+        self.processes.app.save()
+        self.persons.app.status = self.processes.app.applying_for
+        self.persons.app.save(audit_skip=True)
+
+    def test_dc_dcga(self):
+        """
+        Test all visit combinations for an applicant from dc to dc_ga
+        """
+        expected = ProcExpected(self)
+        expected.keycheck = None
+        expected.am_ok = None
+
+        # Apply
+        self.persons.create("app", status=const.STATUS_DC)
+        expected.starts.set("dc_ga dm dd_u dd_nu")
+        self.assertPerms(expected)
+        self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DC_GA)
+        expected.patch_generic_process_started()
+        expected.starts.patch("-dc_ga")
+        expected.proc.patch("fd dam", "+edit_ldap")
+        expected.proc.patch("app", "+edit_ldap")
+        expected.advocate.patch("dm dm_ga", "+edit_statements")
+        self.assertPerms(expected)
+
+        # Freeze for review
+        self._freeze_process("fd")
+        expected.patch_generic_process_frozen()
+        expected.advocate.patch("dm dm_ga", "-edit_statements")
+        self.assertPerms(expected)
+
+        # Approve
+        self._approve_process("dam")
+        expected.patch_generic_process_approved()
+
+        # Finalize
+        self._close_process()
+        expected.patch_generic_process_closed()
+        expected.starts.patch("-dc_ga -dm +dm_ga")
+        expected.proc.patch("fd dam", "-edit_ldap")
+        self.assertPerms(expected)
+
+    def test_dm_dmga(self):
+        """
+        Test all visit combinations for an applicant from dm to dm_ga
+        """
+        expected = ProcExpected(self)
+        expected.advocate = None
+        expected.keycheck = None
+        expected.am_ok = None
+
+        # Apply
+        self.persons.create("app", status=const.STATUS_DM)
+        expected.starts.set("dm_ga dd_u")
+        self.assertPerms(expected)
+        self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DM_GA)
+        expected.patch_generic_process_started()
+        expected.starts.patch("-dm_ga")
+        expected.proc.patch("fd dam", "+edit_ldap")
+        expected.proc.patch("app", "+edit_ldap")
+        self.assertPerms(expected)
+
+        # Freeze for review
+        self._freeze_process("fd")
+        expected.patch_generic_process_frozen()
+        self.assertPerms(expected)
+
+        # Approve
+        self._approve_process("dam")
+        expected.patch_generic_process_approved()
+
+        # Finalize
+        self._close_process()
+        expected.patch_generic_process_closed()
+        expected.starts.patch("-dm_ga")
+        expected.proc.patch("fd dam", "-edit_ldap")
+        self.assertPerms(expected)
+
+    def test_dc_dm(self):
+        """
+        Test all visit combinations for an applicant from dc to dm
+        """
+        expected = ProcExpected(self)
+        expected.keycheck = None
+        expected.am_ok = None
+
+        # Apply
+        self.persons.create("app", status=const.STATUS_DC)
+        expected.starts.set("dc_ga dm dd_u dd_nu")
+        self.assertPerms(expected)
+        self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DM)
+        expected.patch_generic_process_started()
+        expected.starts.patch("-dm")
+        expected.proc.patch("fd dam", "+edit_ldap")
+        expected.proc.patch("app", "+edit_ldap")
+        self.assertPerms(expected)
+
+        # Freeze for review
+        self._freeze_process("fd")
+        expected.patch_generic_process_frozen()
+        self.assertPerms(expected)
+
+        # Approve
+        self._approve_process("dam")
+        expected.patch_generic_process_approved()
+
+        # Finalize
+        self._close_process()
+        expected.patch_generic_process_closed()
+        expected.starts.patch("-dc_ga -dm +dm_ga -dd_nu")
+        self.assertPerms(expected)
+
+    def test_dc_ddnu(self):
+        """
+        Test all visit combinations for an applicant from dc to dd_nu
+        """
+        expected = ProcExpected(self)
+        expected.keycheck = None
+
+        # Apply
+        self.persons.create("app", status=const.STATUS_DC)
+        self.persons.create("am", status=const.STATUS_DD_NU)
+        self.ams.create("am", person=self.persons.am)
+        expected.starts.set("dc_ga dm dd_u dd_nu")
+        self.assertPerms(expected)
+        self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DD_NU)
+        expected.patch_generic_process_started()
+        expected.starts.patch("-dd_nu")
+        expected.proc.patch("fd dam", "+edit_ldap")
+        expected.proc.patch("app", "+edit_ldap")
+        self.assertPerms(expected)
+
+        # Assign manager
+        self._assign_am("fd")
+        expected.proc.patch("am", "+edit_bio +edit_ldap")
+        expected.am_ok.patch("am", "+edit_statements")
+        expected.am_ok.patch("activeam", "+req_approve")
+        self.assertPerms(expected)
+
+        # Freeze for review
+        self._freeze_process("fd")
+        expected.patch_generic_process_frozen()
+        self.assertPerms(expected)
+
+        # Approve
+        self._approve_process("dam")
+        expected.patch_generic_process_approved()
+
+        # Finalize
+        self._close_process()
+        expected.patch_generic_process_closed()
+        expected.starts.patch("-dc_ga -dm -dd_nu")
+        expected.proc.patch("fd dam", "-edit_ldap")
+        self.assertPerms(expected)
+
+    def test_dcga_ddnu(self):
+        """
+        Test all visit combinations for an applicant from dc_ga to dd_nu
+        """
+        expected = ProcExpected(self)
+        expected.keycheck = None
+
+        # Apply
+        self.persons.create("app", status=const.STATUS_DC_GA)
+        self.persons.create("am", status=const.STATUS_DD_NU)
+        self.ams.create("am", person=self.persons.am)
+        expected.starts.set("dm_ga dd_u dd_nu")
+        self.assertPerms(expected)
+        self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DD_NU)
+        expected.patch_generic_process_started()
+        expected.starts.patch("-dd_nu")
+        expected.proc.patch("app am activeam fd dam", "-edit_ldap")
+        self.assertPerms(expected)
+
+        # Assign manager
+        self._assign_am("fd")
+        expected.proc.patch("am", "+edit_bio")
+        expected.am_ok.patch("am", "+edit_statements")
+        expected.am_ok.patch("activeam", "+req_approve")
+        self.assertPerms(expected)
+
+        # Freeze for review
+        self._freeze_process("fd")
+        expected.patch_generic_process_frozen()
+        self.assertPerms(expected)
+
+        # Approve
+        self._approve_process("dam")
+        expected.patch_generic_process_approved()
+
+        # Finalize
+        self._close_process()
+        expected.patch_generic_process_closed()
+        expected.starts.patch("-dm_ga -dd_nu")
+        self.assertPerms(expected)
+
+    def test_dc_ddu(self):
+        """
+        Test all visit combinations for an applicant from dc to dd_u
+        """
+        expected = ProcExpected(self)
+        expected.keycheck = None
+
+        # Apply
+        self.persons.create("app", status=const.STATUS_DC)
+        self.persons.create("am", status=const.STATUS_DD_NU)
+        self.ams.create("am", person=self.persons.am)
+        expected.starts.set("dc_ga dm dd_u dd_nu")
+        self.assertPerms(expected)
+        self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DD_U)
+        expected.patch_generic_process_started()
+        expected.starts.patch("-dd_u")
+        expected.proc.patch("fd dam", "+edit_ldap")
+        expected.proc.patch("app", "+edit_ldap")
+        self.assertPerms(expected)
+
+        # Assign manager
+        self._assign_am("fd")
+        expected.proc.patch("am", "+edit_bio +edit_ldap")
+        expected.am_ok.patch("am", "+edit_statements")
+        expected.am_ok.patch("activeam", "+req_approve")
+        self.assertPerms(expected)
+
+        # Freeze for review
+        self._freeze_process("fd")
+        expected.patch_generic_process_frozen()
+        self.assertPerms(expected)
+
+        # Approve
+        self._approve_process("dam")
+        expected.patch_generic_process_approved()
+
+        # Finalize
+        self._close_process()
+        expected.patch_generic_process_closed()
+        expected.starts.patch("-dc_ga -dm -dd_nu -dd_u")
+        expected.proc.patch("fd dam", "-edit_ldap")
+        expected.proc.patch("app fd dam", "-edit_ldap -request_new_status")
+        self.assertPerms(expected)
+
+    def test_dcga_ddu(self):
+        """
+        Test all visit combinations for an applicant from dc_ga to dd_u
+        """
+        expected = ProcExpected(self)
+        expected.keycheck = None
+
+        # Apply
+        self.persons.create("app", status=const.STATUS_DC_GA)
+        self.persons.create("am", status=const.STATUS_DD_NU)
+        self.ams.create("am", person=self.persons.am)
+        expected.starts.set("dm_ga dd_u dd_nu")
+        self.assertPerms(expected)
+        self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DD_U)
+        expected.patch_generic_process_started()
+        expected.starts.patch("-dd_u")
+        expected.proc.patch("app am activeam fd dam", "-edit_ldap")
+        self.assertPerms(expected)
+
+        # Assign manager
+        self._assign_am("fd")
+        expected.proc.patch("am", "+edit_bio")
+        expected.am_ok.patch("am", "+edit_statements")
+        expected.am_ok.patch("activeam", "+req_approve")
+        self.assertPerms(expected)
+
+        # Freeze for review
+        self._freeze_process("fd")
+        expected.patch_generic_process_frozen()
+        self.assertPerms(expected)
+
+        # Approve
+        self._approve_process("dam")
+        expected.patch_generic_process_approved()
+
+        # Finalize
+        self._close_process()
+        expected.patch_generic_process_closed()
+        expected.starts.patch("-dm_ga -dd_nu -dd_u")
+        expected.proc.patch("app fd dam", "-edit_ldap -request_new_status")
+        self.assertPerms(expected)
+
+    def test_dm_ddu(self):
+        """
+        Test all visit combinations for an applicant from dm to dd_u
+        """
+        expected = ProcExpected(self)
+        expected.keycheck = None
+
+        # Apply
+        self.persons.create("app", status=const.STATUS_DM)
+        self.persons.create("am", status=const.STATUS_DD_NU)
+        self.ams.create("am", person=self.persons.am)
+        expected.starts.set("dm_ga dd_u")
+        self.assertPerms(expected)
+        self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DD_U)
+        expected.patch_generic_process_started()
+        expected.starts.patch("-dd_u")
+        expected.proc.patch("fd dam", "+edit_ldap")
+        expected.proc.patch("app", "+edit_ldap")
+        self.assertPerms(expected)
+
+        # Assign manager
+        self._assign_am("fd")
+        expected.proc.patch("am", "+edit_bio +edit_ldap")
+        expected.am_ok.patch("am", "+edit_statements")
+        expected.am_ok.patch("activeam", "+req_approve")
+        self.assertPerms(expected)
+
+        # Freeze for review
+        self._freeze_process("fd")
+        expected.patch_generic_process_frozen()
+        self.assertPerms(expected)
+
+        # Approve
+        self._approve_process("dam")
+        expected.patch_generic_process_approved()
+
+        # Finalize
+        self._close_process()
+        expected.patch_generic_process_closed()
+        expected.starts.patch("-dm_ga -dd_u")
+        expected.proc.patch("fd dam", "-edit_ldap")
+        expected.proc.patch("app fd dam", "-edit_ldap -request_new_status")
+        self.assertPerms(expected)
+
+
+    def test_dmga_ddu(self):
+        """
+        Test all visit combinations for an applicant from dm to dd_u
+        """
+        expected = ProcExpected(self)
+        expected.keycheck = None
+
+        # Apply
+        self.persons.create("app", status=const.STATUS_DM_GA)
+        self.persons.create("am", status=const.STATUS_DD_NU)
+        self.ams.create("am", person=self.persons.am)
+        expected.starts.set("dd_u")
+        self.assertPerms(expected)
+        self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DD_U)
+        expected.patch_generic_process_started()
+        expected.starts.patch("-dd_u")
+        expected.proc.patch("app am activeam fd dam", "-edit_ldap")
+        expected.proc.patch("app fd dam", "-edit_ldap -request_new_status")
+        self.assertPerms(expected)
+
+        # Assign manager
+        self._assign_am("fd")
+        expected.proc.patch("am", "+edit_bio")
+        expected.am_ok.patch("am", "+edit_statements")
+        expected.am_ok.patch("activeam", "+req_approve")
+        self.assertPerms(expected)
+
+        # Freeze for review
+        self._freeze_process("fd")
+        expected.patch_generic_process_frozen()
+        self.assertPerms(expected)
+
+        # Approve
+        self._approve_process("dam")
+        expected.patch_generic_process_approved()
+
+        # Finalize
+        self._close_process()
+        expected.patch_generic_process_closed()
+        self.assertPerms(expected)
+
+
+
+#class RequirementTestMixin(ProcessFixtureMixin):
+    # Changes according to:
+    # visitor (admin, dd, active am, applicant, dm (if applying for GA) (for advocate), current am (for am_ok)
+    # state of the requirement (approved or not)
+    # presence of statements
+    # uploader of statement
+    # state of the process (frozen or not)
+
+
+
+
+
+
+
+        # TODO: intent with no statements
+        # TODO: intent with a statement
+        # TODO: intent approved
+        # TODO: probably better, test requirements separately (like, intent and
+        #       sc_dmup are the same for everyone)
+        #       then here just test what happens when the various steps are
+        #       completed, or the AM is assigned
+
+
+
+#        requirements = ["intent", "sc_dmup"]
+#        if applying_for == const.STATUS_DC_GA:
+#            if person.status != const.STATUS_DC:
+#                raise RuntimeError("Invalid applying_for value {} for a person with status {}".format(applying_for, person.status))
+#            requirements.append("advocate")
+#        elif applying_for == const.STATUS_DM:
+#            if person.status != const.STATUS_DC:
+#                raise RuntimeError("Invalid applying_for value {} for a person with status {}".format(applying_for, person.status))
+#            requirements.append("advocate")
+#            requirements.append("keycheck")
+#        elif applying_for == const.STATUS_DM_GA:
+#            if person.status == const.STATUS_DC_GA:
+#                requirements.append("advocate")
+#                requirements.append("keycheck")
+#            elif person.status == const.STATUS_DM:
+#                # No extra requirement: the declaration of intents is
+#                # sufficient
+#                pass
+#            else:
+#                raise RuntimeError("Invalid applying_for value {} for a person with status {}".format(applying_for, person.status))
+#        elif applying_for in (const.STATUS_DD_U, const.STATUS_DD_NU):
+#            if person.status != const.STATUS_DD_NU:
+#                requirements.append("keycheck")
+#                requirements.append("am_ok")
+#            if person.status not in (const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD):
+#                requirements.append("advocate")
+#        else:
+#            raise RuntimeError("Invalid applying_for value {}".format(applying_for))
+
 
 #class TestPermsRequirementIntent(ProcessFixtureMixin, TestCase):
 #    @classmethod
@@ -192,505 +638,4 @@ class ProcExpected(object):
     # log comments
     # freeze process and ensure it's unchangeable
 
-
-class TestVisitApplicant(ProcessFixtureMixin, TestCase):
-    def assertPerms(self, perms):
-        # Check advocacy targets
-        can_start = set(self.persons.app.possible_new_statuses)
-        if can_start != perms.starts:
-            extra = can_start - perms.starts
-            missing = perms.starts - can_start
-            msgs = []
-            if missing: msgs.append("missing: {}".format(", ".join(missing)))
-            if extra: msgs.append("extra: {}".format(", ".join(extra)))
-            self.fail("adv startable processes mismatch: " + "; ".join(msgs))
-
-        # If the process has not yet been created, we skip testing it
-        if "app" not in self.processes: return
-
-        # Check process permissions
-        for visitor in perms.proc.visitors:
-            visit_perms = self.processes.app.permissions_of(self.persons[visitor])
-            perms.proc.assertEqual(self, visitor, visit_perms)
-        for visitor in perms.proc.select_others(self.persons):
-            visit_perms = self.processes.app.permissions_of(self.persons[visitor] if visitor else None)
-            perms.proc.assertEmpty(self, visitor, visit_perms)
-
-        # Check requirements
-        for req in ("intent", "sc_dmup", "advocate", "keycheck", "am_ok"):
-            p = getattr(perms, req, None)
-            if p is None: continue
-            wanted = p.combine(perms.proc)
-
-            requirement = pmodels.Requirement.objects.get(process=self.processes.app, type=req)
-            for visitor in wanted.visitors:
-                visit_perms = requirement.permissions_of(self.persons[visitor])
-                wanted.assertEqual(self, visitor, visit_perms)
-            for visitor in wanted.select_others(self.persons):
-                visit_perms = requirement.permissions_of(self.persons[visitor] if visitor else None)
-                wanted.assertEmpty(self, visitor, visit_perms)
-
-
-##    def assertApplicantPermsInitialProcess(self, expected):
-##        for p in (const.PROGRESS_APP_NEW, const.PROGRESS_APP_RCVD, const.PROGRESS_APP_HOLD, const.PROGRESS_ADV_RCVD, const.PROGRESS_POLL_SENT):
-##            self.processes.app.progress = p
-##            self.processes.app.save()
-##            self.assertApplicantPerms(expected)
-##
-##    def assertApplicantPermsHasAdvocate(self, expected):
-##        for p in (const.PROGRESS_APP_OK,):
-##            self.processes.app.progress = p
-##            self.processes.app.save()
-##            self.assertApplicantPerms(expected)
-##
-##    def assertApplicantPermsAMApproved(self, expected):
-##        for p in (const.PROGRESS_AM_OK, const.PROGRESS_FD_HOLD, const.PROGRESS_FD_OK, const.PROGRESS_DAM_HOLD, const.PROGRESS_DAM_OK):
-##            self.processes.app.progress = p
-##            self.processes.app.save()
-##            self.assertApplicantPerms(expected)
-##
-##    def assertApplicantPermsFinal(self, expected):
-##        for p in (const.PROGRESS_DONE, const.PROGRESS_CANCELLED):
-##            self.processes.app.progress = p
-##            self.processes.app.is_active = False
-##            self.processes.app.save()
-##            self.assertApplicantPerms(expected)
-
-
-#        requirements = ["intent", "sc_dmup"]
-#        if applying_for == const.STATUS_DC_GA:
-#            if person.status != const.STATUS_DC:
-#                raise RuntimeError("Invalid applying_for value {} for a person with status {}".format(applying_for, person.status))
-#            requirements.append("advocate")
-#        elif applying_for == const.STATUS_DM:
-#            if person.status != const.STATUS_DC:
-#                raise RuntimeError("Invalid applying_for value {} for a person with status {}".format(applying_for, person.status))
-#            requirements.append("advocate")
-#            requirements.append("keycheck")
-#        elif applying_for == const.STATUS_DM_GA:
-#            if person.status == const.STATUS_DC_GA:
-#                requirements.append("advocate")
-#                requirements.append("keycheck")
-#            elif person.status == const.STATUS_DM:
-#                # No extra requirement: the declaration of intents is
-#                # sufficient
-#                pass
-#            else:
-#                raise RuntimeError("Invalid applying_for value {} for a person with status {}".format(applying_for, person.status))
-#        elif applying_for in (const.STATUS_DD_U, const.STATUS_DD_NU):
-#            if person.status != const.STATUS_DD_NU:
-#                requirements.append("keycheck")
-#                requirements.append("am_ok")
-#            if person.status not in (const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD):
-#                requirements.append("advocate")
-#        else:
-#            raise RuntimeError("Invalid applying_for value {}".format(applying_for))
-
-    def _assign_am(self, visitor):
-        pmodels.AMAssignment.objects.create(process=self.processes.app, am=self.ams.am, assigned_by=self.persons[visitor], assigned_time=now())
-
-    def _freeze_process(self, visitor):
-        """
-        Set a process as frozen for FD/DAM review
-        """
-        self.processes.app.frozen_by = self.persons[visitor]
-        self.processes.app.frozen_time = now()
-        self.processes.app.save()
-
-    def _approve_process(self, visitor):
-        """
-        Set a process as approved by DAM
-        """
-        self.processes.app.approved_by = self.persons[visitor]
-        self.processes.app.approved_time = now()
-        self.processes.app.save()
-
-    def _close_process(self):
-        """
-        Finalize a process
-        """
-        self.processes.app.closed = now()
-        self.processes.app.save()
-        self.persons.app.status = self.processes.app.applying_for
-        self.persons.app.save(audit_skip=True)
-
-    def test_dc_dcga(self):
-        """
-        Test all visit combinations for an applicant from dc to dc_ga
-        """
-        expected = ProcExpected()
-        expected.keycheck = None
-        expected.am_ok = None
-
-        # Apply
-        self.persons.create("app", status=const.STATUS_DC)
-        expected.starts.set("dc_ga dm dd_u dd_nu")
-        self.assertPerms(expected)
-        self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DC_GA)
-        expected.patch_generic_process_started()
-        expected.starts.patch("-dc_ga")
-        expected.proc.patch("fd dam", "+edit_ldap")
-        expected.proc.patch("app", "+edit_ldap")
-        expected.advocate.patch("dm dm_ga", "+edit_statements")
-        self.assertPerms(expected)
-
-        # Freeze for review
-        self._freeze_process("fd")
-        expected.patch_generic_process_frozen()
-        expected.advocate.patch("dm dm_ga", "-edit_statements")
-        self.assertPerms(expected)
-
-        # Approve
-        self._approve_process("dam")
-        expected.patch_generic_process_approved()
-
-        # Finalize
-        self._close_process()
-        expected.patch_generic_process_closed()
-        expected.starts.patch("-dc_ga -dm +dm_ga")
-        expected.proc.patch("fd dam", "-edit_ldap")
-        self.assertPerms(expected)
-
-    def test_dm_dmga(self):
-        """
-        Test all visit combinations for an applicant from dm to dm_ga
-        """
-        expected = ProcExpected()
-        expected.advocate = None
-        expected.keycheck = None
-        expected.am_ok = None
-
-        # Apply
-        self.persons.create("app", status=const.STATUS_DM)
-        expected.starts.set("dm_ga dd_u")
-        self.assertPerms(expected)
-        self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DM_GA)
-        expected.patch_generic_process_started()
-        expected.starts.patch("-dm_ga")
-        expected.proc.patch("fd dam", "+edit_ldap")
-        expected.proc.patch("app", "+edit_ldap")
-        self.assertPerms(expected)
-
-        # Freeze for review
-        self._freeze_process("fd")
-        expected.patch_generic_process_frozen()
-        self.assertPerms(expected)
-
-        # Approve
-        self._approve_process("dam")
-        expected.patch_generic_process_approved()
-
-        # Finalize
-        self._close_process()
-        expected.patch_generic_process_closed()
-        expected.starts.patch("-dm_ga")
-        expected.proc.patch("fd dam", "-edit_ldap")
-        self.assertPerms(expected)
-
-    def test_dc_dm(self):
-        """
-        Test all visit combinations for an applicant from dc to dm
-        """
-        expected = ProcExpected()
-        expected.keycheck = None
-        expected.am_ok = None
-
-        # Apply
-        self.persons.create("app", status=const.STATUS_DC)
-        expected.starts.set("dc_ga dm dd_u dd_nu")
-        self.assertPerms(expected)
-        self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DM)
-        expected.patch_generic_process_started()
-        expected.starts.patch("-dm")
-        expected.proc.patch("fd dam", "+edit_ldap")
-        expected.proc.patch("app", "+edit_ldap")
-        self.assertPerms(expected)
-
-        # Freeze for review
-        self._freeze_process("fd")
-        expected.patch_generic_process_frozen()
-        self.assertPerms(expected)
-
-        # Approve
-        self._approve_process("dam")
-        expected.patch_generic_process_approved()
-
-        # Finalize
-        self._close_process()
-        expected.patch_generic_process_closed()
-        expected.starts.patch("-dc_ga -dm +dm_ga -dd_nu")
-        self.assertPerms(expected)
-
-    def test_dc_ddnu(self):
-        """
-        Test all visit combinations for an applicant from dc to dd_nu
-        """
-        expected = ProcExpected()
-        expected.keycheck = None
-
-        # Apply
-        self.persons.create("app", status=const.STATUS_DC)
-        self.persons.create("am", status=const.STATUS_DD_NU)
-        self.ams.create("am", person=self.persons.am)
-        expected.starts.set("dc_ga dm dd_u dd_nu")
-        self.assertPerms(expected)
-        self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DD_NU)
-        expected.patch_generic_process_started()
-        expected.starts.patch("-dd_nu")
-        expected.proc.patch("fd dam", "+edit_ldap")
-        expected.proc.patch("app", "+edit_ldap")
-        self.assertPerms(expected)
-
-        # Assign manager
-        self._assign_am("fd")
-        expected.proc.patch("am", "+edit_bio +edit_ldap")
-        expected.am_ok.patch("am", "+edit_statements")
-        expected.am_ok.patch("activeam", "+req_approve")
-        self.assertPerms(expected)
-
-        # Freeze for review
-        self._freeze_process("fd")
-        expected.patch_generic_process_frozen()
-        self.assertPerms(expected)
-
-        # Approve
-        self._approve_process("dam")
-        expected.patch_generic_process_approved()
-
-        # Finalize
-        self._close_process()
-        expected.patch_generic_process_closed()
-        expected.starts.patch("-dc_ga -dm -dd_nu")
-        expected.proc.patch("fd dam", "-edit_ldap")
-        self.assertPerms(expected)
-
-    def test_dcga_ddnu(self):
-        """
-        Test all visit combinations for an applicant from dc_ga to dd_nu
-        """
-        expected = ProcExpected()
-        expected.keycheck = None
-
-        # Apply
-        self.persons.create("app", status=const.STATUS_DC_GA)
-        self.persons.create("am", status=const.STATUS_DD_NU)
-        self.ams.create("am", person=self.persons.am)
-        expected.starts.set("dm_ga dd_u dd_nu")
-        self.assertPerms(expected)
-        self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DD_NU)
-        expected.patch_generic_process_started()
-        expected.starts.patch("-dd_nu")
-        expected.proc.patch("app am activeam fd dam", "-edit_ldap")
-        self.assertPerms(expected)
-
-        # Assign manager
-        self._assign_am("fd")
-        expected.proc.patch("am", "+edit_bio")
-        expected.am_ok.patch("am", "+edit_statements")
-        expected.am_ok.patch("activeam", "+req_approve")
-        self.assertPerms(expected)
-
-        # Freeze for review
-        self._freeze_process("fd")
-        expected.patch_generic_process_frozen()
-        self.assertPerms(expected)
-
-        # Approve
-        self._approve_process("dam")
-        expected.patch_generic_process_approved()
-
-        # Finalize
-        self._close_process()
-        expected.patch_generic_process_closed()
-        expected.starts.patch("-dm_ga -dd_nu")
-        self.assertPerms(expected)
-
-    def test_dc_ddu(self):
-        """
-        Test all visit combinations for an applicant from dc to dd_u
-        """
-        expected = ProcExpected()
-        expected.keycheck = None
-
-        # Apply
-        self.persons.create("app", status=const.STATUS_DC)
-        self.persons.create("am", status=const.STATUS_DD_NU)
-        self.ams.create("am", person=self.persons.am)
-        expected.starts.set("dc_ga dm dd_u dd_nu")
-        self.assertPerms(expected)
-        self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DD_U)
-        expected.patch_generic_process_started()
-        expected.starts.patch("-dd_u")
-        expected.proc.patch("fd dam", "+edit_ldap")
-        expected.proc.patch("app", "+edit_ldap")
-        self.assertPerms(expected)
-
-        # Assign manager
-        self._assign_am("fd")
-        expected.proc.patch("am", "+edit_bio +edit_ldap")
-        expected.am_ok.patch("am", "+edit_statements")
-        expected.am_ok.patch("activeam", "+req_approve")
-        self.assertPerms(expected)
-
-        # Freeze for review
-        self._freeze_process("fd")
-        expected.patch_generic_process_frozen()
-        self.assertPerms(expected)
-
-        # Approve
-        self._approve_process("dam")
-        expected.patch_generic_process_approved()
-
-        # Finalize
-        self._close_process()
-        expected.patch_generic_process_closed()
-        expected.starts.patch("-dc_ga -dm -dd_nu -dd_u")
-        expected.proc.patch("fd dam", "-edit_ldap")
-        expected.proc.patch("app fd dam", "-edit_ldap -request_new_status")
-        self.assertPerms(expected)
-
-    def test_dcga_ddu(self):
-        """
-        Test all visit combinations for an applicant from dc_ga to dd_u
-        """
-        expected = ProcExpected()
-        expected.keycheck = None
-
-        # Apply
-        self.persons.create("app", status=const.STATUS_DC_GA)
-        self.persons.create("am", status=const.STATUS_DD_NU)
-        self.ams.create("am", person=self.persons.am)
-        expected.starts.set("dm_ga dd_u dd_nu")
-        self.assertPerms(expected)
-        self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DD_U)
-        expected.patch_generic_process_started()
-        expected.starts.patch("-dd_u")
-        expected.proc.patch("app am activeam fd dam", "-edit_ldap")
-        self.assertPerms(expected)
-
-        # Assign manager
-        self._assign_am("fd")
-        expected.proc.patch("am", "+edit_bio")
-        expected.am_ok.patch("am", "+edit_statements")
-        expected.am_ok.patch("activeam", "+req_approve")
-        self.assertPerms(expected)
-
-        # Freeze for review
-        self._freeze_process("fd")
-        expected.patch_generic_process_frozen()
-        self.assertPerms(expected)
-
-        # Approve
-        self._approve_process("dam")
-        expected.patch_generic_process_approved()
-
-        # Finalize
-        self._close_process()
-        expected.patch_generic_process_closed()
-        expected.starts.patch("-dm_ga -dd_nu -dd_u")
-        expected.proc.patch("app fd dam", "-edit_ldap -request_new_status")
-        self.assertPerms(expected)
-
-    def test_dm_ddu(self):
-        """
-        Test all visit combinations for an applicant from dm to dd_u
-        """
-        expected = ProcExpected()
-        expected.keycheck = None
-
-        # Apply
-        self.persons.create("app", status=const.STATUS_DM)
-        self.persons.create("am", status=const.STATUS_DD_NU)
-        self.ams.create("am", person=self.persons.am)
-        expected.starts.set("dm_ga dd_u")
-        self.assertPerms(expected)
-        self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DD_U)
-        expected.patch_generic_process_started()
-        expected.starts.patch("-dd_u")
-        expected.proc.patch("fd dam", "+edit_ldap")
-        expected.proc.patch("app", "+edit_ldap")
-        self.assertPerms(expected)
-
-        # Assign manager
-        self._assign_am("fd")
-        expected.proc.patch("am", "+edit_bio +edit_ldap")
-        expected.am_ok.patch("am", "+edit_statements")
-        expected.am_ok.patch("activeam", "+req_approve")
-        self.assertPerms(expected)
-
-        # Freeze for review
-        self._freeze_process("fd")
-        expected.patch_generic_process_frozen()
-        self.assertPerms(expected)
-
-        # Approve
-        self._approve_process("dam")
-        expected.patch_generic_process_approved()
-
-        # Finalize
-        self._close_process()
-        expected.patch_generic_process_closed()
-        expected.starts.patch("-dm_ga -dd_u")
-        expected.proc.patch("fd dam", "-edit_ldap")
-        expected.proc.patch("app fd dam", "-edit_ldap -request_new_status")
-        self.assertPerms(expected)
-
-
-    def test_dmga_ddu(self):
-        """
-        Test all visit combinations for an applicant from dm to dd_u
-        """
-        expected = ProcExpected()
-        expected.keycheck = None
-
-        # Apply
-        self.persons.create("app", status=const.STATUS_DM_GA)
-        self.persons.create("am", status=const.STATUS_DD_NU)
-        self.ams.create("am", person=self.persons.am)
-        expected.starts.set("dd_u")
-        self.assertPerms(expected)
-        self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DD_U)
-        expected.patch_generic_process_started()
-        expected.starts.patch("-dd_u")
-        expected.proc.patch("app am activeam fd dam", "-edit_ldap")
-        expected.proc.patch("app fd dam", "-edit_ldap -request_new_status")
-        self.assertPerms(expected)
-
-        # Assign manager
-        self._assign_am("fd")
-        expected.proc.patch("am", "+edit_bio")
-        expected.am_ok.patch("am", "+edit_statements")
-        expected.am_ok.patch("activeam", "+req_approve")
-        self.assertPerms(expected)
-
-        # Freeze for review
-        self._freeze_process("fd")
-        expected.patch_generic_process_frozen()
-        self.assertPerms(expected)
-
-        # Approve
-        self._approve_process("dam")
-        expected.patch_generic_process_approved()
-
-        # Finalize
-        self._close_process()
-        expected.patch_generic_process_closed()
-        self.assertPerms(expected)
-
-
-
-
-
-
-
-
-
-
-        # TODO: intent with no statements
-        # TODO: intent with a statement
-        # TODO: intent approved
-        # TODO: probably better, test requirements separately (like, intent and
-        #       sc_dmup are the same for everyone)
-        #       then here just test what happens when the various steps are
-        #       completed, or the AM is assigned
 
