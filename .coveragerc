@@ -1,0 +1,12 @@
+# eatmydata python-coverage run ./manage.py test
+# python-coverage report
+# python-coverage html
+
+[run]
+source = .
+omit =
+  ./django/*
+  ./django_housekeeping/*
+  ./*/management/commands/*
+  ./*/migrations/*
+  ./fabfile*
