@@ -43,7 +43,7 @@ class TestProcessShow(ProcessFixtureMixin, TestCase):
     def assertPageElements(self, response, visit_perms):
         # Check page elements based on visit_perms
         wanted = []
-        if visit_perms.visitor.is_admin:
+        if visit_perms.visitor and visit_perms.visitor.is_admin:
             wanted.append("view_fd_comment")
         if "add_log" in visit_perms:
             wanted += ["log_public", "log_private"]
@@ -53,7 +53,7 @@ class TestProcessShow(ProcessFixtureMixin, TestCase):
 
     def _test_perms(self, src, tgt, visitor, am=None):
         self.persons.create("app", status=src)
-        self.processes.create("app", person=self.persons.app, applying_for=tgt)
+        self.processes.create("app", person=self.persons.app, applying_for=tgt, fd_comment="test")
         if am is not None:
             self.persons.create("am", status=am)
             self.ams.create("am", person=self.persons.am)

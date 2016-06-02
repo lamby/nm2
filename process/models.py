@@ -146,7 +146,7 @@ class ProcessManager(models.Manager):
         return requirements
 
     @transaction.atomic
-    def create(self, person, applying_for):
+    def create(self, person, applying_for, **kw):
         """
         Create a new process and all its requirements
         """
@@ -162,7 +162,7 @@ class ProcessManager(models.Manager):
         requirements = self.compute_requirements(person.status, applying_for)
 
         # Create the new process
-        res = self.model(person=person, applying_for=applying_for)
+        res = self.model(person=person, applying_for=applying_for, **kw)
         # Save it to get an ID
         res.save(using=self._db)
 

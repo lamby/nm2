@@ -26,7 +26,7 @@ class TestProcesses(NamedObjects):
 #            except AM.DoesNotExist:
 #                am = AM.objects.create(person=kw["manager"])
 #            kw["manager"] = am
-#
+
         self[_name] = o = self._model.objects.create(**kw)
 #        for a in advocates:
 #            o.advocates.add(a)
