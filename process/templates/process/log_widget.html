@@ -1,11 +1,8 @@
 <p>
-<form method="POST"
+<form method="POST" action="{% url 'process_add_log' pk=process.pk %}">{% csrf_token %}
   {% if requirement %}
-  action="{% url 'process_add_requirement_log' pk=process.pk type=requirement.type %}"
-  {% else %}
-  action="{% url 'process_add_log' pk=process.pk %}"
+  <input type="hidden" name="req_type" value="{{requirement.type}}">
   {% endif %}
-  >{% csrf_token %}
   Add log entry:
   <br/>
   <textarea name="logtext" rows="3" cols="80" placeholder="vacation notice / remark about the process / status update / ..."></textarea>

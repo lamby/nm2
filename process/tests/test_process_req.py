@@ -26,7 +26,6 @@ class TestProcessReq(ProcessFixtureMixin, TestCase):
             for visitor in visitors:
                 if want_am:
                     cls._add_method(cls._test_perms, src, tgt, visitor, am="dd_nu")
-                    cls._add_method(cls._test_perms, src, tgt, visitor, am="dd_u")
                 else:
                     cls._add_method(cls._test_perms, src, tgt, visitor)
 

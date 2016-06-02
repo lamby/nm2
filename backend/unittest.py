@@ -156,7 +156,9 @@ class TestBase(object):
             kw["SSL_CLIENT_S_DN_CN"] = person.username
         elif sso_username is not None:
             kw["SSL_CLIENT_S_DN_CN"] = sso_username
-        return Client(**kw)
+        client = Client(**kw)
+        client.visitor = person
+        return client
 
     def assertPermissionDenied(self, response):
         if response.status_code == 403:

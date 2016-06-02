@@ -10,6 +10,7 @@ from django.views.generic.edit import FormView
 from django.utils.timezone import now
 from django.db import transaction
 from django import forms, http
+from django.core.exceptions import PermissionDenied
 from backend.mixins import VisitorMixin, VisitPersonMixin
 from backend import const
 import backend.models as bmodels
@@ -83,46 +84,57 @@ class AddProcessLog(VisitProcessMixin, View):
     def post(self, request, *args, **kw):
         logtext = request.POST.get("logtext", "")
         action = request.POST.get("add_action", "undefined")
+        req_type = request.POST.get("req_type", None)
         is_public = True
 
-        if "type" in kw:
-            requirement = get_object_or_404(pmodels.Requirement, process=self.process, type=kw["type"])
+        if req_type:
+            requirement = get_object_or_404(pmodels.Requirement, process=self.process, type=req_type)
             target = requirement
         else:
             requirement = None
             target = self.process
 
+        visit_perms = target.permissions_of(self.visitor)
+
         if action == "log_private":
+            if "add_log" not in visit_perms: raise PermissionDenied
             is_public = False
             action = ""
         elif action == "log_public":
+            if "add_log" not in visit_perms: raise PermissionDenied
             action = ""
         elif action == "req_unapprove":
+            if action not in visit_perms: raise PermissionDenied
             if not logtext: logtext = "Unapproved"
             requirement.approved_by = None
             requirement.approved_time = None
             requirement.save()
         elif action == "req_approve":
+            if action not in visit_perms: raise PermissionDenied
             if not logtext: logtext = "Approved"
             requirement.approved_by = self.visitor
             requirement.approved_time = now()
             requirement.save()
         elif action == "proc_freeze":
+            if action not in visit_perms: raise PermissionDenied
             if not logtext: logtext = "Frozen for review"
             self.process.frozen_by = self.visitor
             self.process.frozen_time = now()
             self.process.save()
         elif action == "proc_unfreeze":
+            if action not in visit_perms: raise PermissionDenied
             if not logtext: logtext = "Unfrozen for further work"
             self.process.frozen_by = None
             self.process.frozen_time = None
             self.process.save()
         elif action == "proc_approve":
+            if action not in visit_perms: raise PermissionDenied
             if not logtext: logtext = "Process approved"
             self.process.approved_by = self.visitor
             self.process.approved_time = now()
             self.process.save()
         elif action == "proc_unapprove":
+            if action not in visit_perms: raise PermissionDenied
             if not logtext: logtext = "Process unapproved"
             self.process.approved_by = None
             self.process.approved_time = None
