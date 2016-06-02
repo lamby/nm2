@@ -69,14 +69,15 @@ class RequirementVisitorPermissions(ProcessVisitorPermissions):
             pass
         elif self.visitor.is_admin:
             if not self.process.closed:
-                self.update(("edit_statements", "req_approve", "req_unapprove"))
+                self.add("edit_statements")
+                self.add("req_unapprove" if self.requirement.approved_by else "req_approve")
         elif not self.process_frozen:
             if self.requirement.type == "intent":
                 if self.visitor == self.person: self.add("edit_statements")
-                if self.visitor.is_dd: self.update(("req_approve", "req_unapprove"))
+                if self.visitor.is_dd: self.add("req_unapprove" if self.requirement.approved_by else "req_approve")
             elif self.requirement.type == "sc_dmup":
                 if self.visitor == self.person: self.add("edit_statements")
-                if self.visitor.is_dd: self.update(("req_approve", "req_unapprove"))
+                if self.visitor.is_dd: self.add("req_unapprove" if self.requirement.approved_by else "req_approve")
             elif self.requirement.type == "advocate":
                 if self.process.applying_for == const.STATUS_DC_GA:
                     if self.visitor.status in (const.STATUS_DM, const.STATUS_DM_GA, const.STATUS_DD_NU, const.STATUS_DD_U):
@@ -93,14 +94,14 @@ class RequirementVisitorPermissions(ProcessVisitorPermissions):
                 elif self.process.applying_for == const.STATUS_DD_U:
                     if self.visitor.status in (const.STATUS_DD_NU, const.STATUS_DD_U):
                         self.add("edit_statements")
-                if self.visitor.is_dd: self.update(("req_approve", "req_unapprove"))
+                if self.visitor.is_dd: self.add("req_unapprove" if self.requirement.approved_by else "req_approve")
             elif self.requirement.type == "am_ok":
                 a = self.process.current_am_assignment
                 if a is not None:
                     if a.am.person == self.visitor:
                         self.add("edit_statements")
                     elif self.visitor.is_active_am:
-                        self.update(("req_approve", "req_unapprove"))
+                        self.add("req_unapprove" if self.requirement.approved_by else "req_approve")
 
 
 class ProcessManager(models.Manager):
