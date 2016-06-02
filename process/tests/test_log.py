@@ -15,6 +15,10 @@ import uuid
 
 # TODO:  list log entries, check confidentiality filter
 
+mock_ts = datetime.datetime(2016, 1, 1, 0, 0, 0)
+
+def mock_now():
+    return mock_ts
 
 class TestLog(ProcessFixtureMixin, TestCase):
     @classmethod
@@ -48,6 +52,81 @@ class TestLog(ProcessFixtureMixin, TestCase):
 
         cls.visitor = None
 
+    def get_new_log(self, process, logtext):
+        entry = pmodels.Log.objects.get(process=process, logtext=logtext)
+        self.assertEqual(entry.changed_by, self.visitor)
+        self.assertEqual(entry.process, self.processes.app)
+        self.assertEqual(entry.logdate, mock_ts)
+        return entry
+
+    def assertFailed(self, response, logtext):
+        self.assertPermissionDenied(response)
+        self.assertFalse(pmodels.Log.objects.filter(process=self.processes.app, logtext=logtext).exists())
+        self.processes.app.refresh_from_db()
+        self.assertEqual(self.processes.app.frozen_by, self.persons.fd)
+        self.assertEqual(self.processes.app.frozen_time, self.orig_ts)
+        self.assertEqual(self.processes.app.approved_by, self.persons.fd)
+        self.assertEqual(self.processes.app.approved_time, self.orig_ts)
+        self.assertEqual(self.processes.app.closed, self.orig_ts)
+
+    @patch("django.utils.timezone.now", new_callable=mock_now)
+    def test_process_log_private(self):
+        client = self.make_test_client(self.visitor)
+        logtext = uuid.uuid4().hex
+
+        with patch.object(pmodels.Process, "permissions_of", return_value=set()):
+            response = client.post(self.url, data={"logtext": logtext, "add_action": "log_private"})
+            self.assertFailed(response, logtext)
+
+        with patch.object(pmodels.Process, "permissions_of", return_value=set(["add_log"])):
+            response = client.post(self.url, data={"logtext": logtext, "add_action": "log_private"})
+            self.assertRedirectMatches(response, self.processes.app.get_absolute_url())
+            entry = self.get_new_log(self.processes.app, logtext)
+            self.assertIsNone(entry.requirement)
+            self.assertFalse(entry.is_public)
+            self.assertEqual(entry.action, "")
+
+    @patch("django.utils.timezone.now", new_callable=mock_now)
+    def test_process_log_public(self):
+        client = self.make_test_client(self.visitor)
+        logtext = uuid.uuid4().hex
+
+        with patch.object(pmodels.Process, "permissions_of", return_value=set()):
+            response = client.post(self.url, data={"logtext": logtext, "add_action": "log_public"})
+            self.assertFailed(response, logtext)
+
+        with patch.object(pmodels.Process, "permissions_of", return_value=set(["add_log"])):
+            response = client.post(self.url, data={"logtext": logtext, "add_action": "log_public"})
+            self.assertRedirectMatches(response, self.processes.app.get_absolute_url())
+            entry = self.get_new_log(self.processes.app, logtext)
+            self.assertIsNone(entry.requirement)
+            self.assertTrue(entry.is_public)
+            self.assertEqual(entry.action, "")
+
+    @patch("django.utils.timezone.now", new_callable=mock_now)
+    def test_process_proc_freeze(self):
+        client = self.make_test_client(self.visitor)
+        logtext = uuid.uuid4().hex
+
+        with patch.object(pmodels.Process, "permissions_of", return_value=set()):
+            response = client.post(self.url, data={"logtext": logtext, "add_action": "proc_freeze"})
+            self.assertFailed(response, logtext)
+
+        with patch.object(pmodels.Process, "permissions_of", return_value=set(["proc_freeze"])):
+            response = client.post(self.url, data={"logtext": logtext, "add_action": "proc_freeze"})
+            self.assertRedirectMatches(response, self.processes.app.get_absolute_url())
+            entry = self.get_new_log(self.processes.app, logtext)
+            self.assertIsNone(entry.requirement)
+            self.assertTrue(entry.is_public)
+            self.assertEqual(entry.action, "proc_freeze")
+            self.process.app.refresh_from_db()
+            self.assertEqual(self.processes.app.frozen_by, self.visitor)
+            self.assertEqual(self.processes.app.frozen_time, self.orig_ts)
+            self.assertEqual(self.processes.app.approved_by, self.persons.fd)
+            self.assertEqual(self.processes.app.approved_time, self.orig_ts)
+            self.assertEqual(self.processes.app.closed, self.orig_ts)
+
+
         #    if cls.am_assigned:
         #        pmodels.AMAssignment.objects.create(process=cls.processes.app, am=cls.ams.am, assigned_by=cls.persons["fd"], assigned_time=ts)
         #else:
@@ -65,37 +144,6 @@ class TestLog(ProcessFixtureMixin, TestCase):
 #            cls._add_method(cls._test_add_log, visitor, "proc_unfreeze", "proc_unfreeze")
 #            cls._add_method(cls._test_add_log, visitor, "proc_approve", "proc_approve")
 
-    def get_new_log(self, process, logtext):
-        entry = pmodels.Log.objects.get(process=process, logtext=logtext)
-        self.assertEqual(entry.changed_by, self.visitor)
-        self.assertEqual(entry.process, self.processes.app)
-        return entry
-
-    def assertFailed(self, response, logtext):
-        self.assertPermissionDenied(response)
-        self.assertFalse(pmodels.Log.objects.filter(process=self.processes.app, logtext=logtext).exists())
-        self.processes.app.refresh_from_db()
-        self.assertEqual(self.processes.app.frozen_by, self.persons.fd)
-        self.assertEqual(self.processes.app.frozen_time, self.orig_ts)
-        self.assertEqual(self.processes.app.approved_by, self.persons.fd)
-        self.assertEqual(self.processes.app.approved_time, self.orig_ts)
-        self.assertEqual(self.processes.app.closed, self.orig_ts)
-
-    def test_process_log_private(self):
-        client = self.make_test_client(self.visitor)
-        logtext = uuid.uuid4().hex
-
-        with patch.object(pmodels.Process, "permissions_of", return_value=set()):
-            response = client.post(self.url, data={"logtext": logtext, "add_action": "log_private"})
-            self.assertFailed(response, logtext)
-
-        with patch.object(pmodels.Process, "permissions_of", return_value=set(["add_log"])):
-            response = client.post(self.url, data={"logtext": logtext, "add_action": "log_private"})
-            self.assertRedirectMatches(response, self.processes.app.get_absolute_url())
-            entry = self.get_new_log(self.processes.app, logtext)
-            self.assertIsNone(entry.requirement)
-            self.assertFalse(entry.is_public)
-            self.assertEqual(entry.action, "")
 
 
 #    def _test_add_log(self, visitor, action, perm):
