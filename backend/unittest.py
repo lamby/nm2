@@ -239,6 +239,9 @@ class PersonFixtureMixin(BaseFixtureMixin):
         cls.persons.create("dd_e", status=const.STATUS_EMERITUS_DD)
         # dd, removed
         cls.persons.create("dd_r", status=const.STATUS_REMOVED_DD)
+        # unrelated active am
+        fd = cls.persons.create("activeam", status=const.STATUS_DD_NU)
+        cls.ams.create("activeam", person=fd)
         # fd
         fd = cls.persons.create("fd", status=const.STATUS_DD_NU)
         cls.ams.create("fd", person=fd, is_fd=True)
