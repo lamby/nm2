@@ -46,9 +46,9 @@
   <tr>
       <td>{{fpr.fpr|fingerprint}}</td>
       <td>
-        {% if "edit_statements" in vperms.perms %}
+        {% if "edit_statements" in visit_perms %}
         <a href="{% url 'fprs_agreement_edit' key=person.lookup_key fpr=fpr.fpr %}">{{fpr.agreement_status}}</a>
-        {% elif "see_statements" in vperms.perms %}
+        {% elif "see_statements" in visit_perms %}
         <a href="{% url 'fprs_agreement_show' key=person.lookup_key fpr=fpr.fpr %}">{{fpr.agreement_status}}</a>
         {% endif %}
         </a>

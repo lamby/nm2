@@ -126,29 +126,29 @@ class TestVisitPersonNoProcess(OldProcessFixtureMixin, TestVisitPersonMixin, Tes
         other_visitors.add(None)
         for visitor, expected_perms in perms.perms.items():
             other_visitors.discard(visitor)
-            vperms = self.persons[visited].permissions_of(self.persons[visitor])
+            visit_perms = self.persons[visited].permissions_of(self.persons[visitor])
             self.assertPermsEqual(
                 "{} visiting {}".format(visitor, visited), "permissions",
-                expected_perms, vperms.perms)
+                expected_perms, visit_perms)
         for visitor in other_visitors:
-            vperms = self.persons[visited].permissions_of(self.persons[visitor] if visitor else None)
+            visit_perms = self.persons[visited].permissions_of(self.persons[visitor] if visitor else None)
             self.assertPermsEqual(
                 "{} visiting {}".format(visitor, visited), "permissions",
-                [], vperms.perms)
+                [], visit_perms)
 
         other_visitors = set(self.persons.keys())
         other_visitors.add(None)
         for visitor, expected_targets in perms.advs.items():
             other_visitors.discard(visitor)
-            vperms = self.persons[visited].permissions_of(self.persons[visitor])
+            visit_perms = self.persons[visited].permissions_of(self.persons[visitor])
             self.assertPermsEqual(
                 "{} advocating {}".format(visitor, visited), "target",
-                    expected_targets, vperms.advocate_targets)
+                    expected_targets, visit_perms.advocate_targets)
         for visitor in other_visitors:
-            vperms = self.persons[visited].permissions_of(self.persons[visitor] if visitor else None)
+            visit_perms = self.persons[visited].permissions_of(self.persons[visitor] if visitor else None)
             self.assertPermsEqual(
                 "{} advocating {}".format(visitor, visited), "target",
-                [], vperms.advocate_targets)
+                [], visit_perms.advocate_targets)
 
 
 class TestVisitApplicant(OldProcessFixtureMixin, TestVisitPersonMixin, TestCase):
@@ -157,29 +157,29 @@ class TestVisitApplicant(OldProcessFixtureMixin, TestVisitPersonMixin, TestCase)
         other_visitors.add(None)
         for visitor, expected_perms in perms.perms.items():
             other_visitors.discard(visitor)
-            vperms = self.processes.app.permissions_of(self.persons[visitor])
+            visit_perms = self.processes.app.permissions_of(self.persons[visitor])
             self.assertPermsEqual(
                 "{} visiting app process".format(visitor), "permissions",
-                expected_perms, vperms.perms)
+                expected_perms, visit_perms)
         for visitor in other_visitors:
-            vperms = self.processes.app.permissions_of(self.persons[visitor] if visitor else None)
+            visit_perms = self.processes.app.permissions_of(self.persons[visitor] if visitor else None)
             self.assertPermsEqual(
                 "{} visiting app process".format(visitor), "permissions",
-                [], vperms.perms)
+                [], visit_perms)
 
         other_visitors = set(self.persons.keys())
         other_visitors.add(None)
         for visitor, expected_targets in perms.advs.items():
             other_visitors.discard(visitor)
-            vperms = self.processes.app.permissions_of(self.persons[visitor])
+            visit_perms = self.processes.app.permissions_of(self.persons[visitor])
             self.assertPermsEqual(
                 "{} advocating app".format(visitor), "target",
-                expected_targets, vperms.advocate_targets)
+                expected_targets, visit_perms.advocate_targets)
         for visitor in other_visitors:
-            vperms = self.processes.app.permissions_of(self.persons[visitor] if visitor else None)
+            visit_perms = self.processes.app.permissions_of(self.persons[visitor] if visitor else None)
             self.assertPermsEqual(
                 "{} advocating app".format(visitor), "target",
-                [], vperms.advocate_targets)
+                [], visit_perms.advocate_targets)
 
     def assertApplicantPermsInitialProcess(self, expected):
         for p in (const.PROGRESS_APP_NEW, const.PROGRESS_APP_RCVD, const.PROGRESS_APP_HOLD, const.PROGRESS_ADV_RCVD, const.PROGRESS_POLL_SENT):

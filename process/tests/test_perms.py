@@ -140,19 +140,19 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
     def assertPerms(self, perms):
         # Check advocacy targets
         for visitor in perms.advs.visitors:
-            vperms = self.processes.app.permissions_of(self.persons[visitor])
-            perms.advs.assertEqual(self, visitor, vperms.advocate_targets)
+            visit_perms = self.processes.app.permissions_of(self.persons[visitor])
+            perms.advs.assertEqual(self, visitor, visit_perms.advocate_targets)
         for visitor in perms.advs.select_others(self.persons):
-            vperms = self.processes.app.permissions_of(self.persons[visitor] if visitor else None)
-            perms.advs.assertEmpty(self, visitor, vperms.advocate_targets)
+            visit_perms = self.processes.app.permissions_of(self.persons[visitor] if visitor else None)
+            perms.advs.assertEmpty(self, visitor, visit_perms.advocate_targets)
 
         # Check process permissions
         for visitor in perms.proc.visitors:
-            vperms = self.processes.app.permissions_of(self.persons[visitor])
-            perms.proc.assertEqual(self, visitor, vperms.perms)
+            visit_perms = self.processes.app.permissions_of(self.persons[visitor])
+            perms.proc.assertEqual(self, visitor, visit_perms)
         for visitor in perms.proc.select_others(self.persons):
-            vperms = self.processes.app.permissions_of(self.persons[visitor] if visitor else None)
-            perms.advs.assertEmpty(self, visitor, vperms.perms)
+            visit_perms = self.processes.app.permissions_of(self.persons[visitor] if visitor else None)
+            perms.advs.assertEmpty(self, visitor, visit_perms)
 
         # Check requirements
         for req in ("intent", "sc_dmup", "advocate", "keycheck", "am_ok"):
@@ -162,11 +162,11 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
 
             requirement = pmodels.Requirement.objects.get(process=self.processes.app, type=req)
             for visitor in wanted.visitors:
-                vperms = requirement.permissions_of(self.persons[visitor])
-                wanted.assertEqual(self, visitor, vperms.perms)
+                visit_perms = requirement.permissions_of(self.persons[visitor])
+                wanted.assertEqual(self, visitor, visit_perms)
             for visitor in wanted.select_others(self.persons):
-                vperms = requirement.permissions_of(self.persons[visitor] if visitor else None)
-                wanted.assertEmpty(self, visitor, vperms.perms)
+                visit_perms = requirement.permissions_of(self.persons[visitor] if visitor else None)
+                wanted.assertEmpty(self, visitor, visit_perms)
 
 
 ##    def assertApplicantPermsInitialProcess(self, expected):

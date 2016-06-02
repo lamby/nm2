@@ -94,13 +94,12 @@ class VisitPersonMixin(VisitorMixin):
 
     def check_permissions(self):
         super(VisitPersonMixin, self).check_permissions()
-        if self.require_visit_perms and self.require_visit_perms not in self.visit_perms.perms:
+        if self.require_visit_perms and self.require_visit_perms not in self.visit_perms:
             raise PermissionDenied
 
     def get_context_data(self, **kw):
         ctx = super(VisitPersonMixin, self).get_context_data(**kw)
         ctx["person"] = self.person
-        ctx["vperms"] = self.visit_perms
         ctx["visit_perms"] = self.visit_perms
         return ctx
 

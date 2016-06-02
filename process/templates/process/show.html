@@ -106,7 +106,7 @@
   <tr><th>FD comments</th><td>{{process.fd_comment}}</td></tr>
   {% endif %}
 
-  {% if "view_mbox" in vperms.perms %}
+  {% if "view_mbox" in visit_perms %}
   <tr>
     <th>Mail archive</th>
     <td>
@@ -139,7 +139,7 @@
 </table>
 
 {% comment %}
-{% if "edit_bio" in vperms.perms or "edit_ldap" in vperms.perms %}
+{% if "edit_bio" in visit_perms or "edit_ldap" in visit_perms %}
 <a href="{% url 'restricted_person' key=person.lookup_key %}">Edit personal information</a>
 {% endif %}
 {% endcomment %}

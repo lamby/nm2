@@ -32,12 +32,7 @@ class Permissions(set):
     """
     Set of strings, each string represent a permission
     """
-    @property
-    def perms(self):
-        """
-        Compatibility property for old code doing if "foo" in vperms.perms
-        """
-        return self
+    pass
 
 
 class VisitorPermissions(Permissions):

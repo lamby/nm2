@@ -1,20 +1,4 @@
 # coding: utf8
-# nm.debian.org AM interaction
-#
-# Copyright (C) 2013--2015  Enrico Zini <enrico@debian.org>
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as
-# published by the Free Software Foundation, either version 3 of the
-# License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
@@ -26,14 +10,14 @@ from django.contrib.auth.decorators import login_required
 from django.utils.translation import ugettext as _
 from django.core.urlresolvers import reverse
 from django.core.exceptions import PermissionDenied
-from django.views.generic import View
+from django.views.generic import View, TemplateView
 from django.views.generic.edit import FormView
 from django.utils.timezone import now
 from django.db import transaction
 import backend.models as bmodels
 import minechangelogs.models as mmodels
 from backend import const
-from backend.mixins import VisitorMixin, VisitPersonMixin, VisitorTemplateView, VisitPersonTemplateView
+from backend.mixins import VisitorMixin, VisitPersonMixin, VisitorTemplateView, VisitPersonTemplateView, VisitProcessMixin
 import backend.email
 import json
 import datetime
@@ -460,20 +444,17 @@ def _assign_am(request, visitor, nm, am):
         l.logtext = "[%s as %s] %s" % (request.user, visitor.lookup_key, l.logtext)
     l.save()
 
-class MailArchive(VisitorMixin, View):
+
+class MailArchive(VisitProcessMixin, View):
+    require_visit_perms = "view_mbox"
+
     def get(self, request, key, *args, **kw):
-        process = bmodels.Process.lookup_or_404(key)
-        vperms = process.permissions_of(self.visitor)
-
-        if "view_mbox" not in vperms.perms:
-            raise PermissionDenied
-
-        fname = process.mailbox_file
+        fname = self.process.mailbox_file
         if fname is None:
             from django.http import Http404
             raise Http404
 
-        user_fname = "%s.mbox" % (process.person.uid or process.person.email)
+        user_fname = "%s.mbox" % (self.process.person.uid or self.process.person.email)
 
         res = http.HttpResponse(content_type="application/octet-stream")
         res["Content-Disposition"] = "attachment; filename=%s.gz" % user_fname
@@ -491,26 +472,23 @@ class MailArchive(VisitorMixin, View):
             outfd.close()
         return res
 
-class DisplayMailArchive(VisitorTemplateView):
+
+class DisplayMailArchive(VisitProcessMixin, TemplateView):
     template_name = "restricted/display-mail-archive.html"
+    require_visit_perms = "view_mbox"
+
     def get_context_data(self, **kw):
         ctx = super(DisplayMailArchive, self).get_context_data(**kw)
-        key = self.kwargs["key"]
-        process = bmodels.Process.lookup_or_404(key)
-        vperms = process.permissions_of(self.visitor)
 
-        if "view_mbox" not in vperms.perms:
-            raise PermissionDenied
-
-        fname = process.mailbox_file
+        fname = self.process.mailbox_file
         if fname is None:
             from django.http import Http404
             raise Http404
 
         ctx["mails"] = backend.email.get_mbox_as_dicts(fname)
-        ctx["process"] = process
         ctx["class"] = "clickable"
         return ctx
+
 
 class AssignAM(VisitorTemplateView):
     template_name = "restricted/assign-am.html"
@@ -539,6 +517,7 @@ class AssignAM(VisitorTemplateView):
         am = bmodels.AM.lookup_or_404(am_key)
         _assign_am(request, self.visitor, process, am)
         return redirect(process.get_absolute_url())
+
 
 class MailboxStats(VisitorTemplateView):
     template_name = "restricted/mailbox-stats.html"

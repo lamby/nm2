@@ -15,14 +15,14 @@
       <td>{{s.uploaded_time|date:"Y-m-d"}}</td>
       <td>
         <a href="{% url 'process_statement_raw' pk=process.pk type=requirement.type st=s.pk %}">[view raw]</a>
-        {% if "edit_statements" in vperms.perms %}
+        {% if "edit_statements" in visit_perms %}
         <a href="{% url 'process_statement_delete' pk=process.pk type=requirement.type st=s.pk %}">[delete]</a>
         {% endif %}
       </td>
     </tr>
     {% endfor %}
   </tbody>
-  {% if "edit_statements" in vperms.perms %}
+  {% if "edit_statements" in visit_perms %}
   <tfoot>
     <tr>
       <td colspan="3">

@@ -21,7 +21,7 @@
 <a href="{% url 'admin:backend_am_add' %}?person={{person.id}}">make am</a>
 {% endif %}
 {% endif %}
-{% for s in vperms.advocate_targets %}
+{% for s in visit_perms.advocate_targets %}
 {% if s == "dd_u" or s == "dd_nu" %}
 <a href="{% url 'restricted_advocate' key=person.lookup_key applying_for=s %}">advocate for {{s|sdesc_status}}</a>
 {% endif %}
@@ -38,12 +38,12 @@
 
 <table class="personinfo">
     <tr><th>Account name</th><td>{{person.uid|default:"None chosen yet"}}</td></tr>
-    <tr><th>OpenPGP fingerprint</th><td>{{person.fpr|fingerprint}}{% if "edit_ldap" in vperms.perms %} (<a href="{% url 'fprs_person_list' key=person.lookup_key %}">manage</a>){% endif %}</td></tr>
+    <tr><th>OpenPGP fingerprint</th><td>{{person.fpr|fingerprint}}{% if "edit_ldap" in visit_perms %} (<a href="{% url 'fprs_person_list' key=person.lookup_key %}">manage</a>){% endif %}</td></tr>
     <tr><th>Status</th><td>{{person.status|desc_status}} since {{person.status_changed|date:"Y-m-d"}}
     {% if person.changed_before_data_import %}
     (changed before data import)
     {% endif %}
-    {% if "request_new_status" in vperms.perms and person.possible_new_statuses %}(<a href="{% url 'process_create' key=person.lookup_key %}">request new status</a>){% endif %}
+    {% if "request_new_status" in visit_perms and person.possible_new_statuses %}(<a href="{% url 'process_create' key=person.lookup_key %}">request new status</a>){% endif %}
     </td></tr>
     {% if person.pending %}
     <tr><th>Pending</th><td>This is a new entry that requires confirmation before {{person.expires}}. Click <a href="{% url 'public_newnm_resend_challenge' key=person.lookup_key %}">here</a> to send the email challenge again.</td></tr>
@@ -70,7 +70,7 @@
     {% endwith %}
 </table>
 
-{% if "edit_bio" in vperms.perms or "edit_ldap" in vperms.perms %}
+{% if "edit_bio" in visit_perms or "edit_ldap" in visit_perms %}
 <a href="{% url 'restricted_person' key=person.lookup_key %}">edit</a>
 {% endif %}
 
