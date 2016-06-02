@@ -362,6 +362,14 @@ class ExpectedSets(defaultdict):
         if not extra: return
         self.testcase.fail(self.action_msg.format(visitor=visitor) + " " + self.issue_msg.format(problem="has", mismatch=", ".join(sorted(extra))))
 
+    def assertMatches(self, visited):
+        for visitor in self.visitors:
+            visit_perms = visited.permissions_of(self.testcase.persons[visitor])
+            self.assertEqual(visitor, visit_perms)
+        for visitor in self.select_others(self.testcase.persons):
+            visit_perms = visited.permissions_of(self.testcase.persons[visitor] if visitor else None)
+            self.assertEmpty(visitor, visit_perms)
+
 
 class ExpectedPerms(object):
     """

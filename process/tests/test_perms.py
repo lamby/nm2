@@ -98,12 +98,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         if "app" not in self.processes: return
 
         # Check process permissions
-        for visitor in perms.proc.visitors:
-            visit_perms = self.processes.app.permissions_of(self.persons[visitor])
-            perms.proc.assertEqual(visitor, visit_perms)
-        for visitor in perms.proc.select_others(self.persons):
-            visit_perms = self.processes.app.permissions_of(self.persons[visitor] if visitor else None)
-            perms.proc.assertEmpty(visitor, visit_perms)
+        perms.proc.assertMatches(self.processes.app)
 
         # Check requirements
         for req in ("intent", "sc_dmup", "advocate", "keycheck", "am_ok"):
@@ -112,13 +107,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
             wanted = p.combine(perms.proc)
 
             requirement = pmodels.Requirement.objects.get(process=self.processes.app, type=req)
-            for visitor in wanted.visitors:
-                visit_perms = requirement.permissions_of(self.persons[visitor])
-                wanted.assertEqual(visitor, visit_perms)
-            for visitor in wanted.select_others(self.persons):
-                visit_perms = requirement.permissions_of(self.persons[visitor] if visitor else None)
-                wanted.assertEmpty(visitor, visit_perms)
-
+            wanted.assertMatches(requirement)
 
     def _assign_am(self, visitor):
         pmodels.AMAssignment.objects.create(process=self.processes.app, am=self.ams.am, assigned_by=self.persons[visitor], assigned_time=now())
