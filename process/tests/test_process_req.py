@@ -11,7 +11,7 @@ from backend import models as bmodels
 from backend.unittest import PersonFixtureMixin, ExpectedSets, TestSet, PageElements
 import process.models as pmodels
 from mock import patch
-from .common import (ProcessFixtureMixin, get_all_process_types,
+from .common import (ProcessFixtureMixin,
                      test_fingerprint1, test_fpr1_signed_valid_text,
                      test_fingerprint2, test_fpr2_signed_valid_text,
                      test_fingerprint3, test_fpr3_signed_valid_text)

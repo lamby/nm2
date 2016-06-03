@@ -17,11 +17,11 @@ urlpatterns = [
     url(r'^(?P<pk>\d+)/am_ok$', views.ReqAM.as_view(), name="process_req_am_ok"),
     url(r'^(?P<pk>\d+)/keycheck$', views.ReqKeycheck.as_view(), name="process_req_keycheck"),
     url(r'^(?P<pk>\d+)/add_log$', views.AddProcessLog.as_view(), name="process_add_log"),
+    url(r'^(?P<pk>\d+)/(?P<type>[^/]+)/statement/create$', views.StatementCreate.as_view(), name="process_statement_create"),
+    url(r'^(?P<pk>\d+)/(?P<type>[^/]+)/statement/(?P<st>\d+)/delete$', views.StatementDelete.as_view(), name="process_statement_delete"),
+    url(r'^(?P<pk>\d+)/(?P<type>[^/]+)/statement/(?P<st>\d+)/raw$', views.StatementRaw.as_view(), name="process_statement_raw"),
     url(r'^(?P<pk>\d+)/assign_am$', views.AssignAM.as_view(), name="process_assign_am"), # TODO: test
     url(r'^(?P<pk>\d+)/unassign_am$', views.UnassignAM.as_view(), name="process_unassign_am"), # TODO: test
-    url(r'^(?P<pk>\d+)/(?P<type>[^/]+)/statement/create$', views.StatementCreate.as_view(), name="process_statement_create"), # TODO: test
-    url(r'^(?P<pk>\d+)/(?P<type>[^/]+)/statement/(?P<st>\d+)/delete$', views.StatementDelete.as_view(), name="process_statement_delete"), # TODO: test
-    url(r'^(?P<pk>\d+)/(?P<type>[^/]+)/statement/(?P<st>\d+)/raw$', views.StatementRaw.as_view(), name="process_statement_raw"), # TODO: test
     url(r'^(?P<pk>\d+)/mailbox/download$', views.MailArchive.as_view(), name="process_mailbox_download"), # TODO: test
     url(r'^(?P<pk>\d+)/mailbox$', views.DisplayMailArchive.as_view(), name="process_mailbox_show"), # TODO: test
 ]

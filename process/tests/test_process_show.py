@@ -11,7 +11,7 @@ from backend import models as bmodels
 from backend.unittest import PersonFixtureMixin, ExpectedSets, TestSet, PageElements
 import process.models as pmodels
 from mock import patch
-from .common import ProcessFixtureMixin, get_all_process_types
+from .common import ProcessFixtureMixin
 
 
 class TestProcessShow(ProcessFixtureMixin, TestCase):

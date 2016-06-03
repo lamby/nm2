@@ -153,9 +153,11 @@ class ProcessFixtureMixin(PersonFixtureMixin):
         super(ProcessFixtureMixin, cls).setUpClass()
         cls.processes = TestProcesses(**cls.get_processes_defaults())
         cls.amassignments = NamedObjects(pmodels.AMAssignment)
+        cls.statements = NamedObjects(pmodels.Statement)
 
     @classmethod
     def tearDownClass(cls):
+        cls.statements.delete_all()
         cls.amassignments.delete_all()
         cls.processes.delete_all()
         super(ProcessFixtureMixin, cls).tearDownClass()
@@ -164,6 +166,7 @@ class ProcessFixtureMixin(PersonFixtureMixin):
         super(ProcessFixtureMixin, self).setUp()
         self.processes.refresh()
         self.amassignments.refresh()
+        self.statements.refresh()
 
 
 def get_all_process_types():

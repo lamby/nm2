@@ -258,8 +258,6 @@ class UnassignAM(RequirementMixin, View):
 
 
 class StatementMixin(RequirementMixin):
-    require_visit_perms = "see_statements"
-
     def load_objects(self):
         super(StatementMixin, self).load_objects()
         if "st" in self.kwargs:
@@ -286,7 +284,7 @@ class StatementMixin(RequirementMixin):
 class StatementCreate(StatementMixin, FormView):
     form_class = StatementForm
     require_visit_perms = "edit_statements"
-    template_name = "process/statement_edit.html"
+    template_name = "process/statement_create.html"
 
     def load_objects(self):
         super(StatementCreate, self).load_objects()
