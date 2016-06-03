@@ -209,6 +209,7 @@ class ReqAM(RequirementMixin, TemplateView):
 
 
 class AssignAM(RequirementMixin, TemplateView):
+    require_visit_perms = "am_assign"
     type = "am_ok"
     template_name = "process/assign_am.html"
 
@@ -246,6 +247,7 @@ class AssignAM(RequirementMixin, TemplateView):
 
 
 class UnassignAM(RequirementMixin, View):
+    require_visit_perms = "am_unassign"
     type = "am_ok"
     def post(self, request, *args, **kw):
         current = self.process.current_am_assignment

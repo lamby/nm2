@@ -37,6 +37,7 @@ class ProcessVisitorPermissions(bmodels.PersonVisitorPermissions):
         self.process_frozen = self.process.frozen_by is not None
         self.process_approved = self.process.approved_by is not None
 
+        self.process_has_am_ok = self.process.requirements.filter(type="am_ok").exists()
         self.current_am_assignment = self.process.current_am_assignment
         if self.current_am_assignment is not None:
             self.is_current_am = self.current_am_assignment.am.person == self.visitor
@@ -54,6 +55,11 @@ class ProcessVisitorPermissions(bmodels.PersonVisitorPermissions):
             if not self.process.closed:
                 if not self.process_frozen:
                     self.add("proc_freeze")
+                    if self.process_has_am_ok:
+                        if self.current_am_assignment:
+                            self.add("am_unassign")
+                        else:
+                            self.add("am_assign")
                 elif self.process_approved:
                     self.add("proc_unapprove")
                 else:
@@ -72,6 +78,8 @@ class ProcessVisitorPermissions(bmodels.PersonVisitorPermissions):
         if self.is_current_am:
             self.add("fd_comments")
             self.add("view_private_log")
+            if not self.process_frozen:
+                self.add("am_unassign")
 
 
 class RequirementVisitorPermissions(ProcessVisitorPermissions):

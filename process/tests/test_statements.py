@@ -144,7 +144,3 @@ class TestProcessStatementRaw(ProcessFixtureMixin, TestCase):
         response = client.get(reverse("process_statement_raw", args=[self.processes.app.pk, req_type, statement.pk]))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content, test_fpr1_signed_valid_text)
-
-# TODO:  url(r'^(?P<pk>\d+)/(?P<type>[^/]+)/statement/create$', views.StatementCreate.as_view(), name="process_statement_create"),
-# TODO:  url(r'^(?P<pk>\d+)/(?P<type>[^/]+)/statement/(?P<st>\d+)/delete$', views.StatementDelete.as_view(), name="process_statement_delete"),
-# TODO:  url(r'^(?P<pk>\d+)/(?P<type>[^/]+)/statement/(?P<st>\d+)/raw$', views.StatementRaw.as_view(), name="process_statement_raw"),

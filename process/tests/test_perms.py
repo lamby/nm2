@@ -27,7 +27,7 @@ class ProcExpected(object):
         self.proc.set("app dd_nu dd_u activeam fd dam", "update_keycheck view_person_audit_log")
         self.proc.patch("activeam fd dam app", "+edit_bio +edit_ldap +view_mbox +view_private_log")
         self.proc.patch("fd dam app", "+request_new_status")
-        self.proc.patch("fd dam", "+proc_freeze +fd_comments")
+        self.proc.patch("fd dam", "+proc_freeze +fd_comments +am_assign")
         self.proc.patch("dc dc_ga dm dm_ga dd_nu dd_u dd_e dd_r activeam fd dam app", "+add_log")
         self.intent.patch("fd dam app", "+edit_statements")
         self.intent.patch("activeam fd dam dd_nu dd_u", "+req_approve")
@@ -46,12 +46,13 @@ class ProcExpected(object):
             self.am_ok.patch("fd dam", "+edit_statements +req_approve")
 
     def patch_generic_process_am_assigned(self):
-        self.proc.patch("am", "+fd_comments")
+        self.proc.patch("fd dam", "-am_assign +am_unassign")
+        self.proc.patch("am", "+fd_comments +am_unassign")
         self.am_ok.patch("am", "+edit_statements")
         self.am_ok.patch("activeam", "+req_approve")
 
     def patch_generic_process_frozen(self):
-        self.proc.patch("fd dam", "-proc_freeze +proc_unfreeze +proc_approve")
+        self.proc.patch("fd dam", "-proc_freeze +proc_unfreeze +proc_approve -am_assign -am_unassign")
         self.proc.patch("activeam app", "-edit_bio -edit_ldap")
         self.intent.patch("app", "-edit_statements")
         self.intent.patch("activeam dd_nu dd_u", "-req_approve")
@@ -63,7 +64,7 @@ class ProcExpected(object):
         if self.keycheck is not None:
             pass
         if self.am_ok is not None:
-            self.proc.patch("am", "-edit_bio -edit_ldap")
+            self.proc.patch("am", "-edit_bio -edit_ldap -am_unassign")
             self.intent.patch("am", "-req_approve")
             self.sc_dmup.patch("am", "-req_approve")
             self.advocate.patch("am", "-edit_statements -req_approve")
@@ -157,7 +158,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DC_GA)
         expected.patch_generic_process_started()
         expected.starts.patch("-dc_ga")
-        expected.proc.patch("fd dam", "+edit_ldap")
+        expected.proc.patch("fd dam", "+edit_ldap -am_assign")
         expected.proc.patch("app", "+edit_ldap")
         expected.advocate.patch("dm dm_ga", "+edit_statements")
         self.assertPerms(expected)
@@ -195,7 +196,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DM_GA)
         expected.patch_generic_process_started()
         expected.starts.patch("-dm_ga")
-        expected.proc.patch("fd dam", "+edit_ldap")
+        expected.proc.patch("fd dam", "+edit_ldap -am_assign")
         expected.proc.patch("app", "+edit_ldap")
         self.assertPerms(expected)
 
@@ -230,7 +231,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DM)
         expected.patch_generic_process_started()
         expected.starts.patch("-dm")
-        expected.proc.patch("fd dam", "+edit_ldap")
+        expected.proc.patch("fd dam", "+edit_ldap -am_assign")
         expected.proc.patch("app", "+edit_ldap")
         self.assertPerms(expected)
 
