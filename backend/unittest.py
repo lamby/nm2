@@ -398,6 +398,14 @@ class ExpectedSets(defaultdict):
             visit_perms = visited.permissions_of(self.testcase.persons[visitor] if visitor else None)
             self.assertEmpty(visitor, visit_perms)
 
+    def assertMatchesAdvocateTargets(self, visited):
+        for visitor in self.visitors:
+            visit_perms = visited.permissions_of(self.testcase.persons[visitor])
+            self.assertEqual(visitor, visit_perms.advocate_targets)
+        for visitor in self.select_others(self.testcase.persons):
+            visit_perms = visited.permissions_of(self.testcase.persons[visitor] if visitor else None)
+            self.assertEmpty(visitor, visit_perms.advocate_targets)
+
 
 class ExpectedPerms(object):
     """

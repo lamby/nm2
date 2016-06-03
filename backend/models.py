@@ -102,6 +102,7 @@ class PersonVisitorPermissions(VisitorPermissions):
         self.update(("edit_bio", "update_keycheck", "view_person_audit_log"))
         if self.person_possible_new_statuses: self.add("request_new_status")
         if not self.person_has_ldap_record: self.add("edit_ldap")
+        self.add("fd_comments")
 
     def _compute_own_perms(self):
         self.update(("update_keycheck", "view_person_audit_log"))
@@ -133,12 +134,14 @@ class PersonVisitorPermissions(VisitorPermissions):
         """
         # TODO: remove this once old-style processes get deprecated
 
+        # Old-style processes only support becoming dd_u or dd_nu
+
         # Nothing can happen while the person is pending confirmation
         if self.person.pending: return []
         # Anonymous visitors cannot advocate
         if not self.visitor: return []
-        # Debian Contributors cannot currently advocate
-        if self.visitor.status in (const.STATUS_DC, const.STATUS_DC_GA): return []
+        # Only DDs can advocate for DDs
+        if not self.visitor.is_dd: return []
 
         def involved_pks(proc):
             pks = {a.pk for a in proc.advocates.all()}
@@ -156,32 +159,8 @@ class PersonVisitorPermissions(VisitorPermissions):
             return True
 
         res = []
-        if (self.person.status == const.STATUS_DC
-            and self.visitor.pk != self.person.pk
-            and self.visitor.status in self.dm_or_dd
-            and can_add_advocate(const.STATUS_DC_GA)):
-            res.append(const.STATUS_DC_GA)
-
-        if (self.person.status == const.STATUS_DM
-            and self.visitor.status in self.dm_or_dd
-            and can_add_advocate(const.STATUS_DM_GA)):
-                res.append(const.STATUS_DM_GA)
-
-        if (self.person.status == const.STATUS_DC
-            and self.visitor.pk != self.person.pk
-            and self.visitor.status in self.dd
-            and can_add_advocate(const.STATUS_DM)):
-            res.append(const.STATUS_DM)
-
-        if (self.person.status == const.STATUS_DC_GA
-            and self.visitor.pk != self.person.pk
-            and self.visitor.status in self.dd
-            and can_add_advocate(const.STATUS_DM_GA)):
-            res.append(const.STATUS_DM_GA)
-
         if (self.person.status in self.pre_dd_statuses
             and self.visitor.pk != self.person.pk
-            and self.visitor.status in self.dd
             and can_add_advocate(const.STATUS_DD_NU, const.STATUS_DD_U)):
             res.append(const.STATUS_DD_NU)
             res.append(const.STATUS_DD_U)
