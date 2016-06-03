@@ -37,6 +37,7 @@
   </thead>
   <tbody>
     {% for e in entries %}
+    {% if e.is_public or "view_private_log" in visit_perms %}
     <tr>
       <td>{{e.logdate|date:"Y-m-d H:i"}}</td>
       <td>{{e.changed_by.a_link}}</a></td>
@@ -56,6 +57,7 @@
       <td><a href="{% url 'admin:process_log_change' e.pk %}">admin</a></td>
       {% endif %}
     </tr>
+    {% endif %}
     {% endfor %}
   </tbody>
 </table>

@@ -50,6 +50,7 @@ class ProcessVisitorPermissions(bmodels.PersonVisitorPermissions):
             pass
         elif self.visitor.is_admin:
             self.add("view_mbox")
+            self.add("view_private_log")
             if not self.process.closed:
                 if not self.process_frozen:
                     self.add("proc_freeze")
@@ -59,8 +60,10 @@ class ProcessVisitorPermissions(bmodels.PersonVisitorPermissions):
                     self.update(("proc_unfreeze", "proc_approve"))
         elif self.visitor == self.person:
             self.add("view_mbox")
+            self.add("view_private_log")
         elif self.visitor.is_active_am:
             self.add("view_mbox")
+            self.add("view_private_log")
         # TODO: advocates of this process can see the mailbox(?)
         #elif self.process.advocates.filter(pk=self.visitor.pk).exists():
         #    self.add("view_mbox")
@@ -68,6 +71,7 @@ class ProcessVisitorPermissions(bmodels.PersonVisitorPermissions):
         # The current AM can see fd comments in this process
         if self.is_current_am:
             self.add("fd_comments")
+            self.add("view_private_log")
 
 
 class RequirementVisitorPermissions(ProcessVisitorPermissions):
@@ -243,7 +247,7 @@ class Process(models.Model):
             for s in adv.statements.all():
                 advocates.add(s.uploaded_by)
 
-        log = self.log.order_by("logdate")
+        log = list(self.log.order_by("logdate"))
 
         return {
             "requirements": requirements,

@@ -22,6 +22,10 @@ class TestProcessShow(ProcessFixtureMixin, TestCase):
         cls.processes.create("app", person=cls.persons.app, applying_for=const.STATUS_DD_U, fd_comment="test")
         cls.persons.create("am", status=const.STATUS_DD_NU)
         cls.ams.create("am", person=cls.persons.am)
+        cls.amassignments.create("am", process=cls.processes.app, am=cls.ams.am, assigned_by=cls.persons["fd"], assigned_time=now())
+
+        cls.processes.app.add_log(cls.persons.fd, "xxxx_public_xxxx", is_public=True)
+        cls.processes.app.add_log(cls.persons.fd, "xxxx_private_xxxx", is_public=False)
 
         cls.visitor = cls.persons.dc
 
@@ -34,16 +38,18 @@ class TestProcessShow(ProcessFixtureMixin, TestCase):
         cls.page_elements.add_id("proc_unfreeze")
         cls.page_elements.add_id("proc_approve")
         cls.page_elements.add_id("proc_unapprove")
+        cls.page_elements.add_string("view_public_log", "xxxx_public_xxxx")
+        cls.page_elements.add_string("view_private_log", "xxxx_private_xxxx")
 
     def assertPageElements(self, response):
         # Check page elements based on visit_perms
         visit_perms = self.processes.app.permissions_of(self.visitor)
-        wanted = []
+        wanted = ["view_public_log"]
         if "fd_comments" in visit_perms:
             wanted.append("view_fd_comment")
         if "add_log" in visit_perms:
             wanted += ["log_public", "log_private"]
-        for el in ("view_mbox", "proc_freeze", "proc_unfreeze", "proc_approve", "proc_unapprove"):
+        for el in ("view_mbox", "view_private_log", "proc_freeze", "proc_unfreeze", "proc_approve", "proc_unapprove"):
             if el in visit_perms: wanted.append(el)
         self.assertContainsElements(response, self.page_elements, *wanted)
 
@@ -56,40 +62,30 @@ class TestProcessShow(ProcessFixtureMixin, TestCase):
 
     def test_none(self):
         self.tryVisitingWithPerms(set())
-        pmodels.AMAssignment.objects.create(process=self.processes.app, am=self.ams.am, assigned_by=self.persons["fd"], assigned_time=now())
-        self.tryVisitingWithPerms(set())
+
+    def test_view_private_log(self):
+        self.tryVisitingWithPerms(set(["view_private_log"]))
+
+    def test_view_mbox(self):
+        self.tryVisitingWithPerms(set(["view_mbox"]))
 
     def test_fd_comments(self):
-        self.tryVisitingWithPerms(set(["fd_comments"]))
-        pmodels.AMAssignment.objects.create(process=self.processes.app, am=self.ams.am, assigned_by=self.persons["fd"], assigned_time=now())
         self.tryVisitingWithPerms(set(["fd_comments"]))
 
     def test_add_log(self):
         self.tryVisitingWithPerms(set(["add_log"]))
-        pmodels.AMAssignment.objects.create(process=self.processes.app, am=self.ams.am, assigned_by=self.persons["fd"], assigned_time=now())
-        self.tryVisitingWithPerms(set(["add_log"]))
 
     def test_view_mbox(self):
-        self.tryVisitingWithPerms(set(["view_mbox"]))
-        pmodels.AMAssignment.objects.create(process=self.processes.app, am=self.ams.am, assigned_by=self.persons["fd"], assigned_time=now())
         self.tryVisitingWithPerms(set(["view_mbox"]))
 
     def test_proc_freeze(self):
         self.tryVisitingWithPerms(set(["proc_freeze"]))
-        pmodels.AMAssignment.objects.create(process=self.processes.app, am=self.ams.am, assigned_by=self.persons["fd"], assigned_time=now())
-        self.tryVisitingWithPerms(set(["proc_freeze"]))
 
     def test_proc_unfreeze(self):
-        self.tryVisitingWithPerms(set(["proc_unfreeze"]))
-        pmodels.AMAssignment.objects.create(process=self.processes.app, am=self.ams.am, assigned_by=self.persons["fd"], assigned_time=now())
         self.tryVisitingWithPerms(set(["proc_unfreeze"]))
 
     def test_proc_approve(self):
         self.tryVisitingWithPerms(set(["proc_approve"]))
-        pmodels.AMAssignment.objects.create(process=self.processes.app, am=self.ams.am, assigned_by=self.persons["fd"], assigned_time=now())
-        self.tryVisitingWithPerms(set(["proc_approve"]))
 
     def test_proc_unapprove(self):
-        self.tryVisitingWithPerms(set(["proc_unapprove"]))
-        pmodels.AMAssignment.objects.create(process=self.processes.app, am=self.ams.am, assigned_by=self.persons["fd"], assigned_time=now())
         self.tryVisitingWithPerms(set(["proc_unapprove"]))

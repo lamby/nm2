@@ -25,7 +25,7 @@ class ProcExpected(object):
 
     def patch_generic_process_started(self):
         self.proc.set("app dd_nu dd_u activeam fd dam", "update_keycheck view_person_audit_log")
-        self.proc.patch("activeam fd dam app", "+edit_bio +edit_ldap +view_mbox")
+        self.proc.patch("activeam fd dam app", "+edit_bio +edit_ldap +view_mbox +view_private_log")
         self.proc.patch("fd dam app", "+request_new_status")
         self.proc.patch("fd dam", "+proc_freeze +fd_comments")
         self.proc.patch("dc dc_ga dm dm_ga dd_nu dd_u dd_e dd_r activeam fd dam app", "+add_log")
@@ -38,7 +38,7 @@ class ProcExpected(object):
         if self.keycheck is not None:
             pass
         if self.am_ok is not None:
-            self.proc.set("am", "update_keycheck view_person_audit_log edit_bio edit_ldap view_mbox add_log")
+            self.proc.patch("am", "+update_keycheck +view_person_audit_log +edit_bio +edit_ldap +view_mbox +view_private_log +add_log")
             self.intent.patch("am", "+req_approve")
             self.sc_dmup.patch("am", "+req_approve")
             if self.advocate:
@@ -499,131 +499,4 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         expected.patch_generic_process_closed()
         self.assertPerms(expected)
 
-
-
-#class RequirementTestMixin(ProcessFixtureMixin):
-    # Changes according to:
-    # visitor (admin, dd, active am, applicant, dm (if applying for GA) (for advocate), current am (for am_ok)
-    # state of the requirement (approved or not)
-    # presence of statements
-    # uploader of statement
-    # state of the process (frozen or not)
-
-
-
-
-
-
-
-        # TODO: intent with no statements
-        # TODO: intent with a statement
-        # TODO: intent approved
-        # TODO: probably better, test requirements separately (like, intent and
-        #       sc_dmup are the same for everyone)
-        #       then here just test what happens when the various steps are
-        #       completed, or the AM is assigned
-
-
-
-#        requirements = ["intent", "sc_dmup"]
-#        if applying_for == const.STATUS_DC_GA:
-#            if person.status != const.STATUS_DC:
-#                raise RuntimeError("Invalid applying_for value {} for a person with status {}".format(applying_for, person.status))
-#            requirements.append("advocate")
-#        elif applying_for == const.STATUS_DM:
-#            if person.status != const.STATUS_DC:
-#                raise RuntimeError("Invalid applying_for value {} for a person with status {}".format(applying_for, person.status))
-#            requirements.append("advocate")
-#            requirements.append("keycheck")
-#        elif applying_for == const.STATUS_DM_GA:
-#            if person.status == const.STATUS_DC_GA:
-#                requirements.append("advocate")
-#                requirements.append("keycheck")
-#            elif person.status == const.STATUS_DM:
-#                # No extra requirement: the declaration of intents is
-#                # sufficient
-#                pass
-#            else:
-#                raise RuntimeError("Invalid applying_for value {} for a person with status {}".format(applying_for, person.status))
-#        elif applying_for in (const.STATUS_DD_U, const.STATUS_DD_NU):
-#            if person.status != const.STATUS_DD_NU:
-#                requirements.append("keycheck")
-#                requirements.append("am_ok")
-#            if person.status not in (const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD):
-#                requirements.append("advocate")
-#        else:
-#            raise RuntimeError("Invalid applying_for value {}".format(applying_for))
-
-
-#class TestPermsRequirementIntent(ProcessFixtureMixin, TestCase):
-#    @classmethod
-#    def __add_extra_tests__(cls):
-#        # Process list is visible by anyone
-#        for src, tgt in get_all_process_types():
-#            cls._add_method(cls._test_requirement, src, tgt)
-#
-#    def _test_requirement(self, src_state, applying_for):
-#        self.persons.create("app", status=src_state)
-#        self.persons.create("adv", status=const.STATUS_DD_NU)
-#        self.processes.create("app", person=self.persons.app, applying_for=applying_for)
-#
-#        expected_advs = ExpectedSets("{visitor} advocating app", "{problem} target {mismatch}")
-#        expected.advs.set("fd dam dd_nu dd_u", "dc_ga dm dd_u dd_nu")
-#        expected_perms = ExpectedSets("{visitor} visiting app's intent requirement", "{problem} permissions {mismatch}")
-#        expected.perms.set("fd dam app", "update_keycheck edit_bio edit_ldap view_person_audit_log see_statements edit_statements view_mbox request_new_status")
-#
-#        # Requirement just created
-#        req = pmodels.Requirement.objects.get(process=self.processes, type="intent")
-#
-#
-#        self.assertIsNone(req.approved_by)
-#        self.assertIsNone(req.approved_time)
-#
-#        # Anyone can see the requirement page
-#        for visitor in ("pending", "dc", "dc_ga", "dm", "dm_ga", "dd_nu", "dd_u", "dd_e", "dd_r", "fd", "dam", None):
-#            client = self.make_test_client(visitor)
-#            response = client.get(req.get_absolute_url())
-#            self.assertEquals(response.status_code, 200)
-#
-#        # Only the applicant, FD and DAM can upload a statement
-#        for visitor in ("pending", "dc", "dc_ga", "dm", "dm_ga", "dd_nu", "dd_u", "dd_e", "dd_r", "fd", "dam", None):
-#        for visitor in ("pending", "dc", "dc_ga", "dm", "dm_ga", "dd_nu", "dd_u", "dd_e", "dd_r", "fd", "dam", None):
-#            client = self.make_test_client(visitor)
-#            response = client.get(req.get_absolute_url())
-#            self.assertEquals(response.status_code, 200)
-
-
-    #url(r'^(?P<pk>\d+)/intent$', views.ReqIntent.as_view(), name="process_req_intent"),
-    #url(r'^(?P<pk>\d+)/(?P<type>[^/]+)/statement/create$', views.StatementCreate.as_view(), name="process_statement_create"),
-    #url(r'^(?P<pk>\d+)/(?P<type>[^/]+)/statement/(?P<st>\d+)/edit$', views.StatementEdit.as_view(), name="process_statement_edit"),
-    #url(r'^(?P<pk>\d+)/(?P<type>[^/]+)/statement/(?P<st>\d+)/raw$', views.StatementRaw.as_view(), name="process_statement_raw"),
-    #url(r'^(?P<pk>\d+)/(?P<type>[^/]+)/add_log$', views.AddProcessLog.as_view(), name="process_add_requirement_log"),
-
-    #class Requirement(models.Model):
-    #    process = models.ForeignKey(Process, related_name="requirements")
-    #    type = models.CharField(verbose_name=_("Requirement type"), max_length=16, choices=REQUIREMENT_TYPES_CHOICES)
-    #    approved_by = models.ForeignKey(bmodels.Person, null=True, blank=True, help_text=_("Set to the person that reviewed and approved this requirement"))
-    #    approved_time = models.DateTimeField(null=True, blank=True, help_text=_("When the requirement has been approved"))
-    #class Statement(models.Model):
-    #    requirement = models.ForeignKey(Requirement, related_name="statements")
-    #    fpr = models.ForeignKey(bmodels.Fingerprint, related_name="+", help_text=_("Fingerprint used to verify the statement"))
-    #    statement = models.TextField(verbose_name=_("Signed statement"), blank=True)
-    #    uploaded_by = models.ForeignKey(bmodels.Person, related_name="+", help_text=_("Person who uploaded the statement"))
-    #    uploaded_time = models.DateTimeField(help_text=_("When the statement has been uploaded"))
-    #class Log(models.Model):
-    #    changed_by = models.ForeignKey(bmodels.Person, related_name="+", null=True)
-    #    process = models.ForeignKey(Process, related_name="log")
-    #    requirement = models.ForeignKey(Requirement, related_name="log", null=True, blank=True)
-    #    is_public = models.BooleanField(default=False)
-    #    logdate = models.DateTimeField(default=now)
-    #    action = models.CharField(max_length=16, blank=True, help_text=_("Action performed with this log entry, if any"))
-    #    logtext = models.TextField(blank=True, default="")
-
-    # add statement (app, fd, dam)
-    # remove statement (app if own, fd, dam)
-    # edit statement (app if own, fd, dam)
-    # approve
-    # log comments
-    # freeze process and ensure it's unchangeable
-
-
+# TODO: process closed but not frozen and approved (aborted)
