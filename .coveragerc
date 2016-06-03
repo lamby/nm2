@@ -9,4 +9,5 @@ omit =
   ./django_housekeeping/*
   ./*/management/commands/*
   ./*/migrations/*
+  ./*/housekeeping*
   ./fabfile*
