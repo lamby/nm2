@@ -21,7 +21,7 @@ urlpatterns = [
     url(r'^(?P<pk>\d+)/(?P<type>[^/]+)/statement/(?P<st>\d+)/delete$', views.StatementDelete.as_view(), name="process_statement_delete"),
     url(r'^(?P<pk>\d+)/(?P<type>[^/]+)/statement/(?P<st>\d+)/raw$', views.StatementRaw.as_view(), name="process_statement_raw"),
     url(r'^(?P<pk>\d+)/assign_am$', views.AssignAM.as_view(), name="process_assign_am"),
-    url(r'^(?P<pk>\d+)/unassign_am$', views.UnassignAM.as_view(), name="process_unassign_am"), # TODO: test
+    url(r'^(?P<pk>\d+)/unassign_am$', views.UnassignAM.as_view(), name="process_unassign_am"),
     url(r'^(?P<pk>\d+)/mailbox/download$', views.MailArchive.as_view(), name="process_mailbox_download"), # TODO: test
     url(r'^(?P<pk>\d+)/mailbox$', views.DisplayMailArchive.as_view(), name="process_mailbox_show"), # TODO: test
 ]
