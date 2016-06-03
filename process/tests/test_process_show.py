@@ -10,25 +10,21 @@ from backend import const
 from backend import models as bmodels
 from backend.unittest import PersonFixtureMixin, ExpectedSets, TestSet, PageElements
 import process.models as pmodels
+from mock import patch
 from .common import ProcessFixtureMixin, get_all_process_types
 
 
 class TestProcessShow(ProcessFixtureMixin, TestCase):
     @classmethod
-    def __add_extra_tests__(cls):
-        for src, tgt in get_all_process_types():
-            want_am = "am_ok" in pmodels.Process.objects.compute_requirements(src, tgt)
-            visitors = [None, "pending", "dc", "dc_ga", "dm", "dm_ga", "dd_nu", "dd_u", "dd_e", "dd_r", "activeam", "fd", "dam", "app"]
-            if want_am: visitors.append("am")
-            for visitor in visitors:
-                if want_am:
-                    cls._add_method(cls._test_perms, src, tgt, visitor, am="dd_nu")
-                else:
-                    cls._add_method(cls._test_perms, src, tgt, visitor)
-
-    @classmethod
     def setUpClass(cls):
         super(TestProcessShow, cls).setUpClass()
+        cls.persons.create("app", status=const.STATUS_DC)
+        cls.processes.create("app", person=cls.persons.app, applying_for=const.STATUS_DD_U, fd_comment="test")
+        cls.persons.create("am", status=const.STATUS_DD_NU)
+        cls.ams.create("am", person=cls.persons.am)
+
+        cls.visitor = cls.persons.dc
+
         cls.page_elements = PageElements()
         cls.page_elements.add_id("view_fd_comment")
         cls.page_elements.add_id("view_mbox")
@@ -39,10 +35,11 @@ class TestProcessShow(ProcessFixtureMixin, TestCase):
         cls.page_elements.add_id("proc_approve")
         cls.page_elements.add_id("proc_unapprove")
 
-    def assertPageElements(self, response, visit_perms):
+    def assertPageElements(self, response):
         # Check page elements based on visit_perms
+        visit_perms = self.processes.app.permissions_of(self.visitor)
         wanted = []
-        if visit_perms.visitor and visit_perms.visitor.is_admin:
+        if "fd_comment" in visit_perms:
             wanted.append("view_fd_comment")
         if "add_log" in visit_perms:
             wanted += ["log_public", "log_private"]
@@ -50,24 +47,44 @@ class TestProcessShow(ProcessFixtureMixin, TestCase):
             if el in visit_perms: wanted.append(el)
         self.assertContainsElements(response, self.page_elements, *wanted)
 
-    def _test_perms(self, src, tgt, visitor, am=None):
-        self.persons.create("app", status=src)
-        self.processes.create("app", person=self.persons.app, applying_for=tgt, fd_comment="test")
-        if am is not None:
-            self.persons.create("am", status=am)
-            self.ams.create("am", person=self.persons.am)
-
-        client = self.make_test_client(visitor)
-        response = client.get(reverse("process_show", args=[self.processes.app.pk]))
-        self.assertEqual(response.status_code, 200)
-        visit_perms = self.processes.app.permissions_of(self.persons[visitor])
-        self.assertPageElements(response, visit_perms)
-
-        # Assign am and repeat visit
-        if am:
-            pmodels.AMAssignment.objects.create(process=self.processes.app, am=self.ams.am, assigned_by=self.persons["fd"], assigned_time=now())
-
-            response = client.get(reverse("process_show", args=[self.processes.app.pk]))
+    def tryVisitingWithPerms(self, perms):
+        client = self.make_test_client(self.visitor)
+        with patch.object(pmodels.Process, "permissions_of", return_value=perms):
+            response = client.get(self.processes.app.get_absolute_url())
             self.assertEqual(response.status_code, 200)
-            visit_perms = self.processes.app.permissions_of(self.persons[visitor])
-            self.assertPageElements(response, visit_perms)
+            self.assertPageElements(response)
+
+    def test_none(self):
+        self.tryVisitingWithPerms(set())
+        pmodels.AMAssignment.objects.create(process=self.processes.app, am=self.ams.am, assigned_by=self.persons["fd"], assigned_time=now())
+        self.tryVisitingWithPerms(set())
+
+    def test_add_log(self):
+        self.tryVisitingWithPerms(set(["add_log"]))
+        pmodels.AMAssignment.objects.create(process=self.processes.app, am=self.ams.am, assigned_by=self.persons["fd"], assigned_time=now())
+        self.tryVisitingWithPerms(set(["add_log"]))
+
+    def test_view_mbox(self):
+        self.tryVisitingWithPerms(set(["view_mbox"]))
+        pmodels.AMAssignment.objects.create(process=self.processes.app, am=self.ams.am, assigned_by=self.persons["fd"], assigned_time=now())
+        self.tryVisitingWithPerms(set(["view_mbox"]))
+
+    def test_proc_freeze(self):
+        self.tryVisitingWithPerms(set(["proc_freeze"]))
+        pmodels.AMAssignment.objects.create(process=self.processes.app, am=self.ams.am, assigned_by=self.persons["fd"], assigned_time=now())
+        self.tryVisitingWithPerms(set(["proc_freeze"]))
+
+    def test_proc_unfreeze(self):
+        self.tryVisitingWithPerms(set(["proc_unfreeze"]))
+        pmodels.AMAssignment.objects.create(process=self.processes.app, am=self.ams.am, assigned_by=self.persons["fd"], assigned_time=now())
+        self.tryVisitingWithPerms(set(["proc_unfreeze"]))
+
+    def test_proc_approve(self):
+        self.tryVisitingWithPerms(set(["proc_approve"]))
+        pmodels.AMAssignment.objects.create(process=self.processes.app, am=self.ams.am, assigned_by=self.persons["fd"], assigned_time=now())
+        self.tryVisitingWithPerms(set(["proc_approve"]))
+
+    def test_proc_unapprove(self):
+        self.tryVisitingWithPerms(set(["proc_unapprove"]))
+        pmodels.AMAssignment.objects.create(process=self.processes.app, am=self.ams.am, assigned_by=self.persons["fd"], assigned_time=now())
+        self.tryVisitingWithPerms(set(["proc_unapprove"]))
