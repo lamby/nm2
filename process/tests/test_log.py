@@ -45,7 +45,7 @@ class TestLog(ProcessFixtureMixin, TestCase):
 
         cls.url = reverse("process_add_log", args=[cls.processes.app.pk])
 
-        cls.visitor = None
+        cls.visitor = cls.persons.dc
 
     def get_new_log(self, process, logtext):
         entry = pmodels.Log.objects.get(process=process, logtext=logtext)
