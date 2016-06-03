@@ -10,28 +10,35 @@ from backend import const
 from backend import models as bmodels
 from backend.unittest import PersonFixtureMixin, ExpectedSets, TestSet, PageElements
 import process.models as pmodels
+from mock import patch
 from .common import (ProcessFixtureMixin, get_all_process_types,
                      test_fingerprint1, test_fpr1_signed_valid_text,
                      test_fingerprint2, test_fpr2_signed_valid_text,
                      test_fingerprint3, test_fpr3_signed_valid_text)
 
 
-class TestProcessReq(ProcessFixtureMixin, TestCase):
-    @classmethod
-    def __add_extra_tests__(cls):
-        for src, tgt in get_all_process_types():
-            want_am = "am_ok" in pmodels.Process.objects.compute_requirements(src, tgt)
-            visitors = [None, "pending", "dc", "dc_ga", "dm", "dm_ga", "dd_nu", "dd_u", "dd_e", "dd_r", "activeam", "fd", "dam", "app"]
-            if want_am: visitors.append("am")
-            for visitor in visitors:
-                if want_am:
-                    cls._add_method(cls._test_perms, src, tgt, visitor, am="dd_nu")
-                else:
-                    cls._add_method(cls._test_perms, src, tgt, visitor)
+class TestProcessReqMixin(ProcessFixtureMixin):
+    req_type = None
 
     @classmethod
     def setUpClass(cls):
-        super(TestProcessReq, cls).setUpClass()
+        super(TestProcessReqMixin, cls).setUpClass()
+        # Create a process with all requirements
+        cls.persons.create("app", status=const.STATUS_DC)
+        cls.fingerprints.create("app", person=cls.persons.app, fpr=test_fingerprint1, is_active=True, audit_skip=True)
+        cls.fingerprints.create("dd_nu", person=cls.persons.dd_nu, fpr=test_fingerprint2, is_active=True, audit_skip=True)
+        cls.persons.create("am", status=const.STATUS_DD_NU)
+        cls.fingerprints.create("am", person=cls.persons.am, fpr=test_fingerprint3, is_active=True, audit_skip=True)
+        cls.ams.create("am", person=cls.persons.am)
+        cls.processes.create("app", person=cls.persons.app, applying_for=const.STATUS_DD_U, fd_comment="test")
+
+        pmodels.Statement.objects.create(requirement=cls.processes.app.requirements.get(type="intent"), fpr=cls.fingerprints.app, statement=test_fpr1_signed_valid_text, uploaded_by=cls.persons.app, uploaded_time=now())
+        pmodels.Statement.objects.create(requirement=cls.processes.app.requirements.get(type="sc_dmup"), fpr=cls.fingerprints.app, statement=test_fpr1_signed_valid_text, uploaded_by=cls.persons.app, uploaded_time=now())
+        pmodels.Statement.objects.create(requirement=cls.processes.app.requirements.get(type="advocate"), fpr=cls.fingerprints.dd_nu, statement=test_fpr2_signed_valid_text, uploaded_by=cls.persons.dd_nu, uploaded_time=now())
+        pmodels.Statement.objects.create(requirement=cls.processes.app.requirements.get(type="am_ok"), fpr=cls.fingerprints.am, statement=test_fpr3_signed_valid_text, uploaded_by=cls.persons.am, uploaded_time=now())
+
+        cls.visitor = cls.persons.dc
+
         cls.page_elements = PageElements()
         cls.page_elements.add_id("log_public")
         cls.page_elements.add_id("log_private")
@@ -45,72 +52,65 @@ class TestProcessReq(ProcessFixtureMixin, TestCase):
         cls.page_elements_bytype["am_ok"].add_id("am_assign")
         cls.page_elements_bytype["am_ok"].add_id("am_unassign")
 
-    def assertPageElements(self, response, visit_perms):
+        cls.req = cls.processes.app.requirements.get(type=cls.req_type)
+
+    def assertPageElements(self, response):
+        visit_perms = self.req.permissions_of(self.visitor)
         # Check page elements based on visit_perms
         wanted = []
         if "add_log" in visit_perms:
             wanted += ["log_public", "log_private"]
         for el in ("req_approve", "req_unapprove"):
             if el in visit_perms: wanted.append(el)
-        if "edit_statements" in visit_perms:
+        if "edit_statements" in visit_perms and self.req.type != "keycheck":
             wanted.append("statement_add")
             wanted.append("statement_delete")
         self.assertContainsElements(response, self.page_elements, *wanted)
 
-    def _test_requirement_generic(self, req, visitor):
-        client = self.make_test_client(visitor)
-        response = client.get(req.get_absolute_url())
-        self.assertEqual(response.status_code, 200)
-        visit_perms = req.permissions_of(self.persons[visitor])
-        self.assertPageElements(response, visit_perms)
+    def tryVisitingWithPerms(self, perms):
+        client = self.make_test_client(self.visitor)
+        with patch.object(pmodels.Requirement, "permissions_of", return_value=perms):
+            response = client.get(self.req.get_absolute_url())
+            self.assertEqual(response.status_code, 200)
+            self.assertPageElements(response)
 
-    def _test_requirement_intent(self, visitor):
-        req = pmodels.Requirement.objects.get(process=self.processes.app, type="intent")
-        pmodels.Statement.objects.create(requirement=req, fpr=self.fingerprints.app, statement=test_fpr1_signed_valid_text, uploaded_by=self.persons.app, uploaded_time=now())
-        self._test_requirement_generic(req, visitor)
+    def test_none(self):
+        self.tryVisitingWithPerms(set())
+        pmodels.AMAssignment.objects.create(process=self.processes.app, am=self.ams.am, assigned_by=self.persons["fd"], assigned_time=now())
+        self.tryVisitingWithPerms(set())
 
-    def _test_requirement_sc_dmup(self, visitor):
-        req = pmodels.Requirement.objects.get(process=self.processes.app, type="sc_dmup")
-        pmodels.Statement.objects.create(requirement=req, fpr=self.fingerprints.app, statement=test_fpr1_signed_valid_text, uploaded_by=self.persons.app, uploaded_time=now())
-        self._test_requirement_generic(req, visitor)
+    def test_add_log(self):
+        self.tryVisitingWithPerms(set(["add_log"]))
+        pmodels.AMAssignment.objects.create(process=self.processes.app, am=self.ams.am, assigned_by=self.persons["fd"], assigned_time=now())
+        self.tryVisitingWithPerms(set(["add_log"]))
 
-    def _test_requirement_advocate(self, visitor):
-        req = pmodels.Requirement.objects.get(process=self.processes.app, type="advocate")
-        pmodels.Statement.objects.create(requirement=req, fpr=self.fingerprints.dd_nu, statement=test_fpr2_signed_valid_text, uploaded_by=self.persons.dd_nu, uploaded_time=now())
-        self._test_requirement_generic(req, visitor)
+    def test_req_approve(self):
+        self.tryVisitingWithPerms(set(["req_approve"]))
+        pmodels.AMAssignment.objects.create(process=self.processes.app, am=self.ams.am, assigned_by=self.persons["fd"], assigned_time=now())
+        self.tryVisitingWithPerms(set(["req_approve"]))
 
-    def _test_requirement_keycheck(self, visitor):
-        req = pmodels.Requirement.objects.get(process=self.processes.app, type="keycheck")
-        self._test_requirement_generic(req, visitor)
+    def test_req_unapprove(self):
+        self.tryVisitingWithPerms(set(["req_unapprove"]))
+        pmodels.AMAssignment.objects.create(process=self.processes.app, am=self.ams.am, assigned_by=self.persons["fd"], assigned_time=now())
+        self.tryVisitingWithPerms(set(["req_unapprove"]))
 
-    def _test_requirement_am_ok(self, visitor):
-        req = pmodels.Requirement.objects.get(process=self.processes.app, type="am_ok")
-        pmodels.Statement.objects.create(requirement=req, fpr=self.fingerprints.am, statement=test_fpr3_signed_valid_text, uploaded_by=self.persons.am, uploaded_time=now())
-        self._test_requirement_generic(req, visitor)
+    def test_edit_statements(self):
+        self.tryVisitingWithPerms(set(["edit_statements"]))
+        pmodels.AMAssignment.objects.create(process=self.processes.app, am=self.ams.am, assigned_by=self.persons["fd"], assigned_time=now())
+        self.tryVisitingWithPerms(set(["edit_statements"]))
 
-    def _test_perms(self, src, tgt, visitor, am=None):
-        # Create process
-        self.persons.create("app", status=src)
-        self.fingerprints.create("app", person=self.persons.app, fpr=test_fingerprint1, is_active=True, audit_skip=True)
-        self.processes.create("app", person=self.persons.app, applying_for=tgt, fd_comment="test")
-        self.fingerprints.create("dd_nu", person=self.persons.dd_nu, fpr=test_fingerprint2, is_active=True, audit_skip=True)
-        if am is not None:
-            self.persons.create("am", status=am)
-            self.fingerprints.create("am", person=self.persons.am, fpr=test_fingerprint3, is_active=True, audit_skip=True)
-            self.ams.create("am", person=self.persons.am)
 
-        reqs = pmodels.Process.objects.compute_requirements(src, tgt)
-        if "intent" in reqs: self._test_requirement_intent(visitor)
-        if "sc_dmup" in reqs: self._test_requirement_sc_dmup(visitor)
-        if "advocate" in reqs: self._test_requirement_advocate(visitor)
-        if "keycheck" in reqs: self._test_requirement_keycheck(visitor)
-        if "am_ok" in reqs: self._test_requirement_am_ok(visitor)
+class TestProcessReqIntent(TestProcessReqMixin, TestCase):
+    req_type = "intent"
 
-        # Assign am and repeat visit
-        if am:
-            pmodels.AMAssignment.objects.create(process=self.processes.app, am=self.ams.am, assigned_by=self.persons["fd"], assigned_time=now())
-            if "intent" in reqs: self._test_requirement_intent(visitor)
-            if "sc_dmup" in reqs: self._test_requirement_sc_dmup(visitor)
-            if "advocate" in reqs: self._test_requirement_advocate(visitor)
-            if "keycheck" in reqs: self._test_requirement_keycheck(visitor)
-            if "am_ok" in reqs: self._test_requirement_am_ok(visitor)
+class TestProcessReqScDmup(TestProcessReqMixin, TestCase):
+    req_type = "sc_dmup"
+
+class TestProcessReqAdvocate(TestProcessReqMixin, TestCase):
+    req_type = "advocate"
+
+class TestProcessReqAmOk(TestProcessReqMixin, TestCase):
+    req_type = "am_ok"
+
+class TestProcessReqKeycheck(TestProcessReqMixin, TestCase):
+    req_type = "keycheck"
