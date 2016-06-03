@@ -37,6 +37,12 @@ class ProcessVisitorPermissions(bmodels.PersonVisitorPermissions):
         self.process_frozen = self.process.frozen_by is not None
         self.process_approved = self.process.approved_by is not None
 
+        a = self.process.current_am_assignment
+        if a is not None:
+            self.is_current_am = a.am.person == self.visitor
+        else:
+            self.is_current_am = False
+
         if not self.process.closed and self.visitor is not None and not self.visitor.pending:
             self.add("add_log")
 
@@ -58,6 +64,10 @@ class ProcessVisitorPermissions(bmodels.PersonVisitorPermissions):
         # TODO: advocates of this process can see the mailbox(?)
         #elif self.process.advocates.filter(pk=self.visitor.pk).exists():
         #    self.add("view_mbox")
+
+        # The current AM can see fd comments in this process
+        if self.is_current_am:
+            self.add("fd_comments")
 
 
 class RequirementVisitorPermissions(ProcessVisitorPermissions):
@@ -98,11 +108,10 @@ class RequirementVisitorPermissions(ProcessVisitorPermissions):
                 if self.visitor.is_dd: self.add("req_unapprove" if self.requirement.approved_by else "req_approve")
             elif self.requirement.type == "am_ok":
                 a = self.process.current_am_assignment
-                if a is not None:
-                    if a.am.person == self.visitor:
-                        self.add("edit_statements")
-                    elif self.visitor.is_active_am:
-                        self.add("req_unapprove" if self.requirement.approved_by else "req_approve")
+                if self.is_current_am:
+                    self.add("edit_statements")
+                elif self.visitor.is_active_am:
+                    self.add("req_unapprove" if self.requirement.approved_by else "req_approve")
 
 
 class ProcessManager(models.Manager):
