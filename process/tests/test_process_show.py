@@ -39,7 +39,7 @@ class TestProcessShow(ProcessFixtureMixin, TestCase):
         # Check page elements based on visit_perms
         visit_perms = self.processes.app.permissions_of(self.visitor)
         wanted = []
-        if "fd_comment" in visit_perms:
+        if "fd_comments" in visit_perms:
             wanted.append("view_fd_comment")
         if "add_log" in visit_perms:
             wanted += ["log_public", "log_private"]
@@ -58,6 +58,11 @@ class TestProcessShow(ProcessFixtureMixin, TestCase):
         self.tryVisitingWithPerms(set())
         pmodels.AMAssignment.objects.create(process=self.processes.app, am=self.ams.am, assigned_by=self.persons["fd"], assigned_time=now())
         self.tryVisitingWithPerms(set())
+
+    def test_fd_comments(self):
+        self.tryVisitingWithPerms(set(["fd_comments"]))
+        pmodels.AMAssignment.objects.create(process=self.processes.app, am=self.ams.am, assigned_by=self.persons["fd"], assigned_time=now())
+        self.tryVisitingWithPerms(set(["fd_comments"]))
 
     def test_add_log(self):
         self.tryVisitingWithPerms(set(["add_log"]))

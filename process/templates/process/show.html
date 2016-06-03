@@ -102,7 +102,7 @@
     </td>
   </tr>
 
-  {% if visitor.is_admin and process.fd_comment %}
+  {% if "fd_comments" in visit_perms %}
   <tr id="view_fd_comment"><th>FD comments</th><td>{{process.fd_comment}}</td></tr>
   {% endif %}
 
