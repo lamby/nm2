@@ -27,7 +27,7 @@ class ProcExpected(object):
         self.proc.set("app dd_nu dd_u activeam fd dam", "update_keycheck view_person_audit_log")
         self.proc.patch("activeam fd dam app", "+edit_bio +edit_ldap +view_mbox")
         self.proc.patch("fd dam app", "+request_new_status")
-        self.proc.patch("fd dam", "+proc_freeze")
+        self.proc.patch("fd dam", "+proc_freeze +fd_comments")
         self.proc.patch("dc dc_ga dm dm_ga dd_nu dd_u dd_e dd_r activeam fd dam app", "+add_log")
         self.intent.patch("fd dam app", "+edit_statements")
         self.intent.patch("activeam fd dam dd_nu dd_u", "+req_approve")
@@ -44,6 +44,11 @@ class ProcExpected(object):
             if self.advocate:
                 self.advocate.patch("am", "+edit_statements +req_approve")
             self.am_ok.patch("fd dam", "+edit_statements +req_approve")
+
+    def patch_generic_process_am_assigned(self):
+        self.proc.patch("am", "+fd_comments")
+        self.am_ok.patch("am", "+edit_statements")
+        self.am_ok.patch("activeam", "+req_approve")
 
     def patch_generic_process_frozen(self):
         self.proc.patch("fd dam", "-proc_freeze +proc_unfreeze +proc_approve")
@@ -266,9 +271,8 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
 
         # Assign manager
         self._assign_am("fd")
+        expected.patch_generic_process_am_assigned()
         expected.proc.patch("am", "+edit_bio +edit_ldap")
-        expected.am_ok.patch("am", "+edit_statements")
-        expected.am_ok.patch("activeam", "+req_approve")
         self.assertPerms(expected)
 
         # Freeze for review
@@ -308,9 +312,8 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
 
         # Assign manager
         self._assign_am("fd")
+        expected.patch_generic_process_am_assigned()
         expected.proc.patch("am", "+edit_bio")
-        expected.am_ok.patch("am", "+edit_statements")
-        expected.am_ok.patch("activeam", "+req_approve")
         self.assertPerms(expected)
 
         # Freeze for review
@@ -350,9 +353,8 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
 
         # Assign manager
         self._assign_am("fd")
+        expected.patch_generic_process_am_assigned()
         expected.proc.patch("am", "+edit_bio +edit_ldap")
-        expected.am_ok.patch("am", "+edit_statements")
-        expected.am_ok.patch("activeam", "+req_approve")
         self.assertPerms(expected)
 
         # Freeze for review
@@ -393,9 +395,8 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
 
         # Assign manager
         self._assign_am("fd")
+        expected.patch_generic_process_am_assigned()
         expected.proc.patch("am", "+edit_bio")
-        expected.am_ok.patch("am", "+edit_statements")
-        expected.am_ok.patch("activeam", "+req_approve")
         self.assertPerms(expected)
 
         # Freeze for review
@@ -437,8 +438,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         # Assign manager
         self._assign_am("fd")
         expected.proc.patch("am", "+edit_bio +edit_ldap")
-        expected.am_ok.patch("am", "+edit_statements")
-        expected.am_ok.patch("activeam", "+req_approve")
+        expected.patch_generic_process_am_assigned()
         self.assertPerms(expected)
 
         # Freeze for review
@@ -481,9 +481,8 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
 
         # Assign manager
         self._assign_am("fd")
+        expected.patch_generic_process_am_assigned()
         expected.proc.patch("am", "+edit_bio")
-        expected.am_ok.patch("am", "+edit_statements")
-        expected.am_ok.patch("activeam", "+req_approve")
         self.assertPerms(expected)
 
         # Freeze for review

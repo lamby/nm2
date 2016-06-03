@@ -37,9 +37,9 @@ class ProcessVisitorPermissions(bmodels.PersonVisitorPermissions):
         self.process_frozen = self.process.frozen_by is not None
         self.process_approved = self.process.approved_by is not None
 
-        a = self.process.current_am_assignment
-        if a is not None:
-            self.is_current_am = a.am.person == self.visitor
+        self.current_am_assignment = self.process.current_am_assignment
+        if self.current_am_assignment is not None:
+            self.is_current_am = self.current_am_assignment.am.person == self.visitor
         else:
             self.is_current_am = False
 
@@ -107,11 +107,11 @@ class RequirementVisitorPermissions(ProcessVisitorPermissions):
                         self.add("edit_statements")
                 if self.visitor.is_dd: self.add("req_unapprove" if self.requirement.approved_by else "req_approve")
             elif self.requirement.type == "am_ok":
-                a = self.process.current_am_assignment
-                if self.is_current_am:
-                    self.add("edit_statements")
-                elif self.visitor.is_active_am:
-                    self.add("req_unapprove" if self.requirement.approved_by else "req_approve")
+                if self.current_am_assignment:
+                    if self.is_current_am:
+                        self.add("edit_statements")
+                    elif self.visitor.is_active_am:
+                        self.add("req_unapprove" if self.requirement.approved_by else "req_approve")
 
 
 class ProcessManager(models.Manager):
