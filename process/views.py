@@ -397,6 +397,7 @@ class DisplayMailArchive(VisitProcessMixin, TemplateView):
     template_name = "restricted/display-mail-archive.html"
 
     def get_context_data(self, **kw):
+        import backend.email
         ctx = super(DisplayMailArchive, self).get_context_data(**kw)
         fname = self.process.mailbox_file
         if fname is None: raise http.Http404
