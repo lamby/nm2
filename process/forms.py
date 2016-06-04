@@ -19,11 +19,11 @@ class StatementForm(forms.Form):
         try:
             key = Key.objects.get_or_download(self.fpr)
         except RuntimeError as e:
-            raise forms.ValidationError("Cannot download the key: " + str(e))
+            raise forms.ValidationError("Cannot download the key: " + unicode(e))
 
         try:
             plaintext = key.verify(text)
         except RuntimeError as e:
-            raise forms.ValidationError("Cannot verify the signature: " + str(e))
+            raise forms.ValidationError("Cannot verify the signature: " + unicode(e))
 
         return (text, plaintext)
