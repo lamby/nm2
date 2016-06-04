@@ -117,7 +117,6 @@
         {% else %}
         (no mail archive yet)
         {% endif %}
-        <a href="{% url 'process_download_statements' pk=process.pk %}">(signed statements mbox)</a>
     </td>
   </tr>
 
@@ -188,6 +187,7 @@
   </tbody>
 </table>
 
+<a href="{% url 'process_download_statements' pk=process.pk %}">(download all signed statements in a single mailbox file)</a>
 
 {% endwith %}
 
