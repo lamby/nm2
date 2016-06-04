@@ -288,7 +288,7 @@ class Process(models.Model):
         """
         The pathname of the archival mailbox, or None if it does not exist
         """
-        PROCESS_MAILBOX_DIR = getattr(settings, "PROCESS_MAILBOX_DIR", "/srv/nm.debian.org/mbox/applicants/")
+        PROCESS_MAILBOX_DIR = getattr(settings, "PROCESS_MAILBOX_DIR", "/srv/nm.debian.org/mbox/processes/")
         fname = os.path.join(PROCESS_MAILBOX_DIR, "process-{}.mbox".format(self.pk))
         if os.path.exists(fname):
             return fname

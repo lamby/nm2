@@ -16,20 +16,12 @@ import os.path
 from email.parser import BytesHeaderParser
 from email.utils import getaddresses
 
-VERSION="0.1"
-DEFAULT_DESTDIR = "/srv/nm.debian.org/mbox/applicants"
+# TODO: once nm.debian.org is python3, move most of this code to process/ and
+#       make it unit-tested
 
-class AddressError(Exception):
-    pass
+VERSION="0.2"
 
-class LookupError(Exception):
-    pass
-
-# Function that processes query strings before going to the database. It is
-# overridden to a replace of %s to ? when using sqlite.
-Q = lambda s: s
-
-class umask_override(object):
+class umask_override:
     """
     Context manager that temporarily overrides the umask during its lifetime
     """
@@ -48,13 +40,31 @@ class umask_override(object):
         return False
 
 
-class Dispatcher(object):
-    re_dest = re.compile("^archive-(.+)@nm.debian.org$")
+def open_db(sqlite=False):
+    """
+    Connect to the NM database and return the db connection.
 
-    def __init__(self, infd, destdir=DEFAULT_DESTDIR):
-        self.destdir = destdir
+    Returns the db connection and a function used to process query strings
+    before sending them to the database. It is a noop for postgresql and a
+    replacement of "%s" with "?" on sqlite.
+
+    That's what you get when some smart one decides to make a DB-independent
+    db_api that supports only a DB-specific syntax for SQL query arguments.
+    """
+    if sqlite:
+        import sqlite3
+        db = sqlite3.connect("data/db-used-for-development.sqlite")
+        return db, lambda s: s.replace("%s", "?").replace("true", "1")
+    else:
+        import psycopg2
+        return psycopg2.connect("service=nm user=nm"), lambda x: x
+
+
+class IncomingMessage:
+    re_dest = re.compile("^archive-(?P<key>.+)@nm.debian.org$")
+
+    def __init__(self, infd):
         self.infd = infd
-        self._db = None
 
         # Parse the header only, leave the body in the input pipe
         self.msg = BytesHeaderParser().parse(self.infd)
@@ -62,33 +72,31 @@ class Dispatcher(object):
         # History of lookup attempts
         self.lookup_attempts = []
 
-    @property
-    def db(self):
-        if self._db is None:
-            try:
-                import psycopg2
-                self._db = psycopg2.connect("service=nm user=nm")
-            except:
-                import sqlite3
-                self._db = sqlite3.connect("data/db-used-for-development.sqlite")
-                global Q
-                Q = lambda s: s.replace("%s", "?").replace("true", "1")
-        return self._db
-
     def log_lookup(self, msg):
         self.lookup_attempts.append(msg)
         self.msg.add_header("NM-Archive-Lookup-History", msg)
+
+    def log_exception(self, exc):
+        self.msg.add_header("NM-Archive-Lookup-History", "exception: {}: {}".format(exc.__class__.__name__, str(exc)))
+
+    def deliver_to_mailbox(self, pathname):
+        with umask_override(0o037) as uo:
+            with open(pathname, "ab") as out:
+                out.write(self.msg.as_string(True).encode("utf-8"))
+                out.write(b"\n")
+                shutil.copyfileobj(self.infd, out)
 
     def get_dest_key(self):
         """
         Lookup the archive-(?P<key>.+) destination key in the Delivered-To mail
         header, extract the key and return it.
 
-        Raises LookupError if no parsable Delivered-To header is found.
+        Returns None if no parsable Delivered-To header is found.
         """
         dests = self.msg.get_all("Delivered-To")
         if dests is None:
-            raise LookupError("No Delivered-To header found")
+            self.log_lookup("No Delivered-To header found")
+            return None
 
         for dest in dests:
             if dest == "archive@nm.debian.org":
@@ -100,104 +108,93 @@ class Dispatcher(object):
                 self.log_lookup("delivered-to '{}' does not match any known format".format(dest))
                 continue
 
-            self.log_lookup("found destination key: '%s'" % mo.group(1))
-            return mo.group(1)
+            return mo.group("key")
 
-        raise LookupError("No valid Delivered-To headers found")
+        self.log_lookup("No valid Delivered-To headers found")
+        return None
 
-    def deliver_to_failsafe(self, reason=None, exc=None):
-        """
-        Deliver the message to the failsafe mailbox
-        """
-        if reason is None:
-            reason = "exception %s: %s" % (exc.__class__.__name__, str(exc))
-        self.msg["NM-Archive-Failsafe-Reason"] = reason
 
-        with umask_override(0o037) as uo:
-            with open(os.path.join(self.destdir, "failsafe.mbox"), "ab") as out:
-                out.write(self.msg.as_string(True).encode("utf-8"))
-                out.write(b"\n")
-                shutil.copyfileobj(self.infd, out)
+    def lookup_mailbox_filename(self, key, sqlite=False):
+        db, Q = open_db(sqlite)
 
-    def deliver_to_archive_key(self, arc_key):
-        with umask_override(0o037) as uo:
-            with open(os.path.join(self.destdir, "%s.mbox" % arc_key), "ab") as out:
-                out.write(self.msg.as_string(True).encode("utf-8"))
-                out.write(b"\n")
-                shutil.copyfileobj(self.infd, out)
-
-    def archive_key_from_dest_key(self, dest_key):
-        cur = self.db.cursor()
+        cur = db.cursor()
         query = """
         SELECT pr.archive_key
-          FROM person p
-          JOIN process pr ON pr.person_id = p.id
-         WHERE pr.is_active IS TRUE
+            FROM person p
+            JOIN process pr ON pr.person_id = p.id
+            WHERE pr.is_active
         """
 
-        if '=' in dest_key:
+        if '=' in key:
             # Lookup email
-            email = dest_key.replace("=", "@")
+            email = key.replace("=", "@")
             self.log_lookup("lookup by email '%s'" % email)
             cur.execute(Q(query + "AND p.email=%s"), (email,))
         else:
             # Lookup uid
-            self.log_lookup("lookup by uid '%s'" % dest_key)
-            cur.execute(Q(query + "AND p.uid=%s"), (dest_key,))
+            self.log_lookup("lookup by uid '%s'" % key)
+            cur.execute(Q(query + "AND p.uid=%s"), (key,))
 
-        # Get the person ID
-        arc_key = None
+        basename = None
         for i, in cur:
-            arc_key = i
+            basename = i
 
-        if arc_key is None:
-            raise LookupError("invalid destination key in Delivered-To address: '%s'" % dest_key)
+        if basename is None:
+            return None
+        else:
+            return basename + ".mbox"
 
-        return arc_key
 
-    def get_arc_key(self):
-        dest_key = self.get_dest_key()
-        return self.archive_key_from_dest_key(dest_key)
+def get_dest_pathname(msg, sqlite=False):
+    """
+    Return a couple (destdir, filename) with the default directory and mailbox
+    file name where msg should be delivered
+    """
+    try:
+        key = msg.get_dest_key()
+        if key is None:
+            # Key not found in the message
+            return "/srv/nm.debian.org/mbox/", "archive-failsafe.mbox"
+        elif key.isdigit():
+            # New-style processes
+            return "/srv/nm.debian.org/mbox/processes", "process-{}.mbox".format(key)
+        else:
+            # Old-style processes, need a DB lookup
+            fname = msg.lookup_mailbox_filename(key, sqlite)
+            if fname is None:
+                msg.log_lookup("Key {} not found in the database".format(repr(key)))
+                return "/srv/nm.debian.org/mbox/", "archive-failsafe.mbox"
+            else:
+                return "/srv/nm.debian.org/mbox/applicants", fname
+    except Exception as e:
+        msg.log_exception(e)
+        return "/srv/nm.debian.org/mbox/", "archive-failsafe.mbox"
 
 
 def main():
-    from optparse import OptionParser
+    import argparse
+    parser = argparse.ArgumentParser(description="Dispatch NM mails Cc-ed to the archive address")
+    parser.add_argument("--version", action="version", version="%(prog)s " + VERSION)
+    parser.add_argument("--dest", action="store", default=None, help="override destination directory (default: hardcoded depending on archive address type)")
+    parser.add_argument("--dry-run", action="store_true", help="print destinations instead of delivering mails")
+    parser.add_argument("--sqlite", action="store_true", help="use the SQLite database on the development deployment instead of the production PostgreSQL")
+    args = parser.parse_args()
 
-    class Parser(OptionParser):
-        def __init__(self, *args, **kwargs):
-            OptionParser.__init__(self, *args, **kwargs)
+    msg = IncomingMessage(sys.stdin.buffer)
+    destdir, filename = get_dest_pathname(msg, args.sqlite)
 
-        def error(self, msg):
-            sys.stderr.write("%s: error: %s\n\n" % (self.get_prog_name(), msg))
-            self.print_help(sys.stderr)
-            sys.exit(2)
+    # Override destdir if requested
+    if args.dest: destdir = args.dest
 
-    parser = Parser(usage="usage: %prog [options]",
-                    version="%prog "+ VERSION,
-                    description="Dispatch NM mails Cc-ed to the archive address")
-    parser.add_option("--dest", action="store", default=DEFAULT_DESTDIR, help="destination directory (default: %default)")
-    parser.add_option("--dry-run", action="store_true", help="print destinations instead of delivering mails")
-    (opts, args) = parser.parse_args()
-
-    dispatcher = Dispatcher(sys.stdin.buffer, destdir=opts.dest)
-    if opts.dry_run:
-        msgid = dispatcher.msg.get("message-id", "(no message id)")
-        try:
-            arc_key = dispatcher.get_arc_key()
-            print(msgid, arc_key)
-            return 0
-        except Exception as e:
-            print(msgid, "failsafe")
-            return 1
+    # Deliver
+    pathname = os.path.join(destdir, filename)
+    if args.dry_run:
+        for warn in msg.msg.get_all("NM-Archive-Lookup-History", []):
+            print(warn)
+        print("Delivering to mailbox", pathname)
     else:
-        try:
-            arc_key = dispatcher.get_arc_key()
-            dispatcher.deliver_to_archive_key(arc_key)
-            return 0
-        except Exception as e:
-            dispatcher.deliver_to_failsafe(exc=e)
-            return 1
+        msg.deliver_to_mailbox(pathname)
+
 
 if __name__ == "__main__":
     sys.exit(main())
-
