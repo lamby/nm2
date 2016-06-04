@@ -1,0 +1,60 @@
+{% extends "process/base.html" %}
+{% load nm %}
+{% load js %}
+
+{% block head_resources %}
+{{block.super}}
+{% jsinclude "nm" %}
+{% endblock %}
+
+{% block breadcrumbs %}{{block.super}}
+/ <a href="{{ person.get_absolute_url }}">{{person.lookup_key}}</a>
+{% endblock %}
+
+{% block relatedpages %}
+<a href="{{person.get_absolute_url}}">{{person.lookup_key}}</a>
+{{block.super}}
+{% endblock %}
+
+{% block content %}
+
+<h1>Apply for a new status for {{person}}</h1>
+
+<p><b>Warning:</b>Do not use this page. To start a new process, ask your
+avocates go to to <a href="{{person.get_absolute_url}}">your personal page</a>
+and click on the "advocate for…" links on the top right of the page.</p>
+
+<p><b>Warning:</b>This page is experimental, it's used by Front Desk members to
+test a feature that is not yet ready for use.</p>
+
+<p><b>Warning:</b>If you start a process using this page by accident, it will
+be impossible for you to start the same process in a way that currently works.
+Starting the process properly will require manual intervention of some Front
+Desk member. Any Front Desk member who can fix this, will however be very busy
+trying to test and fix this new part of the site, so do not expect them to be
+available anytime soon to fix the side effect of you disregarding this
+warning.</p>
+
+<p>Current status of {{person}}: <b>{{person.status|desc_status}}</b>.</p>
+
+{% if current %}
+Currently open processes:
+<ul>
+{% for c in current %}
+<li><a href="{{c.get_absolute_url}}">{{c.applying_for|desc_status}}</a></li>
+{% endfor %}
+</ul>
+{% endif %}
+
+<form action="" method="post">{% csrf_token %}
+  {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+  {% for field in form.visible_fields %}
+  {{ field.label_tag }}<br>
+  {{ field }}<br>
+  {{ field.errors }}
+  {% endfor %}        
+  {{ form.non_field_errors }}
+  <input type="submit" value="Submit">
+</form>
+
+{% endblock %}

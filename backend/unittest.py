@@ -3,10 +3,12 @@ from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
-from backend.models import Person, Process, AM
+import backend.models as bmodels
+from backend.models import Person, Process, AM, Fingerprint
 from backend import const
 from django.utils.timezone import now
 from django.test import Client
+from collections import defaultdict
 import datetime
 import os
 import io
@@ -105,32 +107,6 @@ class TestPersons(NamedObjects):
         return o
 
 
-class TestProcesses(NamedObjects):
-    def __init__(self, **defaults):
-        super(TestProcesses, self).__init__(Process, **defaults)
-        defaults.setdefault("progress", const.PROGRESS_APP_NEW)
-
-    def create(self, _name, advocates=[], **kw):
-        self._update_kwargs_with_defaults(_name, kw)
-
-        if "process" in kw:
-            kw.setdefault("is_active", kw["process"] not in (const.PROGRESS_DONE, const.PROGRESS_CANCELLED))
-        else:
-            kw.setdefault("is_active", True)
-
-        if "manager" in kw:
-            try:
-                am = kw["manager"].am
-            except AM.DoesNotExist:
-                am = AM.objects.create(person=kw["manager"])
-            kw["manager"] = am
-
-        self[_name] = o = self._model.objects.create(**kw)
-        for a in advocates:
-            o.advocates.add(a)
-        return o
-
-
 class TestKeys(NamedObjects):
     def __init__(self, **defaults):
         from keyring.models import Key
@@ -180,7 +156,9 @@ class TestBase(object):
             kw["SSL_CLIENT_S_DN_CN"] = person.username
         elif sso_username is not None:
             kw["SSL_CLIENT_S_DN_CN"] = sso_username
-        return Client(**kw)
+        client = Client(**kw)
+        client.visitor = person
+        return client
 
     def assertPermissionDenied(self, response):
         if response.status_code == 403:
@@ -204,6 +182,28 @@ class TestBase(object):
             if match.search(errmsg): return
         self.fail("{} dit not match any in {}".format(regex, repr(errors)))
 
+    def assertContainsElements(self, response, elements, *names):
+        """
+        Check that the response contains only the elements in `names` from PageElements `elements`
+        """
+        want = set(names)
+        extras = want - set(elements.keys())
+        if extras: raise RuntimeError("Wanted elements not found in the list of possible ones: {}".format(", ".join(extras)))
+        should_have = []
+        should_not_have = []
+        content = response.content.decode("utf-8")
+        for name, regex in elements.items():
+            if name in want:
+                if not regex.search(content):
+                    should_have.append(name)
+            else:
+                if regex.search(content):
+                    should_not_have.append(name)
+        if should_have or should_not_have:
+            msg = []
+            if should_have: msg.append("should have element(s) {}".format(", ".join(should_have)))
+            if should_not_have: msg.append("should not have element(s) {}".format(", ".join(should_not_have)))
+            self.fail("page " + " and ".join(msg))
 
 class BaseFixtureMixin(TestBase):
     @classmethod
@@ -214,37 +214,31 @@ class BaseFixtureMixin(TestBase):
         return {}
 
     @classmethod
-    def get_processes_defaults(cls):
-        """
-        Get default arguments for test processes
-        """
-        return {}
-
-    @classmethod
     def setUpClass(cls):
         super(BaseFixtureMixin, cls).setUpClass()
         cls.persons = TestPersons(**cls.get_persons_defaults())
-        cls.processes = TestProcesses(**cls.get_processes_defaults())
         cls.ams = NamedObjects(AM)
+        cls.fingerprints = NamedObjects(Fingerprint)
         cls.keys = TestKeys()
 
-        # Preload two keys
+        # Preload keys
         cls.keys.create("66B4DFB68CB24EBBD8650BC4F4B4B0CC797EBFAB")
         cls.keys.create("1793D6AB75663E6BF104953A634F4BD1E7AD5568")
+        cls.keys.create("0EED77DC41D760FDE44035FF5556A34E04A3610B")
 
     @classmethod
     def tearDownClass(cls):
         cls.keys.delete_all()
         cls.ams.delete_all()
-        cls.processes.delete_all()
+        cls.fingerprints.delete_all()
         cls.persons.delete_all()
         super(BaseFixtureMixin, cls).tearDownClass()
 
     def setUp(self):
         super(BaseFixtureMixin, self).setUp()
         self.persons.refresh();
-        self.processes.refresh();
         self.ams.refresh();
+        self.fingerprints.refresh();
         self.keys.refresh();
 
 
@@ -269,9 +263,262 @@ class PersonFixtureMixin(BaseFixtureMixin):
         cls.persons.create("dd_nu", status=const.STATUS_DD_NU)
         # dd, uploading
         cls.persons.create("dd_u", status=const.STATUS_DD_U)
+        # dd, emeritus
+        cls.persons.create("dd_e", status=const.STATUS_EMERITUS_DD)
+        # dd, removed
+        cls.persons.create("dd_r", status=const.STATUS_REMOVED_DD)
+        # unrelated active am
+        fd = cls.persons.create("activeam", status=const.STATUS_DD_NU)
+        cls.ams.create("activeam", person=fd)
         # fd
         fd = cls.persons.create("fd", status=const.STATUS_DD_NU)
         cls.ams.create("fd", person=fd, is_fd=True)
         # dam
-        dam = cls.persons.create("dam", status=const.STATUS_DD_NU)
+        dam = cls.persons.create("dam", status=const.STATUS_DD_U)
         cls.ams.create("dam", person=dam, is_fd=True, is_dam=True)
+
+
+class TestSet(set):
+    """
+    Set of strings that can be initialized from space-separated strings, and
+    changed with simple text patches.
+    """
+    def __init__(self, initial=""):
+        if initial: self.update(initial.split())
+
+    def set(self, vals):
+        self.clear()
+        self.update(vals.split())
+
+    def patch(self, diff):
+        for change in diff.split():
+            if change[0] == "+":
+                self.add(change[1:])
+            elif change[0] == "-":
+                self.discard(change[1:])
+            else:
+                raise RuntimeError("Changes {} contain {} that is nether an add nor a remove".format(repr(text), repr(change)))
+
+    def clone(self):
+        res = TestSet()
+        res.update(self)
+        return res
+
+
+class PatchExact(object):
+    def __init__(self, text):
+        if text:
+            self.items = set(text.split())
+        else:
+            self.items = set()
+
+    def apply(self, cur):
+        if self.items: return set(self.items)
+        return None
+
+
+class PatchDiff(object):
+    def __init__(self, text):
+        self.added = set()
+        self.removed = set()
+        for change in text.split():
+            if change[0] == "+":
+                self.added.add(change[1:])
+            elif change[0] == "-":
+                self.removed.add(change[1:])
+            else:
+                raise RuntimeError("Changes {} contain {} that is nether an add nor a remove".format(text, change))
+
+    def apply(self, cur):
+        if cur is None:
+            cur = set(self.added)
+        else:
+            cur = (cur - self.removed) | self.added
+        if not cur: return None
+        return cur
+
+
+class ExpectedSets(defaultdict):
+    """
+    Store the permissions expected out of a *VisitorPermissions object
+    """
+    def __init__(self, testcase, action_msg="{visitor}", issue_msg="{problem} {mismatch}"):
+        super(ExpectedSets, self).__init__(TestSet)
+        self.testcase = testcase
+        self.action_msg = action_msg
+        self.issue_msg = issue_msg
+
+    @property
+    def visitors(self):
+        return self.keys()
+
+    def set(self, visitors, text):
+        for v in visitors.split():
+            self[v].set(text)
+
+    def patch(self, visitors, text):
+        for v in visitors.split():
+            self[v].patch(text)
+
+    def select_others(self, persons):
+        other_visitors = set(persons.keys())
+        other_visitors.add(None)
+        other_visitors -= set(self.keys())
+        return other_visitors
+
+    def combine(self, other):
+        res = ExpectedSets(self.testcase, action_msg=self.action_msg, issue_msg=self.issue_msg)
+        for k, v in self.items():
+            res[k] = v.clone()
+        for k, v in other.items():
+            res[k].update(v)
+        return res
+
+    def assertEqual(self, visitor, got):
+        got = set(got)
+        wanted = self.get(visitor, set())
+        if got == wanted: return
+        extra = got - wanted
+        missing = wanted - got
+        msgs = []
+        if missing: msgs.append(self.issue_msg.format(problem="misses", mismatch=", ".join(sorted(missing))))
+        if extra: msgs.append(self.issue_msg.format(problem="has extra", mismatch=", ".join(sorted(extra))))
+        self.testcase.fail(self.action_msg.format(visitor=visitor) + " " + " and ".join(msgs))
+
+    def assertEmpty(self, visitor, got):
+        extra = set(got)
+        if not extra: return
+        self.testcase.fail(self.action_msg.format(visitor=visitor) + " " + self.issue_msg.format(problem="has", mismatch=", ".join(sorted(extra))))
+
+    def assertMatches(self, visited):
+        for visitor in self.visitors:
+            visit_perms = visited.permissions_of(self.testcase.persons[visitor])
+            self.assertEqual(visitor, visit_perms)
+        for visitor in self.select_others(self.testcase.persons):
+            visit_perms = visited.permissions_of(self.testcase.persons[visitor] if visitor else None)
+            self.assertEmpty(visitor, visit_perms)
+
+    def assertMatchesAdvocateTargets(self, visited):
+        for visitor in self.visitors:
+            visit_perms = visited.permissions_of(self.testcase.persons[visitor])
+            self.assertEqual(visitor, visit_perms.advocate_targets)
+        for visitor in self.select_others(self.testcase.persons):
+            visit_perms = visited.permissions_of(self.testcase.persons[visitor] if visitor else None)
+            self.assertEmpty(visitor, visit_perms.advocate_targets)
+
+
+class ExpectedPerms(object):
+    """
+    Store the permissions expected out of a *VisitorPermissions object
+    """
+    def __init__(self, perms={}, advs={}):
+        self.perms = {}
+        for visitors, expected_perms in perms.items():
+            for visitor in visitors.split():
+                self.perms[visitor] = set(expected_perms.split())
+
+        self.advs = {}
+        for visitors, expected_targets in advs.items():
+            for visitor in visitors.split():
+                self.advs[visitor] = set(expected_targets.split())
+
+    def _apply_diff(self, d, diff):
+        for visitors, change in diff.items():
+            for visitor in visitors.split():
+                cur = change.apply(d.get(visitor, None))
+                if not cur:
+                    d.pop(visitor, None)
+                else:
+                    d[visitor] = cur
+
+    def update_perms(self, diff):
+        self._apply_diff(self.perms, diff)
+
+    def set_perms(self, visitors, text):
+        self.update_perms({ visitors: PatchExact(text) })
+
+    def patch_perms(self, visitors, text):
+        self.update_perms({ visitors: PatchDiff(text) })
+
+    def update_advs(self, diff):
+        self._apply_diff(self.advs, diff)
+
+    def set_advs(self, visitors, text):
+        self.update_advs({ visitors: PatchExact(text) })
+
+    def patch_advs(self, visitors, text):
+        self.update_advs({ visitors: PatchDiff(text) })
+
+
+class PageElements(dict):
+    """
+    List of all page elements possibly expected in the results of a view.
+
+    dict matching name used to refer to the element with regexp matching the
+    element.
+    """
+    def add_id(self, id):
+        self[id] = re.compile(r"""id\s*=\s*["']{}["']""".format(re.escape(id)))
+
+    def add_class(self, cls):
+        self[cls] = re.compile(r"""class\s*=\s*["']{}["']""".format(re.escape(cls)))
+
+    def add_href(self, name, url):
+        self[name] = re.compile(r"""href\s*=\s*["']{}["']""".format(re.escape(url)))
+
+    def add_string(self, name, term):
+        self[name] = re.compile(r"""{}""".format(re.escape(term)))
+
+    def clone(self):
+        res = PageElements()
+        res.update(self.items())
+        return res
+
+
+class TestOldProcesses(NamedObjects):
+    def __init__(self, **defaults):
+        super(TestOldProcesses, self).__init__(bmodels.Process, **defaults)
+        defaults.setdefault("progress", const.PROGRESS_APP_NEW)
+
+    def create(self, _name, advocates=[], **kw):
+        self._update_kwargs_with_defaults(_name, kw)
+
+        if "process" in kw:
+            kw.setdefault("is_active", kw["process"] not in (const.PROGRESS_DONE, const.PROGRESS_CANCELLED))
+        else:
+            kw.setdefault("is_active", True)
+
+        if "manager" in kw:
+            try:
+                am = kw["manager"].am
+            except bmodels.AM.DoesNotExist:
+                am = bmodels.AM.objects.create(person=kw["manager"])
+            kw["manager"] = am
+
+        self[_name] = o = self._model.objects.create(**kw)
+        for a in advocates:
+            o.advocates.add(a)
+        return o
+
+
+class OldProcessFixtureMixin(PersonFixtureMixin):
+    @classmethod
+    def get_processes_defaults(cls):
+        """
+        Get default arguments for test processes
+        """
+        return {}
+
+    @classmethod
+    def setUpClass(cls):
+        super(OldProcessFixtureMixin, cls).setUpClass()
+        cls.processes = TestOldProcesses(**cls.get_processes_defaults())
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.processes.delete_all()
+        super(OldProcessFixtureMixin, cls).tearDownClass()
+
+    def setUp(self):
+        super(OldProcessFixtureMixin, self).setUp()
+        self.processes.refresh();

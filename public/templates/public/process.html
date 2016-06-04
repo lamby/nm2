@@ -130,15 +130,15 @@ See: <a href="http://lists.debian.org/debian-project/2010/09/msg00026.html">hand
     <tr>
       <th>OpenPGP fingerprint</th>
       <td>
-        {{fpr.fpr|fingerprint}}{% if "edit_ldap" in vperms.perms %} (<a href="{% url 'fprs_person_list' key=person.lookup_key %}">manage</a>){% endif %}
+        {{fpr.fpr|fingerprint}}{% if "edit_ldap" in visit_perms %} (<a href="{% url 'fprs_person_list' key=person.lookup_key %}">manage</a>){% endif %}
         {% if fpr %}
         <small>
         <ul class="packed">
           <li>
             SC/DFSG/DMUP agreement:
-            {% if "edit_agreements" in vperms.perms %}
+            {% if "edit_statements" in visit_perms %}
               <a href="{% url 'fprs_agreement_edit' key=person.lookup_key fpr=fpr.fpr %}">{{fpr.agreement_status}}</a>
-            {% elif "see_agreements" in vperms.perms %}
+            {% elif "see_statements" in visit_perms %}
               <a href="{% url 'fprs_agreement_show' key=person.lookup_key fpr=fpr.fpr %}">{{fpr.agreement_status}}</a>
             {% else %}
               {{fpr.agreement_status}}
@@ -146,7 +146,7 @@ See: <a href="http://lists.debian.org/debian-project/2010/09/msg00026.html">hand
           </li>
           {% if keycheck %}
           <li>Main key: <i>{{keycheck.main.remarks}}</i> (last updated: {{keycheck.updated|date:"Y-m-d H:i T"}})
-            {% if "update_keycheck" in vperms.perms %}
+            {% if "update_keycheck" in visit_perms %}
             <form class="inline" action="{% url 'public_process_update_keycheck' key=process.lookup_key %}" method="POST">{% csrf_token %}
               <button type="submit">Update</button>
             </form>
@@ -175,7 +175,7 @@ See: <a href="http://lists.debian.org/debian-project/2010/09/msg00026.html">hand
     {% if visitor.is_admin %}
     <tr><th>FD comments</th><td>{{person.fd_comment}}</td></tr>
     {% endif %}
-    {% if "view_mbox" in vperms.perms %}
+    {% if "view_mbox" in visit_perms %}
     <tr><th>Mail archive</th>
         <td>
             <tt><a href="mailto:{{process.archive_email}}">{{process.archive_email}}</a></tt>
@@ -201,7 +201,7 @@ See: <a href="http://lists.debian.org/debian-project/2010/09/msg00026.html">hand
     {% endif %}
     {% endif %}
 </table>
-{% if "edit_bio" in vperms.perms or "edit_ldap" in vperms.perms %}
+{% if "edit_bio" in visit_perms or "edit_ldap" in visit_perms %}
 <a href="{% url 'restricted_person' key=person.lookup_key %}">Edit personal information</a>
 {% endif %}
 

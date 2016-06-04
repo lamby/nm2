@@ -1,0 +1,77 @@
+{% extends "process/base.html" %}
+{% load nm %}
+{% load js %}
+
+{% block head_resources %}
+{{block.super}}
+{% jsinclude "nm" %}
+{% endblock %}
+
+{% block breadcrumbs %}{{block.super}}
+/ <a href="{{ person.get_absolute_url }}">{{person.lookup_key}}</a>
+/ <a href="{{ process.get_absolute_url }}">{{process}}</a>
+{% endblock %}
+
+{% block relatedpages %}
+{{block.super}}
+{% endblock %}
+
+{% block content %}
+
+<h1>{{type_desc}}</h1>
+
+{% include explain_template with edit=False %}
+
+{% include "process/requirement_status_widget.html" %}
+
+<h2>Application Manager</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>AM</th>
+      <th>Paused</th>
+      <th>Assigned by</th>
+      <th>Assigned time</th>
+      <th>Unassigned by</th>
+      <th>Unassigned time</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for a in process.ams.all %}
+    <tr>
+      <td><a href="{{a.am.person.get_absolute_url}}">{{a.am.person.lookup_key}}</a></td>
+      <td>{{a.paused|yesno}}</td>
+      <td><a href="{{a.assigned_by.get_absolute_url}}">{{a.assigned_by.lookup_key}}</a></td>
+      <td>{{a.assigned_time|date:"Y-m-d"}}</a></td>
+      <td><a href="{{a.unassigned_by.get_absolute_url}}">{{a.unassigned_by.lookup_key}}</a></td>
+      <td>{{a.unassigned_time|date:"Y-m-d"}}</a></td>
+      <td>
+        {% if not a.unassigned_by %}
+        <form id="am_unassign" action="{% url 'process_unassign_am' pk=process.pk %}" method="POST">{% csrf_token %}
+          <button type="submit">Unassign</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% empty %}
+    <td colspan="6">No Application Manager assigned yet</td>
+    {% endfor %}
+  </tbody>
+  {% if not process.current_am_assignment %}
+  <tfoot id="am_assign">
+    <tr><td colspan="6"><a href="{% url 'process_assign_am' pk=process.pk %}">Assign AM</a></td></tr>
+  </tfoot>
+  {% endif %}
+</table>
+
+<h2>Signed statements</h2>
+
+{% include "process/statement_table_widget.html" %}
+
+<h2>Log</h2>
+
+{% include "process/log_widget.html" with entries=requirement.log.all %}
+
+{% endblock %}

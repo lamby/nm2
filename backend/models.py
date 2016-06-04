@@ -28,7 +28,22 @@ PROCESS_MAILBOX_DIR = getattr(settings, "PROCESS_MAILBOX_DIR", "/srv/nm.debian.o
 DM_IMPORT_DATE = getattr(settings, "DM_IMPORT_DATE", None)
 
 
-class PersonVisitorPermissions(object):
+class Permissions(set):
+    """
+    Set of strings, each string represent a permission
+    """
+    pass
+
+
+class VisitorPermissions(Permissions):
+    """
+    Permissions of a visitor regardless of context
+    """
+    def __init__(self, visitor):
+        self.visitor = visitor
+
+
+class PersonVisitorPermissions(VisitorPermissions):
     """
     Store NM-specific permissions
     """
@@ -42,191 +57,91 @@ class PersonVisitorPermissions(object):
     dd = frozenset((const.STATUS_DD_U, const.STATUS_DD_NU))
 
     def __init__(self, person, visitor):
+        super(PersonVisitorPermissions, self).__init__(visitor)
         # Person being visited
         self.person = person.person
-        # Person doing the visit
-        self.visitor = visitor.person if visitor else None
         # Processes of self.person
-        self.processes = list(self.person.processes.all())
+        #self.processes = list(self.person.processes.all())
 
-    @cached_property
-    def _is_current_advocate(self):
-        """
-        Return True if the visitor is the advocate of any active process not in
-        FD/DAM hands
-        """
-        if self.visitor is None: return False
-        for p in self.processes:
-            if not p.is_active: continue
-            if p.progress in self.fddam_states: continue
-            if p.advocates.filter(pk=self.visitor.pk).exists(): return True
-        return False
-
-    @cached_property
-    def _is_current_am(self):
-        """
-        Return True if the visitor is the am of any active process not in
-        FD/DAM hands
-        """
-        if self.visitor is None: return False
-        try:
-            am = self.visitor.am
-        except AM.DoesNotExist:
-            return False
-
-        for p in self.processes:
-            if not p.is_active: continue
-            if p.progress in self.fddam_states: continue
-            if p.manager == am: return True
-        return False
-
-    @cached_property
-    def _can_edit_bio(self):
-        """
-        Visitor can edit the person's bio
-        """
-        if self.visitor is None: return False
-        if self.visitor.is_admin: return True
-        if self.person.pending: return False
-        if self.visitor.pk == self.person.pk: return True
-        return self._is_current_advocate or self._is_current_am
-
-    @cached_property
-    def _can_update_keycheck(self):
-        """
-        Visitor can refresh keycheck results
-        """
-        if self.visitor is None: return False
-        if self.visitor.is_admin: return True
-        if self.person.pending: return False
-        if self.visitor.pk == self.person.pk: return True
-        return self._is_current_advocate or self._is_current_am
-
-    @cached_property
-    def _has_ldap_record(self):
-        """
-        The person already has an LDAP record
-        """
         # If the person is already in LDAP, then nobody can edit their LDAP
         # info, since this database then becomes a read-only mirror of LDAP
-        return self.person.status not in (const.STATUS_DC, const.STATUS_DM)
+        self.person_has_ldap_record = self.person.status not in (const.STATUS_DC, const.STATUS_DM)
 
-    @cached_property
-    def _can_edit_ldap_fields(self):
-        """
-        The visitor can edit the person's LDAP fields
-        """
-        if self.visitor is None: return False
+        # Possible new statuses that the person can have
+        self.person_possible_new_statuses = self.person.possible_new_statuses
 
-        # LDAP fields are immutable in nm.debian.org when there is already an
-        # LDAP record
-        if self._has_ldap_record: return False
+        # True if there are active processes currently frozen for review
+        self.person_has_frozen_processes = False
+        old_frozen_progesses = frozenset((
+            const.PROGRESS_AM_OK,
+            const.PROGRESS_FD_HOLD,
+            const.PROGRESS_FD_OK,
+            const.PROGRESS_DAM_HOLD,
+            const.PROGRESS_DAM_OK,
+            const.PROGRESS_DONE,
+            const.PROGRESS_CANCELLED,
+        ))
+        import process.models as pmodels
+        if pmodels.Process.objects.filter(person=self.person, frozen_by__isnull=False).exists():
+            self.person_has_frozen_processes = True
+        elif Process.objects.filter(person=self.person, is_active=True, progress__in=old_frozen_progesses).exists():
+            self.person_has_frozen_processes = True
 
-        # FD and DAM can do everything except mess with LDAP
-        if self.visitor.is_admin: return True
+        if self.visitor is None:
+            pass
+        elif self.visitor.is_admin:
+            self._compute_admin_perms()
+        elif self.visitor == self.person:
+            self._compute_own_perms()
+        elif self.visitor.is_active_am:
+            self._compute_active_am_perms()
+        elif self.visitor.is_dd:
+            self._compute_dd_perms()
 
-        # Only the person themselves, an advocate or an am can potentially edit
-        # LDAP fields
-        if self.person.pk != self.visitor.pk and not self._is_current_advocate and not self._is_current_am: return False
+    def _compute_admin_perms(self):
+        self.update(("edit_bio", "update_keycheck", "view_person_audit_log"))
+        if self.person_possible_new_statuses: self.add("request_new_status")
+        if not self.person_has_ldap_record: self.add("edit_ldap")
+        self.add("fd_comments")
 
-        # Check if there is some process in a state for which nobody should
-        # interfere
+    def _compute_own_perms(self):
+        self.update(("update_keycheck", "view_person_audit_log"))
+        if not self.person_has_frozen_processes:
+            if not self.person_has_ldap_record and not self.person.pending:
+                self.add("edit_ldap")
+            self.add("edit_bio")
+        if self.person.pending: return
+        if self.person_possible_new_statuses: self.add("request_new_status")
 
-        # Pending person records cannot be changed
-        if self.person.pending: return False
+    def _compute_active_am_perms(self):
+        self.update(("update_keycheck", "view_person_audit_log"))
+        if not self.person_has_frozen_processes:
+            self.add("edit_bio")
+            if not self.person_has_ldap_record: self.add("edit_ldap")
 
-        # If there are active processes in FD or DAM's hand, only them can
-        # change them
-        for p in self.processes:
-            if not p.is_active: continue
-            if p.progress in (
-                    const.PROGRESS_AM_OK,
-                    const.PROGRESS_FD_HOLD,
-                    const.PROGRESS_FD_OK,
-                    const.PROGRESS_DAM_HOLD,
-                    const.PROGRESS_DAM_OK,
-                    const.PROGRESS_DONE,
-                    const.PROGRESS_CANCELLED,
-                ):
-                return False
+    def _compute_dd_perms(self):
+        self.update(("update_keycheck", "view_person_audit_log"))
 
-        return True
-
-    @cached_property
-    def _can_see_agreements(self):
-        """
-        Visitor can see SC/DFSG/DMUP agreements
-        """
-        if self.visitor is None: return False
-        if self.visitor.is_admin: return True
-        if self.person.pending: return False
-        if self.visitor.pk == self.person.pk: return True
-        return self._is_current_advocate or self._is_current_am
-
-    @cached_property
-    def _can_edit_agreements(self):
-        """
-        Visitor can edit SC/DFSG/DMUP agreements
-        """
-        if self.visitor is None: return False
-        if self._has_ldap_record: return False
-        if self.visitor.is_admin: return True
-        if self.person.pending: return False
-        if self.visitor.pk == self.person.pk: return True
-        return False
-
-    @cached_property
-    def _can_view_person_audit_log(self):
-        """
-        The visitor can view the person's audit log
-        """
-        # Anonymous cannot see it
-        if self.visitor is None: return False
-
-        # The person can see it
-        if self.visitor.pk == self.person.pk: return True
-
-        # Any DD can see it
-        if self.visitor.status in self.dd: return True
-
-        # The advocate can see it
-        # (note, a DM can be advocate for a DC requesting a guest account)
-        if self._is_current_advocate: return True
-
-        return False
-
-    def _compute_perms(self):
-        """
-        Compute the set of permission tags
-        """
-        res = set()
-        if self._can_edit_bio: res.add("edit_bio")
-        if self._can_update_keycheck: res.add("update_keycheck")
-        if self._can_edit_ldap_fields: res.add("edit_ldap")
-        if self._can_view_person_audit_log: res.add("view_person_audit_log")
-        if self._can_see_agreements: res.add("see_agreements")
-        if self._can_edit_agreements: res.add("edit_agreements")
-        return res
-
-    @cached_property
-    def perms(self):
-        """
-        Compute the set of permission tags
-        """
-        return frozenset(self._compute_perms())
+    # TODO: advocate view audit log
 
     @cached_property
     def advocate_targets(self):
         """
         Return a list of statuses for which the current visitor can become an
         advocate
+
+        This is used only when starting old-style processes
         """
+        # TODO: remove this once old-style processes get deprecated
+
+        # Old-style processes only support becoming dd_u or dd_nu
+
         # Nothing can happen while the person is pending confirmation
         if self.person.pending: return []
         # Anonymous visitors cannot advocate
         if not self.visitor: return []
-        # Mere mortals cannot currently advocate
-        if self.visitor.status in (const.STATUS_DC, const.STATUS_DC_GA): return []
+        # Only DDs can advocate for DDs
+        if not self.visitor.is_dd: return []
 
         def involved_pks(proc):
             pks = {a.pk for a in proc.advocates.all()}
@@ -234,41 +149,18 @@ class PersonVisitorPermissions(object):
             if am is not None: pks.add(am.person.pk)
             return pks
 
+        active_processes = list(self.person.processes.filter(is_active=True))
+
         def can_add_advocate(*applying_for):
-            for p in self.processes:
-                if not p.is_active: continue
+            for p in active_processes:
                 if p.applying_for not in applying_for: continue
                 if p.progress in self.fddam_states: return False
                 if self.visitor.pk in involved_pks(p): return False
             return True
 
         res = []
-        if (self.person.status == const.STATUS_DC
-            and self.visitor.pk != self.person.pk
-            and self.visitor.status in self.dm_or_dd
-            and can_add_advocate(const.STATUS_DC_GA)):
-            res.append(const.STATUS_DC_GA)
-
-        if (self.person.status == const.STATUS_DM
-            and self.visitor.status in self.dm_or_dd
-            and can_add_advocate(const.STATUS_DM_GA)):
-                res.append(const.STATUS_DM_GA)
-
-        if (self.person.status == const.STATUS_DC
-            and self.visitor.pk != self.person.pk
-            and self.visitor.status in self.dd
-            and can_add_advocate(const.STATUS_DM)):
-            res.append(const.STATUS_DM)
-
-        if (self.person.status == const.STATUS_DC_GA
-            and self.visitor.pk != self.person.pk
-            and self.visitor.status in self.dd
-            and can_add_advocate(const.STATUS_DM_GA)):
-            res.append(const.STATUS_DM_GA)
-
         if (self.person.status in self.pre_dd_statuses
             and self.visitor.pk != self.person.pk
-            and self.visitor.status in self.dd
             and can_add_advocate(const.STATUS_DD_NU, const.STATUS_DD_U)):
             res.append(const.STATUS_DD_NU)
             res.append(const.STATUS_DD_U)
@@ -285,29 +177,23 @@ class PersonVisitorPermissions(object):
     #    ))
 
 class ProcessVisitorPermissions(PersonVisitorPermissions):
+    """
+    Permissions for visiting old-style Processes
+    """
     def __init__(self, process, visitor):
         super(ProcessVisitorPermissions, self).__init__(process.person, visitor)
         self.process = process
 
-    @cached_property
-    def _can_view_email(self):
-        """
-        The visitor can view the process's email archive
-        """
-        if self.visitor is None: return False
-        # Any admins
-        if self.visitor.is_admin: return True
-        # The person themselves
-        if self.visitor.pk == self.person.pk: return True
-        # Any AM
-        if self.visitor.am_or_none: return True
-        # The advocates
-        return self.process.advocates.filter(pk=self.visitor.pk).exists()
-
-    def _compute_perms(self):
-        res = super(ProcessVisitorPermissions, self)._compute_perms()
-        if self._can_view_email: res.add("view_mbox")
-        return res
+        if self.visitor is None:
+            pass
+        elif self.visitor.is_admin:
+            self.add("view_mbox")
+        elif self.visitor == self.person:
+            self.add("view_mbox")
+        elif self.visitor.is_active_am:
+            self.add("view_mbox")
+        elif self.process.advocates.filter(pk=self.visitor.pk).exists():
+            self.add("view_mbox")
 
 
 class PersonManager(BaseUserManager):
@@ -531,6 +417,13 @@ class Person(PermissionsMixin, models.Model):
         return "am" in self.perms
 
     @property
+    def is_active_am(self):
+        try:
+            return self.am.is_am
+        except AM.DoesNotExist:
+            return False
+
+    @property
     def is_admin(self):
         return "admin" in self.perms
 
@@ -592,6 +485,14 @@ class Person(PermissionsMixin, models.Model):
     def get_absolute_url(self):
         return ("person", (), dict(key=self.lookup_key))
 
+    @property
+    def a_link(self):
+        from django.utils.safestring import mark_safe
+        from django.utils.html import conditional_escape
+        return mark_safe("<a href='{}'>{}</a>".format(
+            conditional_escape(self.get_absolute_url()),
+            conditional_escape(self.lookup_key)))
+
     def get_ddpo_url(self):
         return u"http://qa.debian.org/developer.php?{}".format(urllib.urlencode(dict(login=self.preferred_email)))
 
@@ -611,6 +512,40 @@ class Person(PermissionsMixin, models.Model):
         if self.uid:
             parms["username"] = self.uid
         return u"http://portfolio.debian.net/result?" + urllib.urlencode(parms)
+
+    _new_status_table = {
+        const.STATUS_DC: [const.STATUS_DC_GA, const.STATUS_DM, const.STATUS_DD_U, const.STATUS_DD_NU],
+        const.STATUS_DC_GA: [const.STATUS_DM_GA, const.STATUS_DD_U, const.STATUS_DD_NU],
+        const.STATUS_DM: [const.STATUS_DM_GA, const.STATUS_DD_U],
+        const.STATUS_DM_GA: [const.STATUS_DD_U],
+        const.STATUS_DD_NU: [const.STATUS_DD_U],
+        const.STATUS_EMERITUS_DD: [const.STATUS_DD_U, const.STATUS_DD_NU],
+        const.STATUS_REMOVED_DD: [const.STATUS_DD_U, const.STATUS_DD_NU],
+    }
+
+    @property
+    def possible_new_statuses(self):
+        """
+        Return a list of possible new statuses that can be requested for the
+        person
+        """
+        if self.pending: return []
+        statuses = list(self._new_status_table.get(self.status, []))
+        # Remove statuses from active processes
+        if statuses:
+            for proc in Process.objects.filter(person=self, is_active=True):
+                try:
+                    statuses.remove(proc.applying_for)
+                except ValueError:
+                    pass
+        if statuses:
+            import process.models as pmodels
+            for proc in pmodels.Process.objects.filter(person=self, closed__isnull=True):
+                try:
+                    statuses.remove(proc.applying_for)
+                except ValueError:
+                    pass
+        return statuses
 
     @property
     def active_processes(self):
@@ -745,17 +680,9 @@ class Fingerprint(models.Model):
     person = models.ForeignKey(Person, related_name="fprs")
     fpr = FingerprintField(verbose_name="OpenPGP key fingerprint", max_length=40, unique=True)
     is_active = models.BooleanField(default=False, help_text="whether this key is curently in use")
-    agreement = models.TextField(blank=True, help_text="Agreement of DC and SMUP signed with this key")
-    agreement_valid = models.BooleanField(default=False, help_text="True if the agreement has been verified to have valid wording")
 
     def __unicode__(self):
         return self.fpr
-
-    @property
-    def agreement_status(self):
-        if self.agreement_valid: return "verified"
-        if self.agreement: return "unverified"
-        return "missing"
 
     def get_key(self):
         from keyring.models import Key
@@ -800,6 +727,7 @@ class Fingerprint(models.Model):
             if existing_fingerprint is not None and existing_fingerprint.person.pk != self.person.pk:
                 PersonAuditLog.objects.create(person=existing_fingerprint.person, author=author, notes=notes, changes=PersonAuditLog.serialize_changes(changes))
             PersonAuditLog.objects.create(person=self.person, author=author, notes=notes, changes=PersonAuditLog.serialize_changes(changes))
+
 
 class PersonAuditLog(models.Model):
     person = models.ForeignKey(Person, related_name="audit_log")

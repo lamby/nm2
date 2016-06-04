@@ -1,21 +1,4 @@
 # coding: utf8
-# nm.debian.org view mixins
-#
-# Copyright (C) 2014  Enrico Zini <enrico@debian.org>
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as
-# published by the Free Software Foundation, either version 3 of the
-# License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
@@ -50,13 +33,29 @@ class VisitorMixin(object):
                         self.impersonator = self.visitor
                         self.visitor = p
 
-    def pre_dispatch(self):
+    def load_objects(self):
+        """
+        Hook to set self.* members from request parameters, so that they are
+        available to the rest of the view members.
+        """
         self.set_visitor_info()
 
+    def check_permissions(self):
+        """
+        Raise PermissionDenied if some of the permissions requested by the view
+        configuration are not met.
+
+        Subclasses can extend this to check their own permissions.
+        """
         if self.require_visitor and (self.visitor is None or self.require_visitor not in self.visitor.perms):
             raise PermissionDenied
 
+    def pre_dispatch(self):
+        pass
+
     def dispatch(self, request, *args, **kwargs):
+        self.load_objects()
+        self.check_permissions()
         self.pre_dispatch()
         return super(VisitorMixin, self).dispatch(request, *args, **kwargs)
 
@@ -71,29 +70,37 @@ class VisitorTemplateView(VisitorMixin, TemplateView):
 
 class VisitPersonMixin(VisitorMixin):
     """
-    Visit a person record. Adds self.person and self.vperms with the
+    Visit a person record. Adds self.person and self.visit_perms with the
     permissions the visitor has over the person
     """
     # Define to "edit_bio" "edit_ldap" or "view_person_audit_log" to raise
     # PermissionDenied if the given test on the person-visitor fails
-    require_vperms = None
+    require_visit_perms = None
 
-    def pre_dispatch(self):
-        super(VisitPersonMixin, self).pre_dispatch()
+    def get_person(self):
         key = self.kwargs.get("key", None)
         if key is None:
-            self.person = self.visitor
+            return self.visitor
         else:
-            self.person = bmodels.Person.lookup_or_404(key)
-        self.vperms = self.person.permissions_of(self.visitor)
+            return bmodels.Person.lookup_or_404(key)
 
-        if self.require_vperms and self.require_vperms not in self.vperms.perms:
+    def get_visit_perms(self):
+        return self.person.permissions_of(self.visitor)
+
+    def load_objects(self):
+        super(VisitPersonMixin, self).load_objects()
+        self.person = self.get_person()
+        self.visit_perms = self.get_visit_perms()
+
+    def check_permissions(self):
+        super(VisitPersonMixin, self).check_permissions()
+        if self.require_visit_perms and self.require_visit_perms not in self.visit_perms:
             raise PermissionDenied
 
     def get_context_data(self, **kw):
         ctx = super(VisitPersonMixin, self).get_context_data(**kw)
         ctx["person"] = self.person
-        ctx["vperms"] = self.vperms
+        ctx["visit_perms"] = self.visit_perms
         return ctx
 
 
@@ -101,35 +108,30 @@ class VisitPersonTemplateView(VisitPersonMixin, TemplateView):
     pass
 
 
-class VisitProcessMixin(VisitorMixin):
+class VisitProcessMixin(VisitPersonMixin):
     """
-    Visit a person process. Adds self.person, self.process and self.vperms with
+    Visit a person process. Adds self.person, self.process and self.visit_perms with
     the permissions the visitor has over the person
     """
-    # Define to "edit_bio" "edit_ldap" or "view_person_audit_log" to raise
-    # PermissionDenied if the given test on the person-visitor fails
-    require_vperms = None
+    def get_person(self):
+        return self.process.person
 
-    def pre_dispatch(self):
-        super(VisitProcessMixin, self).pre_dispatch()
-        key = self.kwargs.get("key", None)
-        if key is None:
-            raise PermissionDenied
-        self.process = bmodels.Process.lookup_or_404(key)
-        self.person = self.process.person
-        self.vperms = self.process.permissions_of(self.visitor)
+    def get_process(self):
+        return bmodels.Process.lookup_or_404(self.kwargs["key"])
 
-        if self.require_vperms and self.require_vperms not in self.vperms.perms:
-            raise PermissionDenied
+    def get_visit_perms(self):
+        return self.process.permissions_of(self.visitor)
+
+    def load_objects(self):
+        self.process = self.get_process()
+        super(VisitProcessMixin, self).load_objects()
 
     def get_context_data(self, **kw):
         ctx = super(VisitProcessMixin, self).get_context_data(**kw)
-        ctx["person"] = self.person
         ctx["process"] = self.process
-        ctx["vperms"] = self.vperms
         return ctx
 
 
 class VisitProcessTemplateView(VisitProcessMixin, TemplateView):
-    pass
+    template_name = "process/show.html"
 

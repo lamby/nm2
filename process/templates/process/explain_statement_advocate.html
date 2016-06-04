@@ -1,0 +1,56 @@
+{% load nm %}
+
+<p>This page collects statements of advocacy for
+   <a href="{{person.get_absolute_url}}">{{person}}</a>
+   to become <i>{{process.applying_for|desc_status}}</i>.</p>
+
+{% if process.applying_for == "dc_ga" %}
+<p>TODO: guest account</p>
+{% elif process.applying_for == "dm" %}
+<p>TODO: DM</p>
+{% elif process.applying_for == "dm_ga" %}
+<p>TODO: guest account</p>
+{% elif process.applying_for == "dd_u" or process.applying_for == "dd_nu" %}
+<p>See <a href="http://wiki.debian.org/FrontDesk/AdvocacyTips">here</a> for advocacy tips, and
+<a href="https://lists.debian.org/debian-devel-announce/2010/05/msg00003.html">here</a>
+for some more rationale.</p>
+{% endif %}
+
+<p>Please be verbose if you can. You may want to write the advocacy in a
+proper text editor and paste it in the form when you are happy with it.</p>
+
+{% if warn_dm_preferred %}
+<p><b>Warning:</b> upload rights have been requested, and {{person.fullname}}
+   does not seem to be a DM. The general rule is that
+   <a href="http://www.debian.org/devel/join/">before applying as DD, you should have been a DM for about six months</a>.
+   You can still advocate {{person.fullname}}, just please take a moment to elaborate on this.</p>
+{% endif %}
+
+<p><b>Note:</b> An email with your advocacy message will be sent to the
+   <a href="http://lists.debian.org/debian-newmaint">debian-newmaint</a>
+   <em>public</em> mailing list</p>
+
+
+{% if edit %}
+<p>Paste a signed advocacy message in the form below, and it will get
+automatically posted to <a href="https://lists.debian.org/debian-newmaint/">debian-newmaint</a>.</p>
+
+<p>An example advocacy message intent can be something like this:
+<pre>
+For nm.debian.org, at {{now|date:"Y-m-d"}}:
+I support {{person}}'s request to become {{process.applying_for|desc_status}}.
+I have worked with {{person.fullname}} on X and Y for X time and I would like to be able to Z.
+
+I have personally worked with {{person}} (key {{person.fpr}}) for X time,
+and I know {{person.fullname}} can be trusted to {% spaceless %}
+  {% if process.applying_for == "dc_ga" or process.applying_for == "dm_ga" %}
+    <span>have access to developer machines</span>
+  {% elif process.applying_for == "dm" %}
+    <span>have upload rights for their own packages</span>
+  {% elif process.applying_for == "dd_nu" %}
+    <span>be a full member of Debian</span>
+  {% elif process.applying_for == "dd_u" %}
+    <span>be a full member of Debian, and have unsupervised, unrestricted upload rights</span>
+  {% endif %} {% endspaceless %}, right now.  
+</pre>
+{% endif %}

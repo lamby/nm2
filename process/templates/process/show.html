@@ -1,0 +1,198 @@
+{% extends "process/base.html" %}
+{% load nm %}
+{% load js %}
+
+{% block head_resources %}
+{{block.super}}
+{% jsinclude "nm" %}
+<style type="text/css">
+.errorlist { color: red; }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}{{block.super}}
+/ {{person.a_link}}
+{% endblock %}
+
+{% block relatedpages %}
+{{person.a_link}}
+{{block.super}}
+{% endblock %}
+
+{% block content %}
+
+<h1>{{person}} / {{process.applying_for|desc_status}}</h1>
+
+{% with status=process.compute_status %}
+
+<table class="personinfo">
+  <tr><th>Applicant</th><td><a href="{{person.get_absolute_url}}">{{person.fullname}} &lt;{{person.preferred_email}}&gt;</a></td></tr>
+  <tr><th>Activity timespan</th><td>{{status.log_first.logdate|date:"Y-m-d"}} to {{status.log_last.logdate|date:"Y-m-d"}}</td></tr>
+  <tr>
+    <th>Status</th>
+    <td>
+      {% if process.frozen_by %}
+        {% if process.approved_by %}
+          Approved by {{process.approved_by.a_link}} on {{process.approved_time|date:"Y-m-d"}}.
+        {% else %}
+          Frozen for review by {{process.frozen_by.a_link}} on {{process.frozen_time|date:"Y-m-d"}}.
+        {% endif %}
+      {% else %}
+        {% if process.approved_by %}
+          Inconsistent state: approved by {{process.approved_by.a_link}} on {{process.approved_time|date:"Y-m-d"}}, but not frozen for review.
+        {% else %}
+          Collecting requirements.
+        {% endif %}
+      {% endif %}
+    </td>
+  </tr>
+
+  {% if process.closed %}
+  <tr>
+    <th>Completed</th>
+    <td>{{process.closed|date:"Y-m-d"}}</td>
+  </tr>
+  {% endif %}
+
+  {% if "advocate" in status.requirements %}
+  <tr>
+    <th>Advocate{{status.advocates|pluralize}}</th>
+    <td>
+      {% for a in status.advocates %}
+      {{a.a_link}}{% if not forloop.last %}, {% endif %}
+      {% empty %}
+      <a href="{{status.requirements.advocate.get_absolute_url}}">none yet</a>
+      {% endfor %}
+    </td>
+  </tr>
+  {% endif %}
+
+  {% with process.current_am_assignment as am %}
+  {% if am %}
+  <tr>
+    <th>Application Manager</th>
+    <td>{{am.am.person.a_link}} assigned by {{am.assigned_by.a_link}} on {{am.assigned_time|date:"Y-m-d"}}</td>
+  </tr>
+  {% endif %}
+  {% endwith %}
+
+  <tr>
+    <th>Missing requirements</th>
+    <td>
+      {% if status.requirements_missing %}
+        {% for req in status.requirements_missing %}
+        <a href="{{req.get_absolute_url}}">{{req}}</a>{% if not forloop.last %},{% endif %}
+        {% endfor %}
+      {% else %}
+        none
+      {% endif %}
+    </td>
+  </tr>
+
+  <tr>
+    <th>Requirements ok</th>
+    <td>
+      {% if status.requirements_ok %}
+        {% for req in status.requirements_ok %}
+        <a href="{{req.get_absolute_url}}">{{req}}</a>{% if not forloop.last %},{% endif %}
+        {% endfor %}
+      {% else %}
+        none
+      {% endif %}
+    </td>
+  </tr>
+
+  {% if "fd_comments" in visit_perms %}
+  <tr id="view_fd_comment"><th>FD comments</th><td>{{process.fd_comment}}</td></tr>
+  {% endif %}
+
+  {% if "view_mbox" in visit_perms %}
+  <tr id="view_mbox">
+    <th>Mail archive</th>
+    <td>
+        <tt><a href="mailto:{{process.archive_email}}">{{process.archive_email}}</a></tt>
+        {% if process.mailbox_file %}
+        <a href="{% url 'process_mailbox_download' pk=process.pk %}">(download mail archive)</a>
+        <a href="{% url 'process_mailbox_show' pk=process.pk %}">(display mail archive)</a>
+        {% else %}
+        (no mail archive yet)
+        {% endif %}
+    </td>
+  </tr>
+
+  {% comment %} TODO: Requires porting stats backend to new Process
+  {% if mbox_stats %}
+  <tr><th>Mailbox stats</th>
+      <td>{{mbox_stats.date_first_py|date:"Y-m-d"}} to {{mbox_stats.date_last_py|date:"Y-m-d"}},
+          {{mbox_stats.num_mails}} mails,
+          <br>
+          {% if mbox_stats.median_py %}
+            {% if mbox_stats.median_py.days %}{{mbox_stats.median_py.days}}d {% endif %}{{mbox_stats.median_hours}}h median response time
+          {% endif %}
+          <span class="mbox_sparkline" values="{{mbox_stats.response_time|join:","}}"></span>
+      </td>
+  </tr>
+  {% endif %}
+  {% endcomment %}
+
+  {% endif %}
+</table>
+
+{% comment %}
+{% if "edit_bio" in visit_perms or "edit_ldap" in visit_perms %}
+<a href="{% url 'restricted_person' key=person.lookup_key %}">Edit personal information</a>
+{% endif %}
+{% endcomment %}
+
+<h2>Requirements</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Requirement</th>
+      <th>Satisfied</th>
+      <th>Approved by</th>
+      <th>Approved date</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for req in status.requirements_sorted %}
+    <tr>
+      {% with req.compute_status as rstatus %}
+      <td><a href="{{req.get_absolute_url}}">{{req}}</a></td>
+      <td>{{rstatus.satisfied|yesno}}</td>
+      <td>
+        {% if req.approved_by %}
+          {{req.approved_by.a_link}}
+        {% else %}
+          -
+        {% endif %}
+      </td>
+      <td>
+        {% if req.approved_time %}
+          {{req.approved_time|date:"Y-m-d"}}
+        {% else %}
+          -
+        {% endif %}
+      </td>
+      <td>
+        {% for nclass, ntext in rstatus.notes %}
+        <span class="{{nclass}}">{{ntext}}</span>{% if not forloop.last %}<br>{% endif %}
+        {% endfor %}
+      </td>
+      {% endwith %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<a href="{% url 'process_download_statements' pk=process.pk %}">(download all signed statements in a single mailbox file)</a>
+
+{% endwith %}
+
+<h3>Log</h2>
+
+{% include "process/log_widget.html"  with entries=process.log.all %}
+
+{% endblock %}

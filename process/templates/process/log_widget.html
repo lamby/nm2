@@ -1,0 +1,63 @@
+<p>
+<form method="POST" action="{% url 'process_add_log' pk=process.pk %}">{% csrf_token %}
+  {% if requirement %}
+  <input type="hidden" name="req_type" value="{{requirement.type}}">
+  {% endif %}
+  Add log entry:
+  <br/>
+  <textarea name="logtext" rows="3" cols="80" placeholder="vacation notice / remark about the process / status update / ..."></textarea>
+  <br/>
+  {% if "add_log" in visit_perms %}
+  <button id="log_public" type="submit" name="add_action" value="log_public">Comment</button>
+  <button id="log_private" type="submit" name="add_action" value="log_private">Comment (confidential)</button>
+  {% endif %}
+  {% if "req_approve" in visit_perms %}<button id="req_approve" type="submit" name="add_action" value="req_approve">Approve</button>{% endif %}
+  {% if "req_unapprove" in visit_perms %}<button id="req_unapprove" type="submit" name="add_action" value="req_unapprove">Unapprove</button>{% endif %}
+  {% if "proc_freeze" in visit_perms %}<button id="proc_freeze" type="submit" name="add_action" value="proc_freeze">Freeze for review</button>{% endif %}
+  {% if "proc_unfreeze" in visit_perms %}<button id="proc_unfreeze" type="submit" name="add_action" value="proc_unfreeze">Unfreeze for further work</button>{% endif %}
+  {% if "proc_approve" in visit_perms %}<button id="proc_approve" type="submit" name="add_action" value="proc_approve">Approve process</button>{% endif %}
+  {% if "proc_unapprove" in visit_perms %}<button id="proc_unapprove" type="submit" name="add_action" value="proc_unapprove">Unapprove process</button>{% endif %}
+</form>
+</p>
+<table>
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Author</th>
+      {% if not requirement %}
+      <th>Requirement</th>
+      {% endif %}
+      <th>Action</th>
+      <th>Content</th>
+      <th>Public</th>
+      {% if visitor.is_admin %}
+      <th>Actions</th>
+      {% endif %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for e in entries %}
+    {% if e.is_public or "view_private_log" in visit_perms %}
+    <tr>
+      <td>{{e.logdate|date:"Y-m-d H:i"}}</td>
+      <td>{{e.changed_by.a_link}}</a></td>
+      {% if not requirement %}
+      <td>
+        {% if e.requirement %}
+          {{e.requirement.a_link}}
+        {% else %}
+          -
+        {% endif %}
+      </td>
+      {% endif %}
+      <td>{{e.action|default:"-"}}</td>
+      <td>{{e.logtext}}</td>
+      <td>{{e.is_public|yesno}}</td>
+      {% if visitor.is_admin %}
+      <td><a href="{% url 'admin:process_log_change' e.pk %}">admin</a></td>
+      {% endif %}
+    </tr>
+    {% endif %}
+    {% endfor %}
+  </tbody>
+</table>

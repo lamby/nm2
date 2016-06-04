@@ -141,7 +141,7 @@ class Process(VisitProcessTemplateView):
         # Process form ASAP, so we compute the rest with updated values
         am = self.visitor.am_or_none if self.visitor else None
         if am and (self.process.manager == am or am.is_admin) and (
-            "edit_bio" in self.vperms.perms or "edit_ldap" in self.vperms.perms):
+            "edit_bio" in self.visit_perms or "edit_ldap" in self.visit_perms):
             StatusUpdateForm = make_statusupdateform(am)
             form = StatusUpdateForm(initial=dict(progress=self.process.progress))
         else:
@@ -419,7 +419,7 @@ class Process(VisitProcessTemplateView):
 
 
 class ProcessUpdateKeycheck(VisitProcessMixin, View):
-    require_vperms = "update_keycheck"
+    require_visit_perms = "update_keycheck"
 
     def post(self, request, key, *args, **kw):
         from keyring.models import Key
@@ -497,6 +497,9 @@ class Person(VisitPersonTemplateView):
                 .annotate(started=Min("log__logdate"), ended=Max("log__logdate")) \
                 .order_by("is_active", "ended")
 
+        import process.models as pmodels
+        processes2 = pmodels.Process.objects.filter(person=self.person).order_by("-closed")
+
         if self.person.is_am:
             am = self.person.am
             am_processes = am.processed \
@@ -507,7 +510,7 @@ class Person(VisitPersonTemplateView):
             am_processes = []
 
         audit_log = []
-        if "view_person_audit_log" in self.vperms.perms:
+        if "view_person_audit_log" in self.visit_perms:
             is_admin = self.visitor.is_admin
             for e in self.person.audit_log.order_by("-logdate"):
                 if is_admin:
@@ -524,6 +527,7 @@ class Person(VisitPersonTemplateView):
         ctx.update(
             am=am,
             processes=processes,
+            processes2=processes2,
             am_processes=am_processes,
             adv_processes=self.person.advocated \
                     .annotate(started=Min("log__logdate"), ended=Max("log__logdate")) \

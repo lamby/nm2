@@ -1,0 +1,34 @@
+<table>
+  <thead>
+    <tr>
+      <th>Statement</th>
+      <th>Uploaded by</th>
+      <th>Upload date</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for s in requirement.statements.all %}
+    <tr>
+      <td><pre class="inline-statement">{{s.statement_clean}}</pre></td>
+      <td>{{s.uploaded_by.a_link}}</td>
+      <td>{{s.uploaded_time|date:"Y-m-d"}}</td>
+      <td>
+        <a href="{% url 'process_statement_raw' pk=process.pk type=requirement.type st=s.pk %}">[view raw]</a>
+        {% if "edit_statements" in visit_perms %}
+        <a class="statement_delete" href="{% url 'process_statement_delete' pk=process.pk type=requirement.type st=s.pk %}">[delete]</a>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+  {% if "edit_statements" in visit_perms %}
+  <tfoot>
+    <tr>
+      <td colspan="3">
+        <a id="statement_add" href="{% url 'process_statement_create' pk=process.pk type=requirement.type %}">add</a>
+      </td>
+    </tr>
+  </tfoot>
+  {% endif %}
+</table>

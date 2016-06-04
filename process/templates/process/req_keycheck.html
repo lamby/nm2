@@ -1,0 +1,79 @@
+{% extends "process/base.html" %}
+{% load nm %}
+{% load js %}
+
+{% block head_resources %}
+{{block.super}}
+{% jsinclude "nm" %}
+{% endblock %}
+
+{% block breadcrumbs %}{{block.super}}
+/ <a href="{{ person.get_absolute_url }}">{{person.lookup_key}}</a>
+/ <a href="{{ process.get_absolute_url }}">{{process}}</a>
+{% endblock %}
+
+{% block relatedpages %}
+{{block.super}}
+{% endblock %}
+
+{% block content %}
+
+<h1>{{type_desc}}</h1>
+
+{% include "process/requirement_status_widget.html" %}
+
+<p>TODO: explain rationale of keycheck, link to relevent bits</p>
+
+<h2>Keycheck results</h2>
+
+{% if status.keycheck %}
+<table class="personinfo">
+  <tbody>
+    <tr>
+      <th>OpenPGP fingerprint</th>
+      <td>{{person.fpr|fingerprint}}{% if "edit_ldap" in visit_perms %} (<a href="{% url 'fprs_person_list' key=person.lookup_key %}">manage</a>){% endif %}</td>
+    </tr>
+    {% with status.keycheck as keycheck %}
+    <tr>
+      <th>Main key</th>
+      <td class="keycheck_key">
+          <b>{{keycheck.main.remarks}}</b> (last updated: {{keycheck.updated|date:"Y-m-d H:i T"}})
+          {% if "update_keycheck" in visit_perms %}
+          <form class="inline" action="{% url 'process_update_keycheck' pk=process.pk %}" method="POST">{% csrf_token %}
+            <button type="submit">Update</button>
+          </form>
+          {% endif %}
+      </td>
+    </tr>
+    {% for uid in keycheck.uids %}
+    <tr>
+      <th>UID {{uid.name}}</th>
+      <td class="keycheck_uid">
+        <b>{{uid.remarks}}</b>, <i>{{uid.sigs_no_key}}</i> non-DD sigs,
+        {% if uid.sigs_ok|length > 10 %}
+        first 10 of <b>{{uid.sigs_ok|length}}</b> DD sigs:
+        {% else %}
+        <b>{{uid.sigs_ok|length}}</b> DD sigs:
+        {% endif %}
+        <ul class="packed">
+          {% for s in uid.sigs_ok|slice:":10" %}
+          <li>{{s.4}}: {{s.9}}</li>
+          {% empty %}
+          <li>none</li>
+          {% endfor %}
+        </ul>
+      </td>
+    </tr>
+    {% endfor %}
+    {% endwith %}
+  </tbody>
+</table>
+{% else %}
+<p>No keycheck results available</p>
+{% endif %}
+
+<h2>Log</h2>
+
+{% include "process/log_widget.html" with entries=requirement.log.all %}
+
+{% endblock %}
