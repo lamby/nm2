@@ -24,4 +24,5 @@ urlpatterns = [
     url(r'^(?P<pk>\d+)/unassign_am$', views.UnassignAM.as_view(), name="process_unassign_am"),
     url(r'^(?P<pk>\d+)/mailbox/download$', views.MailArchive.as_view(), name="process_mailbox_download"), # TODO: test
     url(r'^(?P<pk>\d+)/mailbox$', views.DisplayMailArchive.as_view(), name="process_mailbox_show"), # TODO: test
+    url(r'^(?P<pk>\d+)/update_keycheck$', views.UpdateKeycheck.as_view(), name="process_update_keycheck"), # TODO: test
 ]

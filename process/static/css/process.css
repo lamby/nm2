@@ -6,3 +6,12 @@ form.inline-form {
     margin: 0;
     padding: 0;
 }
+ul.packed {
+    margin: 0;
+}
+td.keycheck_key {
+    font-size: small;
+}
+td.keycheck_uid {
+    font-size: small;
+}

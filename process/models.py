@@ -418,8 +418,60 @@ class Requirement(models.Model):
             "notes": notes,
         }
 
+    def compute_status_keycheck(self):
+        notes = []
+        satisfied = True
+        keycheck_results = None
 
-    #def compute_status_keycheck(self):
+        if not self.process.person.fpr:
+            notes.append(("error", "no key is configured for {}".format(self.process.person.lookup_key)))
+            satisfied = False
+        else:
+            from keyring.models import Key
+            try:
+                key = Key.objects.get_or_download(self.process.person.fpr)
+            except RuntimeError as e:
+                key = None
+                notes.append(("error", "cannot run keycheck: " + str(e)))
+                satisfied = False
+
+            if key is not None:
+                keycheck = key.keycheck()
+                uids = []
+                has_good_uid = False
+                for ku in keycheck.uids:
+                    uids.append({
+                        "name": ku.uid.name.replace("@", ", "),
+                        "remarks": " ".join(sorted(ku.errors)) if ku.errors else "ok",
+                        "sigs_ok": ku.sigs_ok,
+                        "sigs_no_key": len(ku.sigs_no_key),
+                        "sigs_bad": len(ku.sigs_bad)
+                    })
+                    if not ku.errors and len(ku.sigs_ok) >= 2:
+                        has_good_uid = True
+
+                if not has_good_uid:
+                    notes.append(("warn", "no UID found that fully satisfies requirements"))
+                    satisfied = False
+
+                keycheck_results = {
+                    "main": {
+                        "remarks": " ".join(sorted(keycheck.errors)) if keycheck.errors else "ok",
+                    },
+                    "uids": uids,
+                    "updated": key.check_sigs_updated,
+                }
+
+                if keycheck.errors:
+                    notes.append(("warn", "key has issues " + keycheck["main"]["remarks"]))
+                    satisfied = False
+
+        return {
+            "satisfied": satisfied,
+            "notes": notes,
+            "keycheck": keycheck_results,
+        }
+
 
 
 class AMAssignment(models.Model):

@@ -175,6 +175,7 @@ class RequirementMixin(VisitProcessMixin):
         ctx["type"] = self.requirement.type
         ctx["type_desc"] = pmodels.REQUIREMENT_TYPES_DICT[self.requirement.type].desc
         ctx["explain_template"] = "process/explain_statement_" + self.requirement.type + ".html"
+        ctx["status"] = self.requirement.compute_status()
         return ctx
 
 
@@ -403,3 +404,19 @@ class DisplayMailArchive(VisitProcessMixin, TemplateView):
         ctx["process"] = process
         ctx["class"] = "clickable"
         return ctx
+
+
+class UpdateKeycheck(RequirementMixin, View):
+    type = "keycheck"
+    require_visit_perms = "update_keycheck"
+
+    def post(self, request, *args, **kw):
+        from keyring.models import Key
+        try:
+            key = Key.objects.get_or_download(self.person.fpr)
+        except RuntimeError as e:
+            key = None
+        if key is not None:
+            key.update_key()
+            key.update_check_sigs()
+        return redirect(self.requirement.get_absolute_url())
