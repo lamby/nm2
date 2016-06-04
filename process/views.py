@@ -402,7 +402,7 @@ class DisplayMailArchive(VisitProcessMixin, TemplateView):
         fname = self.process.mailbox_file
         if fname is None: raise http.Http404
         ctx["mails"] = backend.email.get_mbox_as_dicts(fname)
-        ctx["process"] = process
+        ctx["process"] = self.process
         ctx["class"] = "clickable"
         return ctx
 
