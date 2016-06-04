@@ -24,7 +24,7 @@ import json
 from django.db.models.signals import post_save
 
 
-PROCESS_MAILBOX_DIR = getattr(settings, "PROCESS_MAILBOX_DIR", "/srv/nm.debian.org/mbox/applicants/")
+PROCESS_MAILBOX_DIR = getattr(settings, "PROCESS_MAILBOX_DIR_OLD", "/srv/nm.debian.org/mbox/applicants/")
 DM_IMPORT_DATE = getattr(settings, "DM_IMPORT_DATE", None)
 
 

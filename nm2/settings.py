@@ -247,6 +247,9 @@ HOUSEKEEPING_ROOT = os.path.join(DATA_DIR, "housekeeping")
 # Directory where applicant mailboxes are stored
 PROCESS_MAILBOX_DIR = os.path.join(DATA_DIR, "applicant-mailboxes")
 
+# Directory where applicant mailboxes are stored for old-style processes
+PROCESS_MAILBOX_DIR_OLD = os.path.join(DATA_DIR, "applicant-mailboxes")
+
 # Date where we imported DM information that had no timestamp.
 # DMs created on this date are infact DMs created on an unknown date
 DM_IMPORT_DATE = datetime.datetime(2012, 3, 14)
