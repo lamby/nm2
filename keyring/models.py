@@ -165,7 +165,7 @@ class Key(models.Model):
             data_file = os.path.join(gpg.homedir, "data.txt")
             status_log = os.path.join(gpg.homedir, "status.log")
             logger_log = os.path.join(gpg.homedir, "logger.log")
-            with io.open(data_file, "wt") as fd:
+            with io.open(data_file, "wt", encoding="utf-8") as fd:
                 fd.write(data)
             with io.open(status_log, "wb") as fd_status:
                 with io.open(logger_log, "wb") as fd_logger:

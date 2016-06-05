@@ -173,3 +173,34 @@ class TestKeycheck(TestCase):
         with self.assertRaises(RuntimeError):
             key2.verify(test_signed)
 
+
+class TestVerify(TestCase):
+    def test_verify(self):
+        text = """
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA256
+
+þiş is a têst message úsed while debügging nm.debiån.ørg ♥
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
+
+iQIcBAEBCAAGBQJXVA4MAAoJEAPWVoyDcnWps0gP/iyWqN68kLsqVOs/pPJsQlLO
+DT8XGCHukzw4O9mAzM3pj2TUKql+4GrePCB7Sia8zIOkMWNFIlOKN1PRE4D3fGeC
+zbNdQddP+rdcjCU41+83F8XuWjpuqtT83vDww/iViyYuxgflx14Rj77yE6RZOYpH
+wgQssQ15ykz7z2kYBxcfNSdQBGqdQ4PEc3cwn94yAZexZ6A/+R4w3gzF1VA5ldGn
+MJKR1XT3NH2vnrQMW7ffE030ELiF7rdE3b77LPwtlqFtWqhPnZg+QmyLQoMRst+s
+TWS0optG28zkH320yQnkl8UahEAXJiaW2IFG812O+M0/zYa9Tc/Z8cRpPjkPunvO
+hZglwt7Z3f2edpT91L7yU1WfJzKXPwYLPYJRXp+ZYTeSiaPLftHIiN60ruGO0o20
+E3yzCUISESYKERHc8eJYJub5MV5fz9z8q35yggftR8LT5pspsUEtqJzvjPB0VOwO
+gtPwxxJr2pmU/exB7mAhd05Qq1C2YmLNhfD6OWpWLZJ7MumRZK4TVBv4XQ+FgLlT
+QHfXETET8c9RHTxay9E5HC4VdNrmeN5R5cOKnzkGik6NNsQXs42cvlqFGhAfaL/8
+BIdcCviy3rEnqRSc+sXQM6kpBGY+ZC5oejNjsgOJFUyAF3Yqgt5hqQZ8ii2SF5V3
+Kbul7r6fmKMmeViXW8TS
+=WzDm
+-----END PGP SIGNATURE-----
+"""
+        test_fpr = "1793D6AB75663E6BF104953A634F4BD1E7AD5568"
+        kmodels.Key.objects.test_preload(test_fpr)
+        key = kmodels.Key.objects.get_or_download(fpr=test_fpr)
+        decoded = key.verify(text)
+        self.assertEquals(decoded, "þiş is a têst message úsed while debügging nm.debiån.ørg ♥\n")
