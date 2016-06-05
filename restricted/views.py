@@ -31,6 +31,9 @@ class AMMain(VisitorTemplateView):
         from django.db.models import Min, Max
         ctx = super(AMMain, self).get_context_data(**kw)
 
+        import process.models as pmodels
+        ctx["current_processes"] = pmodels.Process.objects.filter(closed__isnull=True).order_by("applying_for")
+
         ctx["am_available"] = bmodels.AM.list_available(free_only=True)
 
         if self.visitor.am.is_fd or self.visitor.am.is_dam:

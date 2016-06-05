@@ -51,6 +51,10 @@ $(function() {
     {% if visitor.am.is_dam %}<li>Debian Account Manager</li>{% endif %}
 </ul>
 
+<h2>Currently open processes</h2>
+
+{% include "process/process_list.html" with procs=current_processes %}
+
 {% if visitor.is_admin %}
 
 <h2>Front desk</h2>
