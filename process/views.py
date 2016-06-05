@@ -472,7 +472,7 @@ class MakeRTTicket(VisitProcessMixin, TemplateView):
 
 
         # Build the request text
-        request.append("Please make {person.fullname} (currently '{status}') a '{applying_for}' (sponsored by {sponsors}).")
+        request.append("Please make {person.fullname} (currently '{status}') a '{applying_for}' (advocated by {sponsors}).")
 
         if not only_guest_account:
             if self.person.status == const.STATUS_DC:
