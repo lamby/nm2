@@ -73,7 +73,7 @@
     <th>Application Manager</th>
     <td>
       {{am.am.person.a_link}} assigned by {{am.assigned_by.a_link}} on {{am.assigned_time|date:"Y-m-d"}}
-      {% "am_unassign" in visit_perms %}
+      {% if "am_unassign" in visit_perms %}
       <form id="am_unassign" action="{% url 'process_unassign_am' pk=process.pk %}" method="POST">{% csrf_token %}
         <button type="submit">Unassign</button>
       </form>
