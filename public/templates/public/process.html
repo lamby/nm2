@@ -73,21 +73,6 @@ $(function() {
 </script>
 {% endblock %}
 
-{% block breadcrumbs %}{{block.super}} / <a href="{{person.get_absolute_url}}">{{person.lookup_key}}</a> / <a href="{{ process.get_absolute_url }}">progress</a>{% endblock %}
-
-{% block relatedpages %}
-<a href="{{person.get_ddpo_url}}">DDPO</a>
-<a href="{{person.get_portfolio_url}}">Portfolio</a>
-{% if visitor %}
-<a href="{% url 'restricted_minechangelogs' key=person.lookup_key %}">changelogs</a>
-{% endif %}
-{% if visitor.is_admin %}
-<a href="{% url 'admin:backend_process_change' process.id %}">admin</a>
-{% endif %}
-{{block.super}}
-{% endblock %}
-
-
 {% block content %}
 
 <h1>Status Page for {{person.fullname}}</h1>

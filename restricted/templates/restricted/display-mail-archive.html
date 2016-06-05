@@ -36,12 +36,6 @@ $(function() {
 </script>
 {% endblock %}
 
-{% block breadcrumbs %}{{block.super}}
-{% if process %}
-/ <a href="{{process.get_absolute_url}}">{{process.lookup_key}}</a>
-{% endif %}
-{% endblock %}
-
 {% block content %}
 
 <h1>Mail archive</h1>

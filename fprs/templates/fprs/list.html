@@ -10,15 +10,6 @@
 </style>
 {% endblock %}
 
-{% block breadcrumbs %}{{block.super}}
-/ <a href="{{ person.get_absolute_url }}">{{person.lookup_key}}</a>
-{% endblock %}
-
-{% block relatedpages %}
-<a href="{{person.get_absolute_url}}">{{person.lookup_key}}</a>
-{{block.super}}
-{% endblock %}
-
 {% block content %}
 
 <h1>Edit fingerprints for {{person.fullname}}</h1>

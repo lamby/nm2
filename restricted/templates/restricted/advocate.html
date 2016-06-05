@@ -12,11 +12,6 @@
 </style>
 {% endblock %}
 
-
-{% block breadcrumbs %}{{block.super}}
-/ <a href="{{ person.get_absolute_url }}">{{person.lookup_key}}</a>
-{% endblock %}
-
 {% block content %}
 
 <h1>Advocate {{person.fullname}} to become {{applying_for|desc_status}}</h1>

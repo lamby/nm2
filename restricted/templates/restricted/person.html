@@ -1,11 +1,6 @@
 {% extends "restricted/base.html" %}
 {% load nm %}
 
-{% block breadcrumbs %}{{block.super}}
-/ <a href="{{ person.get_absolute_url }}">{{person.lookup_key}}</a>
-/ <a href="{{request.build_absolute_uri}}">edit personal info</a>
-{% endblock %}
-
 {% block content %}
 
 <h1>Edit personal information for {{person.fullname}}</h1>

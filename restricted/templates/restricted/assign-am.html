@@ -31,11 +31,6 @@ $(main);
 </script>
 {% endblock %}
 
-{% block breadcrumbs %}{{block.super}}
-/ <a href="{{ process.get_absolute_url }}">{{process.lookup_key}}</a>
-/ <a href="{{request.build_absolute_uri}}">assign AM</a>
-{% endblock %}
-
 {% block content %}
 
 <h1>Assign AM to {{person.fullname}}</h1>

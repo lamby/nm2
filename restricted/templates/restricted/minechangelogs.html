@@ -2,13 +2,6 @@
 {% load nm %}
 {% load minechangelogs %}
 
-{% block breadcrumbs %}{{block.super}}
-{% if person %}
-/ <a href="{{person.get_absolute_url}}">{{person.lookup_key}}</a>
-{% endif %}
-/ <a href="{{request.build_absolute_uri}}">minechangelogs</a>
-{% endblock %}
-
 {% block content %}
 
 <h1>Minechangelogs query</h1>

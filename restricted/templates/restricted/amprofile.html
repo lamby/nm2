@@ -7,8 +7,6 @@
   {% jsinclude "nm" %}
 {% endblock %}
 
-{% block breadcrumbs %}{{block.super}} / <a href="{{person.get_absolute_url}}">{{person.uid}}</a> / <a href="{% url 'restricted_amprofile' key=person.lookup_key %}">am settings</a>{% endblock %}
-
 {% block content %}
 
 <h1>Debian New Member - AM Profile</h1>

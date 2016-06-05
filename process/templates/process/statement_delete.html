@@ -10,14 +10,6 @@
 </style>
 {% endblock %}
 
-{% block breadcrumbs %}{{block.super}}
-/ <a href="{{ person.get_absolute_url }}">{{person.lookup_key}}</a>
-{% endblock %}
-
-{% block relatedpages %}
-{{block.super}}
-{% endblock %}
-
 {% block content %}
 
 <h1>Delete {{type_desc}}</h1>

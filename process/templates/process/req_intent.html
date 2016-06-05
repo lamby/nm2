@@ -7,15 +7,6 @@
 {% jsinclude "nm" %}
 {% endblock %}
 
-{% block breadcrumbs %}{{block.super}}
-/ <a href="{{ person.get_absolute_url }}">{{person.lookup_key}}</a>
-/ <a href="{{ process.get_absolute_url }}">{{process}}</a>
-{% endblock %}
-
-{% block relatedpages %}
-{{block.super}}
-{% endblock %}
-
 {% block content %}
 
 <h1>{{type_desc}}</h1>

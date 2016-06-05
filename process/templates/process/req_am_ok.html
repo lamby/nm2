@@ -7,15 +7,6 @@
 {% jsinclude "nm" %}
 {% endblock %}
 
-{% block breadcrumbs %}{{block.super}}
-/ <a href="{{ person.get_absolute_url }}">{{person.lookup_key}}</a>
-/ <a href="{{ process.get_absolute_url }}">{{process}}</a>
-{% endblock %}
-
-{% block relatedpages %}
-{{block.super}}
-{% endblock %}
-
 {% block content %}
 
 <h1>{{type_desc}}</h1>
@@ -49,10 +40,11 @@
       <td>{{a.unassigned_time|date:"Y-m-d"}}</a></td>
       <td>
         {% if 'am_unassign' in visit_perms and not a.unassigned_by %}
-        <form id="am_unassign" action="{% url 'process_unassign_am' pk=process.pk %}" method="POST">{% csrf_token %}
+        <form class="inline-form" id="am_unassign" action="{% url 'process_unassign_am' pk=process.pk %}" method="POST">{% csrf_token %}
           <button type="submit">Unassign</button>
         </form>
         {% endif %}
+        {% if visitor.is_admin %}<a href="{{a.get_admin_url}}">admin</a>{% endif %}
       </td>
     </tr>
     {% empty %}

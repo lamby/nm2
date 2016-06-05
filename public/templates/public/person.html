@@ -7,31 +7,6 @@
   {% jsinclude "nm" %}
 {% endblock %}
 
-{% block breadcrumbs %}{{block.super}} / <a href="{% url 'people' %}">people</a> / {{person.uid|default:person.fullname}}{% endblock %}
-
-{% block relatedpages %}
-<a href="{{person.get_ddpo_url}}">DDPO</a>
-<a href="{{person.get_portfolio_url}}">Portfolio</a>
-{% if visitor %}
-<a href="{% url 'restricted_minechangelogs' key=person.lookup_key %}">changelogs</a>
-{% endif %}
-{% if visitor.is_admin %}
-<a href="{% url 'admin:backend_person_change' person.id  %}">admin</a>
-{% if person.can_become_am %}
-<a href="{% url 'admin:backend_am_add' %}?person={{person.id}}">make am</a>
-{% endif %}
-{% endif %}
-{% for s in visit_perms.advocate_targets %}
-{% if s == "dd_u" or s == "dd_nu" %}
-<a href="{% url 'restricted_advocate' key=person.lookup_key applying_for=s %}">advocate for {{s|sdesc_status}}</a>
-{% endif %}
-{% endfor %}
-{% if visitor != person %}
-  {% if visitor.is_admin %}<a href="{% url 'impersonate' key=person.lookup_key %}?url={{request.build_absolute_uri}}">impersonate</a>{% endif %}
-{% endif %}
-{{block.super}}
-{% endblock %}
-
 {% block content %}
 
 <h1>{{person.fullname}}</h1>

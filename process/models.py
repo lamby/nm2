@@ -213,6 +213,17 @@ class Process(models.Model):
     def get_absolute_url(self):
         return reverse("process_show", args=[self.pk])
 
+    def get_admin_url(self):
+        return reverse("admin:process_process_change", args=[self.pk])
+
+    @property
+    def a_link(self):
+        from django.utils.safestring import mark_safe
+        from django.utils.html import conditional_escape
+        return mark_safe("<a href='{}'>→ {}</a>".format(
+            conditional_escape(self.get_absolute_url()),
+            conditional_escape(const.ALL_STATUS_DESCS[self.applying_for])))
+
     @property
     def can_advocate_self(self):
         return self.applying_for == const.STATUS_DM_GA and self.person.status == const.STATUS_DM
@@ -352,13 +363,16 @@ class Requirement(models.Model):
     def get_absolute_url(self):
         return reverse("process_req_" + self.type, args=[self.process.pk])
 
+    def get_admin_url(self):
+        return reverse("admin:process_requirement_change", args=[self.pk])
+
     @property
     def a_link(self):
         from django.utils.safestring import mark_safe
         from django.utils.html import conditional_escape
         return mark_safe("<a href='{}'>{}</a>".format(
             conditional_escape(self.get_absolute_url()),
-            conditional_escape(self.type)))
+            conditional_escape(REQUIREMENT_TYPES_DICT[self.type].desc)))
 
     def permissions_of(self, visitor):
         """
@@ -518,6 +532,9 @@ class AMAssignment(models.Model):
 
     class Meta:
         ordering = ["-assigned_by"]
+
+    def get_admin_url(self):
+        return reverse("admin:process_amassignment_change", args=[self.pk])
 
 
 class Statement(models.Model):

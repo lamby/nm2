@@ -10,15 +10,6 @@
 </style>
 {% endblock %}
 
-{% block breadcrumbs %}{{block.super}}
-/ {{person.a_link}}
-{% endblock %}
-
-{% block relatedpages %}
-{{person.a_link}}
-{{block.super}}
-{% endblock %}
-
 {% block content %}
 
 <h1>{{person}} / {{process.applying_for|desc_status}}</h1>

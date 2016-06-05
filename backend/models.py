@@ -10,6 +10,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.db import models
 from django.conf import settings
 from django.utils.timezone import now
+from django.core.urlresolvers import reverse
 from django.contrib.auth.models import BaseUserManager, PermissionsMixin
 from django.forms.models import model_to_dict
 from . import const
@@ -484,6 +485,9 @@ class Person(PermissionsMixin, models.Model):
     @models.permalink
     def get_absolute_url(self):
         return ("person", (), dict(key=self.lookup_key))
+
+    def get_admin_url(self):
+        return reverse("admin:backend_person_change", args=[self.pk])
 
     @property
     def a_link(self):
@@ -1006,6 +1010,17 @@ class Process(models.Model):
     @models.permalink
     def get_absolute_url(self):
         return ("public_process", (), dict(key=self.lookup_key))
+
+    def get_admin_url(self):
+        return reverse("admin:backend_process_change", args=[self.pk])
+
+    @property
+    def a_link(self):
+        from django.utils.safestring import mark_safe
+        from django.utils.html import conditional_escape
+        return mark_safe("<a href='{}'>→ {}</a>".format(
+            conditional_escape(self.get_absolute_url()),
+            conditional_escape(const.ALL_STATUS_DESCS[self.applying_for])))
 
     @property
     def lookup_key(self):
