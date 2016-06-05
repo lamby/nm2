@@ -80,6 +80,7 @@ class VisitPersonMixin(VisitorMixin):
     def get_person(self):
         key = self.kwargs.get("key", None)
         if key is None:
+            if self.visitor is None: raise PermissionDenied
             return self.visitor
         else:
             return bmodels.Person.lookup_or_404(key)
