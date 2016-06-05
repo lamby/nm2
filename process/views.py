@@ -429,3 +429,80 @@ class DownloadStatements(VisitProcessMixin, View):
         res = http.HttpResponse(data, content_type="text/plain")
         res["Content-Disposition"] = "attachment; filename={}.mbox".format(self.person.lookup_key)
         return res
+
+
+class MakeRTTicket(VisitProcessMixin, TemplateView):
+    template_name = "process/make_rt_ticket.html"
+
+    def get_context_data(self, **kw):
+        ctx = super(MakeRTTicket, self).get_context_data(**kw)
+
+        only_guest_account = False
+
+        request = []
+        if self.person.status == const.STATUS_DC:
+            if self.process.applying_for == const.STATUS_DC_GA:
+                only_guest_account = True
+                request.append("please create a porter account for {person.fullname} (sponsored by {sponsors}).")
+            elif self.process.applying_for == const.STATUS_DM:
+                request.append("TODO DM") # TODO
+        elif self.person.status == const.STATUS_DC_GA:
+            pass
+        elif self.person.status == const.STATUS_DM:
+            if self.process.applying_for == const.STATUS_DM_GA:
+                only_guest_account = True
+                request = "please create a porter account for {person.fullname} (currently a DM)."
+        elif self.person.status == const.STATUS_DM_GA:
+            pass
+        elif self.person.status == const.STATUS_DD_NU:
+            pass
+        elif self.person.status == const.STATUS_DD_E:
+            pass
+        elif self.person.status == const.STATUS_DD_R:
+            pass
+
+
+        # Build the request text
+        request.append("Please make {person.fullname} (currently {status}) a {applying_for}")
+
+        if not only_guest_account:
+            if self.person.status == const.STATUS_DC:
+                request.append("Key {person.fpr} should be added to the {applying_for} keyring")
+            else:
+                request.append("Key {person.fpr} should be moved from the {status} to the {applying_for} keyring")
+
+        if self.visit_perms.person_has_ldap_record:
+            request.append("Note that {{person.fullname}} already has an account in LDAP.")
+
+        sponsors = set()
+        try:
+            adv_req = self.process.requirements.get(type="advocate")
+        except pmodels.Requirement.DoesNotExist:
+            adv_req = None
+        if adv_req is not None:
+            for st in adv_req.statements.all():
+                sponsors.add(st.uploaded_by.lookup_key)
+        sponsors = ", ".join(sorted(sponsors))
+
+        request = "\n".join(request)
+        ctx["request"] = request.format(
+            person=self.person,
+            process=self.process,
+            status=const.ALL_STATUS_DESCS[self.person.status],
+            applying_for=const.ALL_STATUS_DESCS[self.process.applying_for],
+            sponsors=sponsors,
+        )
+
+
+        if only_guest_account:
+            ctx["mail_to"] = "DSA <admin@rt.debian.org>"
+            ctx["subject"] = "[Debian RT] Guest account to porter machines for {}".format(self.person.fullname)
+        else:
+            ctx["mail_to"] = "Debian Keyring Maintainers <keyring@rt.debian.org>"
+            ctx["subject"] = "[Debian RT] Account for {}".format(self.person.fullname)
+
+        ctx["only_guest_account"] = only_guest_account
+
+        ctx["intents"] = pmodels.Statement.objects.filter(requirement__process=self.process)
+
+        return ctx

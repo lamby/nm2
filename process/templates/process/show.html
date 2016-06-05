@@ -186,6 +186,7 @@
 </table>
 
 <a href="{% url 'process_download_statements' pk=process.pk %}">(download all signed statements in a single mailbox file)</a>
+{% if visitor.is_admin %}<br><a href="{% url 'process_rt_ticket' pk=process.pk %}">Draft RT ticket</a>{% endif %}
 
 {% endwith %}
 
