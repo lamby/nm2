@@ -521,7 +521,7 @@ class Person(PermissionsMixin, models.Model):
         if self.is_dd:
             return "https://contributors.debian.org/contributor/{}@debian".format(self.uid)
         elif self.username.endswith("@users.alioth.debian.org"):
-            return "https://contributors.debian.org/contributor/{}@alioth".format(self.username[-24:])
+            return "https://contributors.debian.org/contributor/{}@alioth".format(self.username[:-24])
         else:
             return None
 
