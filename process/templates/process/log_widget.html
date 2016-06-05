@@ -1,5 +1,6 @@
+{% if "add_log" in visit_perms %}
 <p>
-<form method="POST" action="{% url 'process_add_log' pk=process.pk %}">{% csrf_token %}
+<form id="log_form" method="POST" action="{% url 'process_add_log' pk=process.pk %}">{% csrf_token %}
   {% if requirement %}
   <input type="hidden" name="req_type" value="{{requirement.type}}">
   {% endif %}
@@ -7,18 +8,20 @@
   <br/>
   <textarea name="logtext" rows="3" cols="80" placeholder="vacation notice / remark about the process / status update / ..."></textarea>
   <br/>
-  {% if "add_log" in visit_perms %}
   <button id="log_public" type="submit" name="add_action" value="log_public">Comment</button>
   <button id="log_private" type="submit" name="add_action" value="log_private">Comment (confidential)</button>
-  {% endif %}
+  {% if requirement %}
   {% if "req_approve" in visit_perms %}<button id="req_approve" type="submit" name="add_action" value="req_approve">Approve</button>{% endif %}
   {% if "req_unapprove" in visit_perms %}<button id="req_unapprove" type="submit" name="add_action" value="req_unapprove">Unapprove</button>{% endif %}
+  {% else %}
   {% if "proc_freeze" in visit_perms %}<button id="proc_freeze" type="submit" name="add_action" value="proc_freeze">Freeze for review</button>{% endif %}
   {% if "proc_unfreeze" in visit_perms %}<button id="proc_unfreeze" type="submit" name="add_action" value="proc_unfreeze">Unfreeze for further work</button>{% endif %}
   {% if "proc_approve" in visit_perms %}<button id="proc_approve" type="submit" name="add_action" value="proc_approve">Approve process</button>{% endif %}
   {% if "proc_unapprove" in visit_perms %}<button id="proc_unapprove" type="submit" name="add_action" value="proc_unapprove">Unapprove process</button>{% endif %}
+  {% endif %}
 </form>
 </p>
+{% endif %}
 <table>
   <thead>
     <tr>

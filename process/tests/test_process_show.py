@@ -32,6 +32,7 @@ class TestProcessShow(ProcessFixtureMixin, TestCase):
         cls.page_elements = PageElements()
         cls.page_elements.add_id("view_fd_comment")
         cls.page_elements.add_id("view_mbox")
+        cls.page_elements.add_id("log_form")
         cls.page_elements.add_id("log_public")
         cls.page_elements.add_id("log_private")
         cls.page_elements.add_id("proc_freeze")
@@ -48,7 +49,7 @@ class TestProcessShow(ProcessFixtureMixin, TestCase):
         if "fd_comments" in visit_perms:
             wanted.append("view_fd_comment")
         if "add_log" in visit_perms:
-            wanted += ["log_public", "log_private"]
+            wanted += ["log_public", "log_private", "log_form"]
         for el in ("view_mbox", "view_private_log", "proc_freeze", "proc_unfreeze", "proc_approve", "proc_unapprove"):
             if el in visit_perms: wanted.append(el)
         self.assertContainsElements(response, self.page_elements, *wanted)
@@ -79,13 +80,13 @@ class TestProcessShow(ProcessFixtureMixin, TestCase):
         self.tryVisitingWithPerms(set(["view_mbox"]))
 
     def test_proc_freeze(self):
-        self.tryVisitingWithPerms(set(["proc_freeze"]))
+        self.tryVisitingWithPerms(set(["add_log", "proc_freeze"]))
 
     def test_proc_unfreeze(self):
-        self.tryVisitingWithPerms(set(["proc_unfreeze"]))
+        self.tryVisitingWithPerms(set(["add_log", "proc_unfreeze"]))
 
     def test_proc_approve(self):
-        self.tryVisitingWithPerms(set(["proc_approve"]))
+        self.tryVisitingWithPerms(set(["add_log", "proc_approve"]))
 
     def test_proc_unapprove(self):
-        self.tryVisitingWithPerms(set(["proc_unapprove"]))
+        self.tryVisitingWithPerms(set(["add_log", "proc_unapprove"]))

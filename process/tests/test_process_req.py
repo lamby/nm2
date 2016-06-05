@@ -41,6 +41,7 @@ class TestProcessReqMixin(ProcessFixtureMixin):
         cls.visitor = cls.persons.dc
 
         cls.page_elements = PageElements()
+        cls.page_elements.add_id("log_form")
         cls.page_elements.add_id("log_public")
         cls.page_elements.add_id("log_private")
         cls.page_elements.add_id("proc_freeze")
@@ -64,7 +65,7 @@ class TestProcessReqMixin(ProcessFixtureMixin):
         # Check page elements based on visit_perms
         wanted = []
         if "add_log" in visit_perms:
-            wanted += ["log_public", "log_private"]
+            wanted += ["log_public", "log_private", "log_form"]
         for el in ("req_approve", "req_unapprove"):
             if el in visit_perms: wanted.append(el)
         if "edit_statements" in visit_perms and self.req.type != "keycheck":
@@ -86,10 +87,10 @@ class TestProcessReqMixin(ProcessFixtureMixin):
         self.tryVisitingWithPerms(set(["add_log"]))
 
     def test_req_approve(self):
-        self.tryVisitingWithPerms(set(["req_approve"]))
+        self.tryVisitingWithPerms(set(["add_log", "req_approve"]))
 
     def test_req_unapprove(self):
-        self.tryVisitingWithPerms(set(["req_unapprove"]))
+        self.tryVisitingWithPerms(set(["add_log", "req_unapprove"]))
 
     def test_edit_statements(self):
         self.tryVisitingWithPerms(set(["edit_statements"]))
