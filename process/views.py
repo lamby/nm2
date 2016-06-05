@@ -507,4 +507,6 @@ class MakeRTTicket(VisitProcessMixin, TemplateView):
 
         ctx["intents"] = pmodels.Statement.objects.filter(requirement__process=self.process, requirement__type="intent")
 
+        ctx["process_url"] = self.request.build_absolute_uri(self.process.get_absolute_url())
+
         return ctx
