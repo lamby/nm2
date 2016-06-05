@@ -110,22 +110,22 @@ def notify_new_statement(statement, request=None):
     send the resulting email.
     """
     try:
+        process = statement.requirement.process
+
         if request is None:
             url = "https://{}{}".format(
                 Site.objects.get_current().domain,
-                statement.requirement.get_absolute_url())
+                process.get_absolute_url())
         else:
-            url = request.build_absolute_uri(statement.requirement.get_absolute_url())
+            url = request.build_absolute_uri(process.get_absolute_url())
 
-        body = """Hello,
+        body = """{statement.statement}
 
-{statement.statement}
-
-You can visit {url} to comment.
-
-{statement.uploaded_by.fullname} (via nm.debian.org)""".format(statement=statement, url=url)
-
-        process = statement.requirement.process
+{statement.uploaded_by.fullname} (via nm.debian.org)
+"""
+        body += "-- \n"
+        body += "{url}\n"
+        body = body.format(statement=statement, url=url)
 
         msg = build_django_message(
             statement.uploaded_by,
