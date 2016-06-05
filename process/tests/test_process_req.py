@@ -71,7 +71,9 @@ class TestProcessReqMixin(ProcessFixtureMixin):
         if "edit_statements" in visit_perms and self.req.type != "keycheck":
             wanted.append("statement_add")
             wanted.append("statement_delete")
-        self.assertContainsElements(response, self.page_elements, *wanted)
+
+        elements = self.page_elements_bytype.get(self.req_type, self.page_elements)
+        self.assertContainsElements(response, elements, *wanted)
 
     def tryVisitingWithPerms(self, perms):
         client = self.make_test_client(self.visitor)
@@ -123,6 +125,12 @@ class TestProcessReqAdvocate(TestProcessReqMixin, TestCase):
 
 class TestProcessReqAmOk(TestProcessReqMixin, TestCase):
     req_type = "am_ok"
+
+    def test_req_am_assign(self):
+        self.tryVisitingWithPerms(set(["am_assign"]))
+
+    def test_req_am_assign(self):
+        self.tryVisitingWithPerms(set(["am_unassign"]))
 
 class TestProcessReqKeycheck(TestProcessReqMixin, TestCase):
     req_type = "keycheck"
