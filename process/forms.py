@@ -16,6 +16,7 @@ class StatementForm(forms.Form):
     def clean_statement(self):
         from keyring.models import Key
         text = self.cleaned_data["statement"]
+
         try:
             key = Key.objects.get_or_download(self.fpr)
         except RuntimeError as e:

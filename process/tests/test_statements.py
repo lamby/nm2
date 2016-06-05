@@ -12,7 +12,8 @@ from backend.unittest import PersonFixtureMixin
 import process.models as pmodels
 from mock import patch
 from .common import (ProcessFixtureMixin,
-                     test_fingerprint1, test_fpr1_signed_valid_text)
+                     test_fingerprint1, test_fpr1_signed_valid_text,
+                     test_fingerprint2, test_fpr2_signed_valid_text)
 
 
 class TestProcessStatementCreate(ProcessFixtureMixin, TestCase):
@@ -35,13 +36,28 @@ class TestProcessStatementCreate(ProcessFixtureMixin, TestCase):
             cls._add_method(cls._test_create_success, req_type, { "edit_statements" })
 
     def _test_create_success(self, req_type, visit_perms):
+        url = reverse("process_statement_create", args=[self.processes.app.pk, req_type])
         with patch.object(pmodels.Requirement, "permissions_of", return_value=visit_perms):
             client = self.make_test_client(self.visitor)
-            response = client.get(reverse("process_statement_create", args=[self.processes.app.pk, req_type]))
+            response = client.get(url)
             self.assertEqual(response.status_code, 200)
             self.assertEqual(pmodels.Statement.objects.count(), 0)
 
-            response = client.post(reverse("process_statement_create", args=[self.processes.app.pk, req_type]), data={"statement": test_fpr1_signed_valid_text})
+            # Post a signature done with the wrong key
+            response = client.post(url, data={"statement": test_fpr2_signed_valid_text})
+            self.assertEquals(response.status_code, 200)
+            self.assertFormErrorMatches(response, "form", "statement", "public key not found")
+            self.assertEqual(pmodels.Statement.objects.count(), 0)
+
+            # Post an invalid signature
+            text = test_fpr1_signed_valid_text.replace("I agree", "I do not agree")
+            response = client.post(url, data={"statement": text})
+            self.assertEquals(response.status_code, 200)
+            self.assertFormErrorMatches(response, "form", "statement", "BAD signature from")
+            self.assertEqual(pmodels.Statement.objects.count(), 0)
+
+            # Post a valid signature
+            response = client.post(url, data={"statement": test_fpr1_signed_valid_text})
             req = self.processes.app.requirements.get(type=req_type)
             self.assertRedirectMatches(response, req.get_absolute_url())
             self.assertEqual(pmodels.Statement.objects.count(), 1)
@@ -62,6 +78,40 @@ class TestProcessStatementCreate(ProcessFixtureMixin, TestCase):
             response = client.post(reverse("process_statement_create", args=[self.processes.app.pk, req_type]), data={"statement": test_fpr1_signed_valid_text})
             self.assertPermissionDenied(response)
             self.assertEqual(pmodels.Statement.objects.count(), 0)
+
+    def test_encoding(self):
+        # Test with Ondřej Nový's key which has non-ascii characters
+        bmodels.Fingerprint.objects.create(person=self.persons.app, fpr="3D983C52EB85980C46A56090357312559D1E064B", is_active=True, audit_skip=True)
+        statement = """
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+Changed message, with wrong signature
+-----BEGIN PGP SIGNATURE-----
+Comment: GPGTools - https://gpgtools.org
+
+iQIbBAEBCgAGBQJXU0eVAAoJEDVzElWdHgZLSsYP90ZNjvyIY63BTQv5tvRutF/V
+sJ3eCIp2GCQ5AiQngv6dP0VMMN4f7bzTnjX4HpLOkgDftmtXm2LPyANkW2YXL1q0
+A7WjkAUHlpnlGeGfkjfu58v++rVgVmORMTL1CRCuCWT/in4D3dBJJ6PUYR9W5S98
+xnxmKfw+Gn9VJVl6I133k1wTEYfK2JY5o4aCQKcXiVZlFsE9CwatmoXhIJwIIV/Z
+jDEMO74vURPqX1yesxIEBs7P97j6jiEgRqYkHmwqr+/FA524cYkjhA3vX7MG124N
+nZt+8BREMJNzoCbSI2Nl/gQxTMEcyZtIOi8yKZzq5QmeT5ChdnPGVJhxXIFsNFUc
+LR8goiONvIxATE2i5M+yPQvohiUlozwu/2s+zA9csjaya+IatcqMDTbkXxfUW7e7
+wTiSv5IKwfuMb2JFhekElvJW5yRD3g+tEctB5eWGycTnUdtYBhdmkNZX2w2vnfly
+Q+LDTtLH6MTPlkXb3+Vz0oy0sfZFhWou0p84L+SAMZf00083MaXJJbuUyRpbqJSm
+lr1zsMVtcsW6vWCY2TIFV8krZk0v1A52CQFYm/9BC5sAFcFA6r5rtgQ56TVaW95b
+wbMM0zN66Q7TlCJq4Wf34+9ZyQEs5IPk6QyyjnjQ6uPYExgfF3WrOsfjJSTupZLH
+v85pPGXRppmFCX/Pk+U=
+=eWfI
+-----END PGP SIGNATURE-----
+"""
+        url = reverse("process_statement_create", args=[self.processes.app.pk, "intent"])
+        client = self.make_test_client(self.persons.app)
+        # Post an invalid signature
+        response = client.post(url, data={"statement": statement})
+        self.assertEquals(response.status_code, 200)
+        self.assertFormErrorMatches(response, "form", "statement", "Ondřej Nový <novy@ondrej.org>")
+        self.assertEqual(pmodels.Statement.objects.count(), 0)
 
 
 class TestProcessStatementDelete(ProcessFixtureMixin, TestCase):

@@ -219,7 +219,7 @@ class GPG(object):
             cmd.append(self.homedir)
         cmd.extend(("-q", "--no-options", "--no-auto-check-trustdb",
             "--trust-model", "always", "--with-colons", "--fixed-list-mode",
-            "--with-fingerprint", "--no-permission-warning", "--no-tty", "--batch"))
+            "--with-fingerprint", "--no-permission-warning", "--no-tty", "--batch", "--display-charset", "utf-8"))
         if not self.use_default_keyring:
             cmd.append("--no-default-keyring")
         return cmd
