@@ -443,15 +443,13 @@ class MakeRTTicket(VisitProcessMixin, TemplateView):
         if self.person.status == const.STATUS_DC:
             if self.process.applying_for == const.STATUS_DC_GA:
                 only_guest_account = True
-                request.append("please create a porter account for {person.fullname} (sponsored by {sponsors}).")
-            elif self.process.applying_for == const.STATUS_DM:
-                request.append("TODO DM") # TODO
+                request.append("Please create a porter account for {person.fullname} (sponsored by {sponsors}).")
         elif self.person.status == const.STATUS_DC_GA:
             pass
         elif self.person.status == const.STATUS_DM:
             if self.process.applying_for == const.STATUS_DM_GA:
                 only_guest_account = True
-                request = "please create a porter account for {person.fullname} (currently a DM)."
+                request = "Please create a porter account for {person.fullname} (currently a DM)."
         elif self.person.status == const.STATUS_DM_GA:
             pass
         elif self.person.status == const.STATUS_DD_NU:
