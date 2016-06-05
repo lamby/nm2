@@ -476,7 +476,7 @@ class MakeRTTicket(VisitProcessMixin, TemplateView):
 
         sponsors = set()
         try:
-            adv_req = self.process.requirements.get(type="advocate")
+            adv_req = self.process.requirements.get(type="intent")
         except pmodels.Requirement.DoesNotExist:
             adv_req = None
         if adv_req is not None:
