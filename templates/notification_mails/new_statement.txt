@@ -1,0 +1,13 @@
+{% load nm %}
+From: {{statement.uploaded_by|formataddr:"via nm"|safe}}
+To: debian-newmaint@lists.debian.org
+Cc: {{process.person|formataddr|safe}}, nm@debian.org, {{process.archive_email|safe}}
+Subject: {{process.person.fullname|safe}}: {{statement.requirement.type_desc}}
+
+Hello,
+
+{{statement.statement|safe}}
+
+You can visit {{url}} to comment.
+
+{{statement.uploaded_by.fullname}} (via nm.debian.org)

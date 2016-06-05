@@ -356,6 +356,10 @@ class Requirement(models.Model):
         ordering = ["type"]
 
     def __unicode__(self):
+        return self.type_desc
+
+    @property
+    def type_desc(self):
         res = REQUIREMENT_TYPES_DICT.get(self.type, None)
         if res is None: return self.type
         return res.desc

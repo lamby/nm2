@@ -355,6 +355,10 @@ class StatementCreate(StatementMixin, FormView):
             self.requirement.save()
             self.requirement.add_log(self.visitor, "AM approved", True, action="req_approve")
 
+        if self.requirement.type in ("intent", "advocate", "am_ok"):
+            from .notifications import notify_new_statement
+            notify_new_statement(statement, request=self.request)
+
         return redirect(self.requirement.get_absolute_url())
 
 
