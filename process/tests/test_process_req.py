@@ -52,17 +52,13 @@ class TestProcessReqMixin(ProcessFixtureMixin):
         cls.page_elements.add_id("req_unapprove")
         cls.page_elements.add_id("statement_add")
         cls.page_elements.add_class("statement_delete")
-        cls.page_elements_bytype = {}
-        for req_type in ("intent", "sc_dmup", "advocate", "am_ok", "keycheck"):
-            cls.page_elements_bytype[req_type] = cls.page_elements.clone()
-        cls.page_elements_bytype["am_ok"].add_id("am_assign")
-        cls.page_elements_bytype["am_ok"].add_id("am_unassign")
 
         cls.req = cls.processes.app.requirements.get(type=cls.req_type)
 
-    def assertPageElements(self, response):
-        visit_perms = self.req.permissions_of(self.visitor)
-        # Check page elements based on visit_perms
+    def compute_wanted_page_elements(self, visit_perms):
+        """
+        Compute what page elements we want, based on visit_perms
+        """
         wanted = []
         if "add_log" in visit_perms:
             wanted += ["log_public", "log_private", "log_form"]
@@ -71,9 +67,13 @@ class TestProcessReqMixin(ProcessFixtureMixin):
         if "edit_statements" in visit_perms and self.req.type != "keycheck":
             wanted.append("statement_add")
             wanted.append("statement_delete")
+        return wanted
 
-        elements = self.page_elements_bytype.get(self.req_type, self.page_elements)
-        self.assertContainsElements(response, elements, *wanted)
+    def assertPageElements(self, response):
+        visit_perms = self.req.permissions_of(self.visitor)
+        wanted = self.compute_wanted_page_elements(visit_perms)
+
+        self.assertContainsElements(response, self.page_elements, *wanted)
 
     def tryVisitingWithPerms(self, perms):
         client = self.make_test_client(self.visitor)
@@ -125,6 +125,18 @@ class TestProcessReqAdvocate(TestProcessReqMixin, TestCase):
 
 class TestProcessReqAmOk(TestProcessReqMixin, TestCase):
     req_type = "am_ok"
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestProcessReqAmOk, cls).setUpClass()
+        cls.page_elements.add_id("am_assign")
+        cls.page_elements.add_id("am_unassign")
+
+    def compute_wanted_page_elements(self, visit_perms):
+        wanted = super(TestProcessReqAmOk, self).compute_wanted_page_elements(visit_perms)
+        for el in ("am_assign", "am_unassign"):
+            if el in visit_perms: wanted.append(el)
+        return wanted
 
     def test_req_am_assign(self):
         self.tryVisitingWithPerms(set(["am_assign"]))

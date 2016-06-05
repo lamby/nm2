@@ -48,7 +48,7 @@
       <td><a href="{{a.unassigned_by.get_absolute_url}}">{{a.unassigned_by.lookup_key}}</a></td>
       <td>{{a.unassigned_time|date:"Y-m-d"}}</a></td>
       <td>
-        {% if not a.unassigned_by and 'am_unassign' in visit_perms %}
+        {% if 'am_unassign' in visit_perms and not a.unassigned_by %}
         <form id="am_unassign" action="{% url 'process_unassign_am' pk=process.pk %}" method="POST">{% csrf_token %}
           <button type="submit">Unassign</button>
         </form>
@@ -59,7 +59,7 @@
     <td colspan="6">No Application Manager assigned yet</td>
     {% endfor %}
   </tbody>
-  {% if not process.current_am_assignment %}
+  {% if 'am_assign' in visit_perms %}
   <tfoot id="am_assign">
     <tr><td colspan="6"><a href="{% url 'process_assign_am' pk=process.pk %}">Assign AM</a></td></tr>
   </tfoot>
