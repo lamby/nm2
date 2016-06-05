@@ -31,6 +31,7 @@ class TestProcessReqMixin(ProcessFixtureMixin):
         cls.fingerprints.create("am", person=cls.persons.am, fpr=test_fingerprint3, is_active=True, audit_skip=True)
         cls.ams.create("am", person=cls.persons.am)
         cls.processes.create("app", person=cls.persons.app, applying_for=const.STATUS_DD_U, fd_comment="test")
+        pmodels.AMAssignment.objects.create(process=cls.processes.app, am=cls.ams.am, assigned_by=cls.persons["fd"], assigned_time=now())
 
         pmodels.Statement.objects.create(requirement=cls.processes.app.requirements.get(type="intent"), fpr=cls.fingerprints.app, statement=test_fpr1_signed_valid_text, uploaded_by=cls.persons.app, uploaded_time=now())
         pmodels.Statement.objects.create(requirement=cls.processes.app.requirements.get(type="sc_dmup"), fpr=cls.fingerprints.app, statement=test_fpr1_signed_valid_text, uploaded_by=cls.persons.app, uploaded_time=now())
@@ -42,6 +43,10 @@ class TestProcessReqMixin(ProcessFixtureMixin):
         cls.page_elements = PageElements()
         cls.page_elements.add_id("log_public")
         cls.page_elements.add_id("log_private")
+        cls.page_elements.add_id("proc_freeze")
+        cls.page_elements.add_id("proc_unfreeze")
+        cls.page_elements.add_id("proc_approve")
+        cls.page_elements.add_id("proc_unapprove")
         cls.page_elements.add_id("req_approve")
         cls.page_elements.add_id("req_unapprove")
         cls.page_elements.add_id("statement_add")
@@ -76,28 +81,34 @@ class TestProcessReqMixin(ProcessFixtureMixin):
 
     def test_none(self):
         self.tryVisitingWithPerms(set())
-        pmodels.AMAssignment.objects.create(process=self.processes.app, am=self.ams.am, assigned_by=self.persons["fd"], assigned_time=now())
-        self.tryVisitingWithPerms(set())
 
     def test_add_log(self):
-        self.tryVisitingWithPerms(set(["add_log"]))
-        pmodels.AMAssignment.objects.create(process=self.processes.app, am=self.ams.am, assigned_by=self.persons["fd"], assigned_time=now())
         self.tryVisitingWithPerms(set(["add_log"]))
 
     def test_req_approve(self):
         self.tryVisitingWithPerms(set(["req_approve"]))
-        pmodels.AMAssignment.objects.create(process=self.processes.app, am=self.ams.am, assigned_by=self.persons["fd"], assigned_time=now())
-        self.tryVisitingWithPerms(set(["req_approve"]))
 
     def test_req_unapprove(self):
-        self.tryVisitingWithPerms(set(["req_unapprove"]))
-        pmodels.AMAssignment.objects.create(process=self.processes.app, am=self.ams.am, assigned_by=self.persons["fd"], assigned_time=now())
         self.tryVisitingWithPerms(set(["req_unapprove"]))
 
     def test_edit_statements(self):
         self.tryVisitingWithPerms(set(["edit_statements"]))
-        pmodels.AMAssignment.objects.create(process=self.processes.app, am=self.ams.am, assigned_by=self.persons["fd"], assigned_time=now())
-        self.tryVisitingWithPerms(set(["edit_statements"]))
+
+    def test_dd_nu(self):
+        perms = self.req.permissions_of(self.persons.dd_nu)
+        self.tryVisitingWithPerms(perms)
+
+    def test_dd_u(self):
+        perms = self.req.permissions_of(self.persons.dd_u)
+        self.tryVisitingWithPerms(perms)
+
+    def test_fd(self):
+        perms = self.req.permissions_of(self.persons.fd)
+        self.tryVisitingWithPerms(perms)
+
+    def test_dam(self):
+        perms = self.req.permissions_of(self.persons.dam)
+        self.tryVisitingWithPerms(perms)
 
 
 class TestProcessReqIntent(TestProcessReqMixin, TestCase):
