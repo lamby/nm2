@@ -396,6 +396,8 @@ class MailArchive(VisitProcessMixin, View):
         try:
             with open(fname) as infd:
                 shutil.copyfileobj(infd, outfd)
+            outfd.write(b"\n")
+            outfd.write(self.process.get_statements_as_mbox())
         finally:
             outfd.close()
         return res
