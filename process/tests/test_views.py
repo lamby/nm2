@@ -35,6 +35,10 @@ class TestDownloadStatements(ProcessFixtureMixin, TestCase):
 
         cls.statements.create("intent", requirement=cls.processes.app.requirements.get(type="intent"), fpr=cls.fingerprints.app, statement=test_fpr1_signed_valid_text, uploaded_by=cls.persons.app, uploaded_time=now())
         cls.statements.create("sc_dmup", requirement=cls.processes.app.requirements.get(type="sc_dmup"), fpr=cls.fingerprints.app, statement=test_fpr1_signed_valid_text_nonascii, uploaded_by=cls.persons.app, uploaded_time=now())
+        # Python2's mbox seems to explode on non-ascii in headers
+        cls.persons.dd_nu.cn = "Ondřej"
+        cls.persons.dd_nu.sn = "Nový"
+        cls.persons.dd_nu.save(audit_skip=True)
         cls.statements.create("advocate", requirement=cls.processes.app.requirements.get(type="advocate"), fpr=cls.fingerprints.dd_nu, statement=test_fpr2_signed_valid_text, uploaded_by=cls.persons.dd_nu, uploaded_time=now())
 
     def test_backend(self):

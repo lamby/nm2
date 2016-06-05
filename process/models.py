@@ -284,15 +284,16 @@ class Process(models.Model):
         import email.utils
         import tempfile
         import time
-        import codecs
-        with codecs.getwriter('utf-8')(tempfile.NamedTemporaryFile(mode="wb+")) as outfile:
+        from email.header import Header
+
+        with tempfile.NamedTemporaryFile(mode="wb+") as outfile:
             mbox = mailbox.mbox(path=outfile.name, create=True)
 
             for req in self.requirements.all():
                 for stm in req.statements.all():
                     msg = mailbox.Message()
-                    msg["From"] = email.utils.formataddr((stm.uploaded_by.fullname, stm.uploaded_by.email))
-                    msg["Subject"] = "Signed statement for " + req.get_type_display()
+                    msg["From"] = Header(email.utils.formataddr((stm.uploaded_by.fullname, stm.uploaded_by.email)), "utf-8")
+                    msg["Subject"] = Header("Signed statement for " + req.get_type_display(), "utf-8")
                     msg["Date"] = email.utils.formatdate(time.mktime(stm.uploaded_time.timetuple()))
                     msg.set_payload(stm.statement, "utf-8")
                     mbox.add(msg)
