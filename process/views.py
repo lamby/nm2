@@ -464,14 +464,12 @@ class MakeRTTicket(VisitProcessMixin, TemplateView):
         request.append("Please make {person.fullname} (currently '{status}') a '{applying_for}' (sponsored by {sponsors}).")
 
         if not only_guest_account:
-            request.append("")
             if self.person.status == const.STATUS_DC:
                 request.append("Key {person.fpr} should be added to the '{applying_for}' keyring.")
             else:
                 request.append("Key {person.fpr} should be moved from the '{status}' to the '{applying_for}' keyring.")
 
         if self.visit_perms.person_has_ldap_record:
-            request.append("")
             request.append("Note that {{person.fullname}} already has an account in LDAP.")
 
         sponsors = set()
@@ -498,6 +496,7 @@ class MakeRTTicket(VisitProcessMixin, TemplateView):
         for paragraph in request:
             for line in wrapper.wrap(paragraph.format(**format_args)):
                 wrapped.append(line)
+            wrapped.append("")
         ctx["request"] = "\n".join(wrapped)
 
         if only_guest_account:
@@ -515,6 +514,7 @@ class MakeRTTicket(VisitProcessMixin, TemplateView):
             for paragraph in intent.statement_clean.splitlines():
                 for line in wrapper.wrap(paragraph):
                     wrapped.append(line)
+            wrapped.append("")
 
         ctx["intents"] = "\n".join(wrapped)
 
