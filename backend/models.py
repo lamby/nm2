@@ -517,6 +517,14 @@ class Person(PermissionsMixin, models.Model):
             parms["username"] = self.uid
         return u"http://portfolio.debian.net/result?" + urllib.urlencode(parms)
 
+    def get_contributors_url(self):
+        if self.is_dd:
+            return "https://contributors.debian.org/contributor/{}@debian".format(self.uid)
+        elif self.username.endswith("@users.alioth.debian.org"):
+            return "https://contributors.debian.org/contributor/{}@alioth".format(self.username[-24:])
+        else:
+            return None
+
     _new_status_table = {
         const.STATUS_DC: [const.STATUS_DC_GA, const.STATUS_DM, const.STATUS_DD_U, const.STATUS_DD_NU],
         const.STATUS_DC_GA: [const.STATUS_DM_GA, const.STATUS_DD_U, const.STATUS_DD_NU],
