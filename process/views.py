@@ -53,7 +53,7 @@ class Create(VisitPersonMixin, FormView):
 
     def get_form_class(self):
         whitelist = self.person.possible_new_statuses
-        choices = [(x.tag, x.sdesc) for x in const.ALL_STATUS if x.tag in whitelist]
+        choices = [(x.tag, x.ldesc) for x in const.ALL_STATUS if x.tag in whitelist]
         if not choices: raise PermissionDenied
         class Form(forms.Form):
             applying_for = forms.ChoiceField(label=_("Apply for status"), choices=choices, required=True)
