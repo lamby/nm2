@@ -74,8 +74,10 @@
 <a href="{% url 'restricted_person' key=person.lookup_key %}">edit</a>
 {% endif %}
 
+{% if person.is_am %}
 {% if visitor.is_am or visitor.is_admin %}
 <a href="{% url 'restricted_amprofile' key=person.lookup_key %}">edit AM</a>
+{% endif %}
 {% endif %}
 
 <h2>Short Biography</h2>
