@@ -160,6 +160,7 @@ class Key(models.Model):
         """
         Verify a signed text with this key, returning the signed payload
         """
+        # See https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=826405
         with tempdir_gpg() as gpg:
             gpg.run_checked(gpg.cmd("--import"), input=self.key)
             data_file = os.path.join(gpg.homedir, "data.txt")
@@ -173,12 +174,20 @@ class Key(models.Model):
                     plaintext, stderr, result = gpg.run_cmd(cmd)
 
             if result != 0:
-                with io.open(logger_log, "rt", encoding="utf-8", errors="replace") as fd:
-                    stderr += fd.read()
-                raise RuntimeError("gpg exited with status {}: {}".format(
-                    result,
-                    stderr.strip()
-                ))
+                errors = []
+                with io.open(status_log, "rt", encoding="utf-8", errors="replace") as fd:
+                    for line in fd:
+                        if not line.startswith("[GNUPG:]"): continue
+                        errors.append(line[8:])
+
+                if errors:
+                    errmsg = "; ".join(errors)
+                else:
+                    errmsg = stderr
+                    with io.open(logger_log, "rt", encoding="utf-8", errors="replace") as fd:
+                        errmsg += fd.read()
+
+                raise RuntimeError("gpg exited with status {}: {}".format(result, errmsg))
 
             with io.open(status_log, "rt", encoding="utf-8", errors="replace") as fd:
                 status = fd.read()

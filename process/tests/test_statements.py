@@ -46,14 +46,14 @@ class TestProcessStatementCreate(ProcessFixtureMixin, TestCase):
             # Post a signature done with the wrong key
             response = client.post(url, data={"statement": test_fpr2_signed_valid_text})
             self.assertEquals(response.status_code, 200)
-            self.assertFormErrorMatches(response, "form", "statement", "public key not found")
+            self.assertFormErrorMatches(response, "form", "statement", "NO_PUBKEY")
             self.assertEqual(pmodels.Statement.objects.count(), 0)
 
             # Post an invalid signature
             text = test_fpr1_signed_valid_text.replace("I agree", "I do not agree")
             response = client.post(url, data={"statement": text})
             self.assertEquals(response.status_code, 200)
-            self.assertFormErrorMatches(response, "form", "statement", "BAD signature from")
+            self.assertFormErrorMatches(response, "form", "statement", "BADSIG")
             self.assertEqual(pmodels.Statement.objects.count(), 0)
 
             # Post a valid signature
