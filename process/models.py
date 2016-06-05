@@ -463,7 +463,7 @@ class Requirement(models.Model):
                 }
 
                 if keycheck.errors:
-                    notes.append(("warn", "key has issues " + keycheck["main"]["remarks"]))
+                    notes.append(("warn", "key has issues " + keycheck_results["main"]["remarks"]))
                     satisfied = False
 
         return {
