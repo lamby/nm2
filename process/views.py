@@ -461,7 +461,7 @@ class MakeRTTicket(VisitProcessMixin, TemplateView):
 
 
         # Build the request text
-        request.append("Please make {person.fullname} (currently '{status}') a '{applying_for}'.")
+        request.append("Please make {person.fullname} (currently '{status}') a '{applying_for}' (sponsored by {sponsors}).")
 
         if not only_guest_account:
             request.append("")
@@ -484,15 +484,22 @@ class MakeRTTicket(VisitProcessMixin, TemplateView):
                 sponsors.add(st.uploaded_by.lookup_key)
         sponsors = ", ".join(sorted(sponsors))
 
-        request = "\n".join(request)
-        ctx["request"] = request.format(
-            person=self.person,
-            process=self.process,
-            status=const.ALL_STATUS_DESCS[self.person.status],
-            applying_for=const.ALL_STATUS_DESCS[self.process.applying_for],
-            sponsors=sponsors,
-        )
+        format_args = {
+            "person": self.person,
+            "process": self.process,
+            "status": const.ALL_STATUS_DESCS[self.person.status],
+            "applying_for": const.ALL_STATUS_DESCS[self.process.applying_for],
+            "sponsors": sponsors,
+        }
 
+        import textwrap
+        wrapper = textwrap.TextWrapper(width=75)
+        wrapped = []
+        for paragraph in request:
+            for line in wrapper.wrap(paragraph.format(**format_args)):
+                wrapped.append(line)
+            wrapped.append("")
+        ctx["request"] = "\n".join(wrapped)
 
         if only_guest_account:
             ctx["mail_to"] = "DSA <admin@rt.debian.org>"
@@ -503,7 +510,16 @@ class MakeRTTicket(VisitProcessMixin, TemplateView):
 
         ctx["only_guest_account"] = only_guest_account
 
-        ctx["intents"] = pmodels.Statement.objects.filter(requirement__process=self.process, requirement__type="intent")
+        wrapper = textwrap.TextWrapper(width=75, initial_indent="  ", subsequent_indent="  ")
+        wrapped = []
+        for intent in pmodels.Statement.objects.filter(requirement__process=self.process, requirement__type="intent"):
+            for paragraph in intent.statement_clean.splitlines():
+                print("ZA", repr(paragraph))
+                for line in wrapper.wrap(paragraph):
+                    wrapped.append(line)
+                wrapped.append("")
+
+        ctx["intents"] = "\n".join(wrapped)
 
         ctx["process_url"] = self.request.build_absolute_uri(self.process.get_absolute_url())
 

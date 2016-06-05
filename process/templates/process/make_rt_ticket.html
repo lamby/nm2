@@ -26,7 +26,6 @@ Gcc: nnimap+gkar:Sentmail.DAM
 Hi
 
 {{request}}
-
   First name:       {{person.cn}}
   Middle name:      {{person.mn|default:"-"}}
   Last name:        {{person.sn}}
@@ -37,10 +36,8 @@ Hi
 {{person.fullname}} has accepted the DMUP in a signed statement.
 
 Details from {{person.uid}}:
-{% for i in intents %}
-{{i.statement_clean}}
-{% endfor %}
 
+{{intents}}
 More details can be found at {{process_url}}
 
 -- 
