@@ -478,7 +478,7 @@ class MakeRTTicket(VisitProcessMixin, TemplateView):
 
         sponsors = set()
         try:
-            adv_req = self.process.requirements.get(type="intent")
+            adv_req = self.process.requirements.get(type="advocate")
         except pmodels.Requirement.DoesNotExist:
             adv_req = None
         if adv_req is not None:
@@ -505,6 +505,6 @@ class MakeRTTicket(VisitProcessMixin, TemplateView):
 
         ctx["only_guest_account"] = only_guest_account
 
-        ctx["intents"] = pmodels.Statement.objects.filter(requirement__process=self.process)
+        ctx["intents"] = pmodels.Statement.objects.filter(requirement__process=self.process, requirement__type="intent")
 
         return ctx
