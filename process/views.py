@@ -498,7 +498,6 @@ class MakeRTTicket(VisitProcessMixin, TemplateView):
         for paragraph in request:
             for line in wrapper.wrap(paragraph.format(**format_args)):
                 wrapped.append(line)
-            wrapped.append("")
         ctx["request"] = "\n".join(wrapped)
 
         if only_guest_account:
@@ -514,10 +513,8 @@ class MakeRTTicket(VisitProcessMixin, TemplateView):
         wrapped = []
         for intent in pmodels.Statement.objects.filter(requirement__process=self.process, requirement__type="intent"):
             for paragraph in intent.statement_clean.splitlines():
-                print("ZA", repr(paragraph))
                 for line in wrapper.wrap(paragraph):
                     wrapped.append(line)
-                wrapped.append("")
 
         ctx["intents"] = "\n".join(wrapped)
 
