@@ -279,6 +279,29 @@ class Process(models.Model):
         """
         return Log.objects.create(changed_by=changed_by, process=self, is_public=is_public, logtext=logtext, action=action)
 
+    def get_statements_as_mbox(self):
+        import mailbox
+        import email.utils
+        import tempfile
+        import time
+        import codecs
+        with codecs.getwriter('utf-8')(tempfile.NamedTemporaryFile(mode="wb+")) as outfile:
+            mbox = mailbox.mbox(path=outfile.name, create=True)
+
+            for req in self.requirements.all():
+                for stm in req.statements.all():
+                    msg = mailbox.Message()
+                    msg["From"] = email.utils.formataddr((stm.uploaded_by.fullname, stm.uploaded_by.email))
+                    msg["Subject"] = "Signed statement for " + req.get_type_display()
+                    msg["Date"] = email.utils.formatdate(time.mktime(stm.uploaded_time.timetuple()))
+                    msg.set_payload(stm.statement, "utf-8")
+                    mbox.add(msg)
+
+            mbox.close()
+
+            outfile.seek(0)
+            return outfile.read()
+
     @property
     def archive_email(self):
         return "archive-{}@nm.debian.org".format(self.pk)

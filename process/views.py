@@ -425,28 +425,7 @@ class UpdateKeycheck(RequirementMixin, View):
 
 class DownloadStatements(VisitProcessMixin, View):
     def get(self, request, *args, **kw):
-        import mailbox
-        import email.utils
-        import tempfile
-        import time
-        with tempfile.NamedTemporaryFile(mode="wb+") as outfile:
-            mbox = mailbox.mbox(path=outfile.name, create=True)
-
-            for req in self.process.requirements.all():
-                for stm in req.statements.all():
-                    msg = mailbox.Message()
-                    msg["From"] = email.utils.formataddr((stm.uploaded_by.fullname, stm.uploaded_by.email))
-                    msg["Subject"] = "Signed statement for " + req.get_type_display()
-                    msg["Date"] = email.utils.formatdate(time.mktime(stm.uploaded_time.timetuple()))
-                    msg.set_payload(stm.statement, "utf-8")
-                    mbox.add(msg)
-
-            mbox.close()
-
-            outfile.seek(0)
-            data = outfile.read()
-
+        data = self.process.get_statements_as_mbox()
         res = http.HttpResponse(data, content_type="text/plain")
         res["Content-Disposition"] = "attachment; filename={}.mbox".format(self.person.lookup_key)
         return res
-

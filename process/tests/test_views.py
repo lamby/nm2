@@ -37,8 +37,15 @@ class TestDownloadStatements(ProcessFixtureMixin, TestCase):
         cls.statements.create("sc_dmup", requirement=cls.processes.app.requirements.get(type="sc_dmup"), fpr=cls.fingerprints.app, statement=test_fpr1_signed_valid_text_nonascii, uploaded_by=cls.persons.app, uploaded_time=now())
         cls.statements.create("advocate", requirement=cls.processes.app.requirements.get(type="advocate"), fpr=cls.fingerprints.dd_nu, statement=test_fpr2_signed_valid_text, uploaded_by=cls.persons.dd_nu, uploaded_time=now())
 
+    def test_backend(self):
+        mbox_data = self.processes.app.get_statements_as_mbox()
+        with tempfile.NamedTemporaryFile() as tf:
+            tf.write(mbox_data)
+            mbox = mailbox.mbox(tf.name)
+            self.assertEquals(len(mbox), 3)
+
     def test_download(self):
-        url = reverse("process_download_statements", args=[self.visitor.pk])
+        url = reverse("process_download_statements", args=[self.processes.app.pk])
         client = self.make_test_client(self.visitor)
         response = client.get(url)
         self.assertEqual(response.status_code, 200)
