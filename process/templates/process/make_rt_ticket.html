@@ -14,7 +14,8 @@
 <textarea rows="70" cols="80">
 From: {{visitor.fullname}} &lt;{{visitor.email}}&gt;
 To: {{mail_to}}
-Cc: {{process.archive_email}}
+Cc: Debian Account Managers &lt;da-manager@debian.org&gt;, {{person.fullname}} &lt;{{person.email}}&gt;, {{process.archive_email}}
+Reply-To: Debian Account Managers &lt;da-manager@debian.org&gt;
 Subject: {{subject}}
 {% spaceless %}
 {% if visitor.uid == "joerg" %}
