@@ -379,7 +379,9 @@ class MailArchive(VisitProcessMixin, View):
         fname = self.process.mailbox_file
         if fname is None: raise http.Http404
 
-        user_fname = "%s.mbox" % (self.process.person.uid or self.process.person.email)
+        user_fname = "{}-{}.mbox".format(
+            self.process.person.uid or self.process.person.email,
+            self.process.pk)
 
         res = http.HttpResponse(content_type="application/octet-stream")
         res["Content-Disposition"] = "attachment; filename=%s.gz" % user_fname
