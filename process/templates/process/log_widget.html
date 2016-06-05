@@ -11,8 +11,8 @@
   <button id="log_public" type="submit" name="add_action" value="log_public">Comment</button>
   <button id="log_private" type="submit" name="add_action" value="log_private">Comment (confidential)</button>
   {% if requirement %}
-  {% if "req_approve" in visit_perms %}<button id="req_approve" type="submit" name="add_action" value="req_approve">Approve</button>{% endif %}
-  {% if "req_unapprove" in visit_perms %}<button id="req_unapprove" type="submit" name="add_action" value="req_unapprove">Unapprove</button>{% endif %}
+  {% if "req_approve" in visit_perms %}<button id="req_approve" type="submit" name="add_action" value="req_approve">Approve {{type_desc}}</button>{% endif %}
+  {% if "req_unapprove" in visit_perms %}<button id="req_unapprove" type="submit" name="add_action" value="req_unapprove">Unapprove {{type_desc}}</button>{% endif %}
   {% else %}
   {% if "proc_freeze" in visit_perms %}<button id="proc_freeze" type="submit" name="add_action" value="proc_freeze">Freeze for review</button>{% endif %}
   {% if "proc_unfreeze" in visit_perms %}<button id="proc_unfreeze" type="submit" name="add_action" value="proc_unfreeze">Unfreeze for further work</button>{% endif %}
