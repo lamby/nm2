@@ -14,6 +14,7 @@
 <textarea rows="70" cols="80">
 From: {{visitor.fullname}} &lt;{{visitor.email}}&gt;
 To: {{mail_to}}
+Cc: {{process.archive_email}}
 Subject: {{subject}}
 {% spaceless %}
 {% if visitor.uid == "joerg" %}
