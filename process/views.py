@@ -349,6 +349,12 @@ class StatementCreate(StatementMixin, FormView):
         self.requirement.save()
         self.requirement.add_log(self.visitor, "{} a signed statement".format(action), True, action=log_action)
 
+        if self.requirement.type == "am_ok":
+            self.requirement.approved_by = self.visitor
+            self.requirement.approved_time = now()
+            self.requirement.save()
+            self.requirement.add_log(self.visitor, "AM approved", True, action="req_approve")
+
         return redirect(self.requirement.get_absolute_url())
 
 
