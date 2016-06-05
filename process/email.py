@@ -5,10 +5,103 @@ from __future__ import division
 from __future__ import unicode_literals
 from backend import const
 from backend.email import template_to_email
+from django.core.mail import send_mail, EmailMessage
+from django.utils.timezone import now
 from django.contrib.sites.models import Site
+import email.message
+from email.header import Header
+import six
 import logging
 
 log = logging.getLogger(__name__)
+
+def _to_header(value):
+    from backend.models import Person
+    if isinstance(value, six.string_types):
+        return Header(value, "utf-8")
+    elif isinstance(value, Person):
+        return email.utils.formataddr((
+            Header(value.fullname, "utf-8").encode(),
+            Header(value.email, "utf-8").encode()
+        ))
+    else:
+        return ", ".join(_to_header(x) for x in value)
+
+def _to_django_addrlist(value):
+    from backend.models import Person
+    if isinstance(value, six.string_types):
+        return [value]
+    elif isinstance(value, Person):
+        return [email.utils.formataddr((
+            Header(value.fullname, "utf-8").encode(),
+            Header(value.email, "utf-8").encode()
+        ))]
+    else:
+        res = []
+        for item in value:
+            res.extend(_to_django_addrlist(item))
+        return res
+
+
+def build_python_message(from_email=None, to=None, cc=None, reply_to=None, subject=None, date=None, body="", factory=email.message.Message):
+    """
+    Build an email.message.Message, or equivalent object, from common
+    arguments.
+
+    If from_email, to, cc, bcc, reply_to can be strings or bmodels.Person objects.
+    """
+    # Generating mailboxes in python2 is surprisingly difficult and painful.
+    # A lot of this code has been put together thanks to:
+    # http://wordeology.com/computer/how-to-send-good-unicode-email-with-python.html
+    import email.utils
+    import time
+
+    if from_email is None: from_email = "nm@debian.org"
+    if subject is None: subject = "Notification from nm.debian.org"
+    if date is None: date = now()
+
+    msg = factory()
+    msg["From"] = _to_header(from_email)
+    msg["Subject"] = _to_header(subject)
+    msg["Date"] = email.utils.formatdate(time.mktime(date.timetuple()))
+    if to: msg["To"] = _to_header(to)
+    if cc: msg["Cc"] = _to_header(cc)
+    if reply_to: msg["Reply-To"] = _to_header(reply_to)
+    msg.set_payload(body, "utf-8")
+    return msg
+
+
+def build_django_message(from_email=None, to=None, cc=None, reply_to=None, subject=None, date=None, body=""):
+    """
+    Build a Django EmailMessage from common arguments.
+
+    If from_email, to, cc, bcc, reply_to can be strings or bmodels.Person objects.
+    """
+    # Generating mailboxes in python2 is surprisingly difficult and painful.
+    # A lot of this code has been put together thanks to:
+    # http://wordeology.com/computer/how-to-send-good-unicode-email-with-python.html
+    import email.utils
+    import time
+
+    if from_email is None: from_email = "nm@debian.org"
+    if subject is None: subject = "Notification from nm.debian.org"
+    if date is None: date = now()
+
+    kw = {}
+    if to is not None: kw["to"] = _to_django_addrlist(to)
+    if cc is not None: kw["cc"] = _to_django_addrlist(cc)
+    if reply_to is not None: kw["reply_to"] = _to_django_addrlist(reply_to)
+
+    msg = EmailMessage(
+        from_email=_to_header(from_email),
+        subject=subject,
+        body=body,
+        headers={
+            "date": email.utils.formatdate(time.mktime(date.timetuple())),
+        },
+        **kw
+    )
+    return msg
 
 
 def notify_new_statement(statement, request=None):
@@ -24,14 +117,24 @@ def notify_new_statement(statement, request=None):
         else:
             url = request.build_absolute_uri(statement.requirement.get_absolute_url())
 
-        ctx = {
-            "statement": statement,
-            "process": statement.requirement.process,
-            "default_subject": "Notification from nm.debian.org",
-            "url": url,
-        }
-        ctx["default_from"] = statement.uploaded_by.preferred_email
-        msg = template_to_email("notification_mails/new_statement.txt", ctx)
+        body = """Hello,
+
+{statement.statement}
+
+You can visit {url} to comment.
+
+{statement.uploaded_by.fullname} (via nm.debian.org)""".format(statement=statement, url=url)
+
+        process = statement.requirement.process
+
+        msg = build_django_message(
+            statement.uploaded_by,
+            to="debian-newmaint@lists.debian.org",
+            cc=[process.person, "nm@debian.org", process.archive_email],
+            subject="{}: {}".format(
+                process.person.fullname,
+                statement.requirement.type_desc),
+            body=body)
         msg.send()
         log.debug("sent mail from %s to %s cc %s bcc %s subject %s",
                 msg.from_email,
