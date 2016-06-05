@@ -280,6 +280,9 @@ class Process(models.Model):
         return Log.objects.create(changed_by=changed_by, process=self, is_public=is_public, logtext=logtext, action=action)
 
     def get_statements_as_mbox(self):
+        # Generating mailboxes in python2 is surprisingly difficult and painful.
+        # A lot of this code has been put together thanks to:
+        # http://wordeology.com/computer/how-to-send-good-unicode-email-with-python.html
         import mailbox
         import email.utils
         import tempfile
@@ -292,7 +295,10 @@ class Process(models.Model):
             for req in self.requirements.all():
                 for stm in req.statements.all():
                     msg = mailbox.Message()
-                    msg["From"] = Header(email.utils.formataddr((stm.uploaded_by.fullname, stm.uploaded_by.email)), "utf-8")
+                    msg["From"] = email.utils.formataddr((
+                        Header(stm.uploaded_by.fullname, "utf-8").encode(),
+                        Header(stm.uploaded_by.email, "utf-8").encode()
+                    ))
                     msg["Subject"] = Header("Signed statement for " + req.get_type_display(), "utf-8")
                     msg["Date"] = email.utils.formatdate(time.mktime(stm.uploaded_time.timetuple()))
                     msg.set_payload(stm.statement, "utf-8")

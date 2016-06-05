@@ -45,6 +45,7 @@ class TestDownloadStatements(ProcessFixtureMixin, TestCase):
         mbox_data = self.processes.app.get_statements_as_mbox()
         with tempfile.NamedTemporaryFile() as tf:
             tf.write(mbox_data)
+            tf.flush()
             mbox = mailbox.mbox(tf.name)
             self.assertEquals(len(mbox), 3)
 
@@ -55,5 +56,6 @@ class TestDownloadStatements(ProcessFixtureMixin, TestCase):
         self.assertEqual(response.status_code, 200)
         with tempfile.NamedTemporaryFile() as tf:
             tf.write(response.content)
+            tf.flush()
             mbox = mailbox.mbox(tf.name)
             self.assertEquals(len(mbox), 3)
