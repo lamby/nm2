@@ -375,7 +375,7 @@ class StatementRaw(StatementMixin, View):
 class MailArchive(VisitProcessMixin, View):
     require_visit_perms = "view_mbox"
 
-    def get(self, request, key, *args, **kw):
+    def get(self, request, *args, **kw):
         fname = self.process.mailbox_file
         if fname is None: raise http.Http404
 
