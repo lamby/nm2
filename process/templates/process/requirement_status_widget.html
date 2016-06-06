@@ -8,15 +8,13 @@
 {% endif %}
 {% endif %}
 
-<div class="important"><p>
 {% if process.closed %}
-This process has been closed on {{closed|date:"Y-m-d"}}: no further modifications are possible.
+<div class="important"><p>This process has been closed on {{closed|date:"Y-m-d"}}: no further modifications are possible.</p></div>
 {% elif process.approved_by %}
-This process has been approved by {{process.approved_by.a_link}} on {{process.approved_time|date:"Y-m-d"}}: no further modifications are possible.
+<div class="important"><p>This process has been approved by {{process.approved_by.a_link}} on {{process.approved_time|date:"Y-m-d"}}: no further modifications are possible.</p></div>
 {% elif process.frozen_by %}
-This process has been frozen for review by {{process.frozen_by.a_link}} on {{process.frozen_time|date:"Y-m-d"}}: no modifications are currently possible.
+<div class="important"><p>This process has been frozen for review by {{process.frozen_by.a_link}} on {{process.frozen_time|date:"Y-m-d"}}: no modifications are currently possible.</p></div>
 {% endif %}
-</p></div>
 
 {% if status.notes %}
 <h3>Potential problems</h3>
