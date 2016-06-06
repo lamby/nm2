@@ -344,16 +344,25 @@ class StatementCreate(StatementMixin, FormView):
 
         statement.save()
 
-        self.requirement.approved_by = None
-        self.requirement.approved_time = None
-        self.requirement.save()
         self.requirement.add_log(self.visitor, "{} a signed statement".format(action), True, action=log_action)
 
-        if self.requirement.type == "am_ok":
-            self.requirement.approved_by = self.visitor
+        # Check if the requirement considers itself satisfied now, and
+        # auto-mark approved accordingly
+        status = self.requirement.compute_status()
+        if status["satisfied"]:
+            try:
+                robot = bmodels.Person.objects.get(username="__housekeeping__")
+            except bmodels.Person.DoesNotExist:
+                robot = self.visitor
+            self.requirement.approved_by = robot
             self.requirement.approved_time = now()
-            self.requirement.save()
-            self.requirement.add_log(self.visitor, "AM approved", True, action="req_approve")
+        else:
+            self.requirement.approved_by = None
+            self.requirement.approved_time = None
+        self.requirement.save()
+
+        if self.requirement.approved_by:
+            self.requirement.add_log(self.requirement.approved_by, "New statement received, the requirement seems satisfied", True, action="req_approve")
 
         if self.requirement.type in ("intent", "advocate", "am_ok"):
             from .email import notify_new_statement
