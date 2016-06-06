@@ -922,6 +922,7 @@ class Newnm(VisitorMixin, FormView):
             show_apply_form=show_apply_form,
             require_login=require_login,
             DAYS_VALID=self.DAYS_VALID,
+            wikihelp="https://wiki.debian.org/nm.debian.org/Newnm",
         )
         return ctx
 

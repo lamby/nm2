@@ -49,6 +49,7 @@ class Create(VisitPersonMixin, FormView):
         current.extend(bmodels.Process.objects.filter(person=self.person, is_active=True))
         current.extend(pmodels.Process.objects.filter(person=self.person, closed__isnull=True))
         ctx["current"] = current
+        ctx["wikihelp"] = "https://wiki.debian.org/nm.debian.org/Process/Start"
         return ctx
 
     def get_form_class(self):
