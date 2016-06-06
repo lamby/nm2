@@ -177,7 +177,7 @@ class RequirementMixin(VisitProcessMixin):
         ctx["type_desc"] = pmodels.REQUIREMENT_TYPES_DICT[self.requirement.type].desc
         ctx["explain_template"] = "process/explain_statement_" + self.requirement.type + ".html"
         ctx["status"] = self.requirement.compute_status()
-        ctx["wikihelp"] = "https://wiki.debian.org/nm.debian.org/Requirement/" + self.type
+        ctx["wikihelp"] = "https://wiki.debian.org/nm.debian.org/Requirement/" + self.requirement.type
         return ctx
 
 
