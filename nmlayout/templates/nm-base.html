@@ -26,6 +26,7 @@
   <li><a href="{% url 'processes' %}">Applicants</a></li>
   <li><a href="http://wiki.debian.org/Keysigning">Keysigning</a></li>
   <li><a href="{% url 'root_faq' %}">Site FAQ</a></li>
+  {% if wikihelp %}<li><a href="{{wikihelp}}">Wiki help<a/a></li>{% endif %}
 {% endblock %}
 
 {% block breadcrumbs %}{% if impersonator %}<a href="{% url 'impersonate' %}?url={{request.build_absolute_uri}}">[{{impersonator}} as {{visitor.lookup_key}}]</a> {% endif %}<a href="{% url 'home' %}">nm</a>

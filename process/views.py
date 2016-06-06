@@ -176,6 +176,7 @@ class RequirementMixin(VisitProcessMixin):
         ctx["type_desc"] = pmodels.REQUIREMENT_TYPES_DICT[self.requirement.type].desc
         ctx["explain_template"] = "process/explain_statement_" + self.requirement.type + ".html"
         ctx["status"] = self.requirement.compute_status()
+        ctx["wikihelp"] = "https://wiki.debian.org/nm.debian.org/Requirement/" + self.type
         return ctx
 
 
@@ -322,6 +323,7 @@ class StatementCreate(StatementMixin, FormView):
     def get_context_data(self, **kw):
         ctx = super(StatementCreate, self).get_context_data(**kw)
         ctx["blurb"] = [shlex_quote(x) for x in self.blurb] if self.blurb else None
+        ctx["wikihelp"] = "https://wiki.debian.org/nm.debian.org/Statements"
         return ctx
 
     @transaction.atomic

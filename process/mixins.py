@@ -30,4 +30,5 @@ class VisitProcessMixin(VisitPersonMixin):
     def get_context_data(self, **kw):
         ctx = super(VisitProcessMixin, self).get_context_data(**kw)
         ctx["process"] = self.process
+        ctx["wikihelp"] = "https://wiki.debian.org/nm.debian.org/Process"
         return ctx
