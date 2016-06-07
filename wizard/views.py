@@ -48,7 +48,7 @@ class Advocate(VisitorMixin, FormView):
                     except pmodels.Process.DoesNotExist:
                         processes[process] = None
 
-        ctx["people"] = list(people.keys())
+        ctx["people"] = list(people.keys()) if people else None
         ctx["processes"] = processes
         ctx["wikihelp"] = "https://wiki.debian.org/nm.debian.org/Wizard/Advocate"
         return ctx
