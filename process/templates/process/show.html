@@ -31,6 +31,8 @@
       {% else %}
         {% if process.approved_by %}
           Inconsistent state: approved by {{process.approved_by.a_link}} on {{process.approved_time|date:"Y-m-d"}}, but not frozen for review.
+        {% elif not status.requirements_missing %}
+          Waiting for review.
         {% else %}
           Collecting requirements.
         {% endif %}
