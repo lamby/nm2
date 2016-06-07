@@ -10,11 +10,11 @@
 
 <ul>
   <li><a href="{% url 'wizard_advocate' %}">Advocate someone</a></li>
-  {% comment %}
-  <li><a href="">Become Debian Maintainer</a></li>
-  <li><a href="">Become Debian Developer</a></li>
-  <li><a href="">Request a guest account</a></li>
-  {% endcomment %}
+  <li><a href="{% url 'wizard_newprocess' applying_for='dm' %}">Become Debian Maintainer</a></li>
+  <li><a href="{% url 'wizard_newprocess' applying_for='dd_nu' %}">Become Debian Developer</a></li>
+  <li><a href="{% url 'wizard_newprocess' applying_for='dd_u' %}">Become Debian Developer, with upload rights</a></li>
+  <li><a href="{% url 'wizard_newprocess' applying_for='ga' %}">Request a guest account</a></li>
+  <li><a href="{% url 'wizard_newprocess' applying_for='return' %}">Return from Emeritus</a></li>
 </ul>
 
 {% include "wizard/whoami.html" %}

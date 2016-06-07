@@ -1,0 +1,30 @@
+{% extends "wizard/base.html" %}
+{% load nm %}
+{% load js %}
+
+{% block content %}
+
+<h1>{{target_desc}}</h1>
+
+{% if not request.user.is_authenticated %}
+<p>You are not currently logged in. See the
+  <a href="https://wiki.debian.org/DebianSingleSignOn">Single Sign-On page</a>
+  for details.</p>
+{% elif not visitor %}
+<p>You are currently logged in with <a href="https://wiki.debian.org/DebianSingleSignOn">SSO username</a> <b>{{request.user.username}}</b>,
+  but not mapped to any person in the site. If you are a Debian Maintainer, you can try to correct the situation using the
+  <a href="{% url 'dm_claim' %}">claim interface</a>.</p>
+{% else %}
+  {% for c in comments %}<p>{{c}}</p>{% endfor %}
+
+  {% if allowed %}
+  <p>Just <a href="{% url 'process_create' key=visitor.lookup_key %}">visit this page</a> and follow the instructions.</p>
+  {% endif %}
+{% endif %}
+
+{% if visitor %}
+{% include "wizard/whoami.html" %}
+{% endif %}
+
+{% endblock %}
+
