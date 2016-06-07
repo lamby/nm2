@@ -1,0 +1,88 @@
+{% extends "wizard/base.html" %}
+{% load nm %}
+{% load js %}
+
+{% block content %}
+
+<h1>Advocate someone</h1>
+
+{% if not request.user.is_authenticated %}
+<p>You are not currently logged in. See the
+  <a href="https://wiki.debian.org/DebianSingleSignOn">Single Sign-On page</a>
+  for details.</p>
+{% elif not visitor %}
+<p>You are currently logged in with <a href="https://wiki.debian.org/DebianSingleSignOn">SSO username</a> <b>{{request.user.username}}</b>,
+  but not mapped to any person in the site. If you are a Debian Maintainer, you can try to correct the situation using the
+  <a href="{% url 'dm_claim' %}">claim interface</a>.</p>
+{% else %}
+<form action="" method="POST">{% csrf_token %}
+  <p>Who do you want to advocate? I can search names, nicknames, and OpenPGP key fingerprints.</p>
+  {{form.as_p}}
+  <button type="submit">Search</button>
+</form>
+
+{% if processes %}
+<p>These people are ready to be advocated; click on a name to go to the advocacy page:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>UID</th>
+      <th>OpenPGP fingerprint</th>
+      <th>Current status</th>
+      <th>Applying for</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for process, adv in processes.items %}
+    {% with process.person as person %}
+    <tr>
+      <td><a href="{{adv}}">{{person.fullname}}</a></td>
+      <td>{{person.uid}}</td>
+      <td>{{person.fpr|fingerprint}}</td>
+      <td>{{person.status|desc_status}}</td>
+      <td>{{process.applying_for}}</td>
+    </tr>
+    {% endwith %}
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+
+{% if people %}
+<p>These people have not currently applied to change their status in Debian. If
+the person you want to advocate is in this list, they need to request a new
+status first:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>UID</th>
+      <th>OpenPGP fingerprint</th>
+      <th>Current status</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for person in people %}
+    <tr>
+      <td><a href="{{person.get_absolute_url}}">{{person.fullname}}</a></td>
+      <td>{{person.uid}}</td>
+      <td>{{person.fpr|fingerprint}}</td>
+      <td>{{person.status|desc_status}}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% endif %}
+
+{% if visitor %}
+{% include "wizard/whoami.html" %}
+{% endif %}
+
+{% endblock %}
+

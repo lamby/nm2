@@ -1,0 +1,18 @@
+<div class="tip">
+  <p>
+  {% if request.user.is_authenticated %}
+    {% if visitor %}
+      You are currently logged in with <a href="https://wiki.debian.org/DebianSingleSignOn">SSO username</a> <b>{{request.user.username}}</b>,
+      and recognized as {{visitor.a_link}}.
+    {% else %}
+      You are currently logged in with <a href="https://wiki.debian.org/DebianSingleSignOn">SSO username</a> <b>{{request.user.username}}</b>,
+      but not mapped to any person in the site. If you are a Debian Maintainer, you can try to correct the situation using the
+      <a href="{% url 'dm_claim' %}">claim interface</a>.
+    {% endif %}
+  {% else %}
+    You are not currently logged in. See the
+    <a href="https://wiki.debian.org/DebianSingleSignOn">Single Sign-On page</a>
+    for details.
+  {% endif %}
+  </p>
+</div>
