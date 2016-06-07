@@ -125,57 +125,6 @@ class PersonVisitorPermissions(VisitorPermissions):
 
     # TODO: advocate view audit log
 
-    @cached_property
-    def advocate_targets(self):
-        """
-        Return a list of statuses for which the current visitor can become an
-        advocate
-
-        This is used only when starting old-style processes
-        """
-        # TODO: remove this once old-style processes get deprecated
-
-        # Old-style processes only support becoming dd_u or dd_nu
-
-        # Nothing can happen while the person is pending confirmation
-        if self.person.pending: return []
-        # Anonymous visitors cannot advocate
-        if not self.visitor: return []
-        # Only DDs can advocate for DDs
-        if not self.visitor.is_dd: return []
-
-        def involved_pks(proc):
-            pks = {a.pk for a in proc.advocates.all()}
-            am = proc.manager
-            if am is not None: pks.add(am.person.pk)
-            return pks
-
-        active_processes = list(self.person.processes.filter(is_active=True))
-
-        def can_add_advocate(*applying_for):
-            for p in active_processes:
-                if p.applying_for not in applying_for: continue
-                if p.progress in self.fddam_states: return False
-                if self.visitor.pk in involved_pks(p): return False
-            return True
-
-        res = []
-        if (self.person.status in self.pre_dd_statuses
-            and self.visitor.pk != self.person.pk
-            and can_add_advocate(const.STATUS_DD_NU, const.STATUS_DD_U)):
-            res.append(const.STATUS_DD_NU)
-            res.append(const.STATUS_DD_U)
-
-        return res
-
-    #def __str__(self):
-    #    return "".join((
-    #        'b' if self.can_edit_bio else '-',
-    #        'l' if self.can_edit_ldap_fields else '-',
-    #        'e' if self.can_view_email else '-',
-    #        'a' if self.is_advocate else '-',
-    #        'm' if self.is_am else '-',
-    #    ))
 
 class ProcessVisitorPermissions(PersonVisitorPermissions):
     """

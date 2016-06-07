@@ -1,4 +1,3 @@
-# coding: utf-8
 from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
@@ -398,29 +397,16 @@ class ExpectedSets(defaultdict):
             visit_perms = visited.permissions_of(self.testcase.persons[visitor] if visitor else None)
             self.assertEmpty(visitor, visit_perms)
 
-    def assertMatchesAdvocateTargets(self, visited):
-        for visitor in self.visitors:
-            visit_perms = visited.permissions_of(self.testcase.persons[visitor])
-            self.assertEqual(visitor, visit_perms.advocate_targets)
-        for visitor in self.select_others(self.testcase.persons):
-            visit_perms = visited.permissions_of(self.testcase.persons[visitor] if visitor else None)
-            self.assertEmpty(visitor, visit_perms.advocate_targets)
-
 
 class ExpectedPerms(object):
     """
     Store the permissions expected out of a *VisitorPermissions object
     """
-    def __init__(self, perms={}, advs={}):
+    def __init__(self, perms={}):
         self.perms = {}
         for visitors, expected_perms in perms.items():
             for visitor in visitors.split():
                 self.perms[visitor] = set(expected_perms.split())
-
-        self.advs = {}
-        for visitors, expected_targets in advs.items():
-            for visitor in visitors.split():
-                self.advs[visitor] = set(expected_targets.split())
 
     def _apply_diff(self, d, diff):
         for visitors, change in diff.items():
@@ -439,15 +425,6 @@ class ExpectedPerms(object):
 
     def patch_perms(self, visitors, text):
         self.update_perms({ visitors: PatchDiff(text) })
-
-    def update_advs(self, diff):
-        self._apply_diff(self.advs, diff)
-
-    def set_advs(self, visitors, text):
-        self.update_advs({ visitors: PatchExact(text) })
-
-    def patch_advs(self, visitors, text):
-        self.update_advs({ visitors: PatchDiff(text) })
 
 
 class PageElements(dict):

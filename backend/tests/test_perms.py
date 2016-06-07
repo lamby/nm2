@@ -64,8 +64,6 @@ class TestVisitPersonNoProcess(OldProcessFixtureMixin, TestCase):
             "dc": "update_keycheck edit_bio edit_ldap view_person_audit_log request_new_status",
             "activeam": "update_keycheck edit_bio edit_ldap view_person_audit_log",
             "dd_nu dd_u": "view_person_audit_log update_keycheck",
-        }, advs={
-            "fd dam dd_nu dd_u activeam": "dd_u dd_nu",
         }))
 
         cls._add_method(cls._test_perms, "dc_ga", perms=ExpectedPerms({
@@ -73,8 +71,6 @@ class TestVisitPersonNoProcess(OldProcessFixtureMixin, TestCase):
             "dc_ga": "update_keycheck edit_bio view_person_audit_log request_new_status",
             "activeam": "update_keycheck edit_bio view_person_audit_log",
             "dd_nu dd_u": "view_person_audit_log update_keycheck",
-        }, {
-            "fd dam dd_nu dd_u activeam": "dd_u dd_nu",
         }))
 
         cls._add_method(cls._test_perms, "dm", perms=ExpectedPerms({
@@ -82,8 +78,6 @@ class TestVisitPersonNoProcess(OldProcessFixtureMixin, TestCase):
             "dm": "update_keycheck edit_bio edit_ldap view_person_audit_log request_new_status",
             "activeam": "update_keycheck edit_bio edit_ldap view_person_audit_log",
             "dd_nu dd_u": "view_person_audit_log update_keycheck",
-        }, advs={
-            "fd dam dd_nu dd_u activeam": "dd_u dd_nu",
         }))
 
         cls._add_method(cls._test_perms, "dm_ga", perms=ExpectedPerms({
@@ -91,8 +85,6 @@ class TestVisitPersonNoProcess(OldProcessFixtureMixin, TestCase):
             "dm_ga": "update_keycheck edit_bio view_person_audit_log request_new_status",
             "activeam": "update_keycheck edit_bio view_person_audit_log",
             "dd_nu dd_u": "view_person_audit_log update_keycheck",
-        }, advs={
-            "fd dam dd_nu dd_u activeam": "dd_u dd_nu",
         }))
 
         cls._add_method(cls._test_perms, "dd_nu", perms=ExpectedPerms({
@@ -147,40 +139,22 @@ class TestVisitPersonNoProcess(OldProcessFixtureMixin, TestCase):
                 "{} visiting {}".format(visitor, visited), "permissions",
                 [], visit_perms)
 
-        other_visitors = set(self.persons.keys())
-        other_visitors.add(None)
-        for visitor, expected_targets in perms.advs.items():
-            other_visitors.discard(visitor)
-            visit_perms = self.persons[visited].permissions_of(self.persons[visitor])
-            self.assertPermsEqual(
-                "{} advocating {}".format(visitor, visited), "target",
-                    expected_targets, visit_perms.advocate_targets)
-        for visitor in other_visitors:
-            visit_perms = self.persons[visited].permissions_of(self.persons[visitor] if visitor else None)
-            self.assertPermsEqual(
-                "{} advocating {}".format(visitor, visited), "target",
-                [], visit_perms.advocate_targets)
-
 
 class ProcExpected(object):
     def __init__(self, testcase):
         self.proc = ExpectedSets(testcase, "{visitor} visiting app's process", "{problem} permissions {mismatch}")
-        self.advs = ExpectedSets(testcase, "{visitor} advocating app", "{problem} target {mismatch}")
 
     def patch_generic_process_started(self):
         self.proc.patch("dd_nu dd_u activeam fd dam app adv", "+view_person_audit_log +update_keycheck")
         self.proc.patch("fd dam app", "+view_mbox +request_new_status +edit_bio")
         self.proc.patch("fd dam", "+fd_comments")
         self.proc.patch("activeam", "+view_mbox +edit_bio")
-        self.advs.patch("fd dam dd_nu dd_u adv activeam", "+dd_u +dd_nu")
 
     def patch_generic_process_has_advocate(self):
         self.proc.patch("adv", "+view_mbox +update_keycheck +view_person_audit_log")
-        self.advs.patch("adv", "-dd_nu -dd_u")
 
     def patch_generic_process_am_approved(self):
         self.proc.patch("activeam app", "-edit_ldap -edit_bio")
-        self.advs.patch("fd dam dd_nu dd_u app dm dm_ga activeam", "-dd_nu -dd_u")
 
     def patch_generic_process_final(self):
         self.proc.patch("app activeam", "+edit_bio")
@@ -190,7 +164,6 @@ class ProcExpected(object):
 class TestVisitApplicant(OldProcessFixtureMixin, TestCase):
     def assertApplicantPerms(self, perms):
         perms.proc.assertMatches(self.processes.app)
-        perms.advs.assertMatchesAdvocateTargets(self.processes.app)
 
     def assertApplicantPermsInitialProcess(self, expected):
         for p in (const.PROGRESS_APP_NEW, const.PROGRESS_APP_RCVD, const.PROGRESS_APP_HOLD, const.PROGRESS_ADV_RCVD, const.PROGRESS_POLL_SENT):

@@ -79,18 +79,6 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
         for u in allowed:
             self.assertVisit(WhenView(user=self.users[u]), ThenNotFound())
 
-    def test_advocate(self):
-        class WhenView(NMTestUtilsWhen):
-            url = reverse("restricted_advocate", kwargs={ "key": self.users["app"].lookup_key, "applying_for": "dd_nu" })
-        allowed = frozenset(("dd_u", "dd_nu", "fd", "dam"))
-        self.assertVisit(WhenView(), ThenForbidden())
-        for u in self.users.viewkeys() - allowed:
-            self.assertVisit(WhenView(user=self.users[u]), ThenForbidden())
-        for u in allowed:
-            self.assertVisit(WhenView(user=self.users[u]), ThenSuccess())
-
-        # TODO: post
-
     def test_minechangelogs(self):
         class WhenView(NMTestUtilsWhen):
             url = reverse("restricted_minechangelogs", kwargs={ "key": self.users["app"].lookup_key })
