@@ -154,6 +154,7 @@ INSTALLED_APPS = [
     'minechangelogs',
     'api',
     'contributors',
+    'wizard',
 ]
 
 TEMPLATE_CONTEXT_PROCESSORS = list(global_settings.TEMPLATE_CONTEXT_PROCESSORS) + [

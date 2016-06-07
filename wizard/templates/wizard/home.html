@@ -1,0 +1,23 @@
+{% extends "wizard/base.html" %}
+{% load nm %}
+{% load js %}
+
+{% block content %}
+
+<h1>nm.debian.org wizards index</h1>
+
+<p>What can I help you with?</p>
+
+<ul>
+  <li><a href="{% url 'wizard_advocate' %}">Advocate someone</a></li>
+  {% comment %}
+  <li><a href="">Become Debian Maintainer</a></li>
+  <li><a href="">Become Debian Developer</a></li>
+  <li><a href="">Request a guest account</a></li>
+  {% endcomment %}
+</ul>
+
+{% include "wizard/whoami.html" %}
+
+{% endblock %}
+

@@ -27,6 +27,7 @@ urlpatterns = [
     url(r'^api/', include("api.urls")),
     url(r'^apikeys/', include("apikeys.urls")),
     url(r'^keyring/', include("keyring.urls")),
+    url(r'^wizard/', include("wizard.urls")),
 
     # Uncomment the admin/doc line below to enable admin documentation:
     url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
