@@ -3,12 +3,13 @@
 <table class="proctable tablesorter {{class}}">
 <thead>
     <tr>
+        <th>Started</th>
+        <th>Last</th>
+        <th>Target</th>
         <th>Applicant</th>
         <th>UID</th>
-        <th>Applying for</th>
-        <th>Activity period</th>
-        <th>Requirements ok</th>
-        <th>Requirements missing</th>
+        <th>Status</th>
+        <th>Requirements</th>
         {% if visitor.is_admin %}
         <th>FD comments</th>
         {% endif %}
@@ -18,19 +19,31 @@
     {% for p in procs %}
     <tr>
         {% with p.compute_status as status %}
+        <td>{{status.log_first.logdate|date:"Y-m-d"}}</td>
+        <td>{{status.log_last.logdate|date:"Y-m-d"}}</td>
+        <td val="{{ p.applying_for|seq_status }}">{{p.applying_for|sdesc_status}}</td>
         <td><a href="{{ p.get_absolute_url }}">{{p.person.fullname}}</a></td>
         <td><a href="{{ p.get_absolute_url }}">{{p.person.uid}}</a></td>
-        <td val="{{ p.applying_for|seq_status }}">{{p.applying_for|sdesc_status}}</td>
-        <td>{{status.log_first.logdate|date:"Y-m-d"}} to {{status.log_last.logdate|date:"Y-m-d"}}</td>
         <td>
-          {% for req in status.requirements_ok %}
-          <a href="{{req.get_absolute_url}}">{{req.type}}</a>
-          {% endfor %}
+        {% if process.frozen_by %}
+          {% if process.approved_by %}
+            Approved
+          {% else %}
+            Frozen for review
+          {% endif %}
+        {% else %}
+          {% if process.approved_by %}
+            Approved
+          {% elif not status.requirements_missing %}
+            Waiting for review
+          {% else %}
+            Collecting requirements
+          {% endif %}
+        {% endif %}
         </td>
         <td>
-          {% for req in status.requirements_missing %}
-          <a href="{{req.get_absolute_url}}">{{req.type}}</a>
-          {% endfor %}
+          {% for req in status.requirements_ok %}<a href="{{req.get_absolute_url}}">✔{{req.type_sdesc}}</a> {% endfor %}
+          {% for req in status.requirements_missing %}<a href="{{req.get_absolute_url}}">✘{{req.type_sdesc}}</a> {% endfor %}
         </td>
         {% if visitor.is_admin %}
         <td>{{p.fd_comment}}</td>

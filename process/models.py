@@ -15,14 +15,14 @@ import re
 import os
 from collections import namedtuple
 
-RequirementType = namedtuple("RequirementType", ("tag", "desc", "sort_order"))
+RequirementType = namedtuple("RequirementType", ("tag", "sdesc", "desc", "sort_order"))
 
 REQUIREMENT_TYPES = (
-    RequirementType("intent", "Declaration of intent", 0),
-    RequirementType("sc_dmup", "SC/DFSG/DMUP agreement", 1),
-    RequirementType("advocate", "Advocate", 2),
-    RequirementType("keycheck", "Key consistency checks", 3),
-    RequirementType("am_ok", "Application Manager report", 4),
+    RequirementType("intent", "Intent", "Declaration of intent", 0),
+    RequirementType("sc_dmup", "SC/DMUP", "SC/DFSG/DMUP agreement", 1),
+    RequirementType("advocate", "Advocate", "Advocate", 2),
+    RequirementType("keycheck", "Keycheck", "Key consistency checks", 3),
+    RequirementType("am_ok", "AM report", "Application Manager report", 4),
 )
 
 REQUIREMENT_TYPES_CHOICES = [(x.tag, x.desc) for x in REQUIREMENT_TYPES]
@@ -364,6 +364,12 @@ class Requirement(models.Model):
         res = REQUIREMENT_TYPES_DICT.get(self.type, None)
         if res is None: return self.type
         return res.desc
+
+    @property
+    def type_sdesc(self):
+        res = REQUIREMENT_TYPES_DICT.get(self.type, None)
+        if res is None: return self.type
+        return res.sdesc
 
     def get_absolute_url(self):
         return reverse("process_req_" + self.type, args=[self.process.pk])
