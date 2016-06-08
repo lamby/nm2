@@ -16,7 +16,8 @@ import mailbox
 from .common import ProcessFixtureMixin
 from .common import (ProcessFixtureMixin,
                      test_fingerprint1, test_fpr1_signed_valid_text, test_fpr1_signed_valid_text_nonascii,
-                     test_fingerprint2, test_fpr2_signed_valid_text)
+                     test_fingerprint2, test_fpr2_signed_valid_text,
+                     test_fingerprint3, test_fpr3_signed_valid_text)
 
 class TestDownloadStatements(ProcessFixtureMixin, TestCase):
     @classmethod
@@ -59,3 +60,159 @@ class TestDownloadStatements(ProcessFixtureMixin, TestCase):
             tf.flush()
             mbox = mailbox.mbox(tf.name)
             self.assertEquals(len(mbox), 3)
+
+
+class TestRTTicket(ProcessFixtureMixin, TestCase):
+    def make_process(self, status, applying_for):
+        """
+        Create a process with all requirements satisfied
+        """
+        person = bmodels.Person.objects.create_user(username="app", cn="app", status=status, email="app@example.org", uid="app", audit_skip=True)
+        bmodels.Fingerprint.objects.create(person=person, fpr=test_fingerprint1, is_active=True, audit_skip=True)
+        process = pmodels.Process.objects.create(person, applying_for)
+        reqs = { r.type: r for r in process.requirements.all() }
+        if "intent" in reqs:
+            pmodels.Statement.objects.create(
+                requirement=reqs["intent"],
+                fpr=person.fingerprint,
+                statement=test_fpr1_signed_valid_text,
+                uploaded_by=person,
+                uploaded_time=now())
+            reqs["intent"].approved_by = person
+            reqs["intent"].approved_time = now()
+            reqs["intent"].save()
+
+        if "sc_dmup" in reqs:
+            pmodels.Statement.objects.create(
+                requirement=reqs["sc_dmup"],
+                fpr=person.fingerprint,
+                statement=test_fpr1_signed_valid_text_nonascii,
+                uploaded_by=person,
+                uploaded_time=now())
+            reqs["sc_dmup"].approved_by = person
+            reqs["sc_dmup"].approved_time = now()
+            reqs["sc_dmup"].save()
+
+        if "advocate" in reqs:
+            advocate = bmodels.Person.objects.create_user(username="adv", cn="adv", status=const.STATUS_DD_NU, email="adv@example.org", uid="adv", audit_skip=True)
+            bmodels.Fingerprint.objects.create(person=advocate, fpr=test_fingerprint2, is_active=True, audit_skip=True)
+            pmodels.Statement.objects.create(
+                requirement=reqs["advocate"],
+                fpr=advocate.fingerprint,
+                statement=test_fpr2_signed_valid_text,
+                uploaded_by=advocate,
+                uploaded_time=now())
+            reqs["advocate"].approved_by = advocate
+            reqs["advocate"].approved_time = now()
+            reqs["advocate"].save()
+
+        if "am_ok" in reqs:
+            am = bmodels.Person.objects.create_user(username="am", cn="am", status=const.STATUS_DD_NU, email="am@example.org", uid="am", audit_skip=True)
+            bmodels.Fingerprint.objects.create(person=am, fpr=test_fingerprint3, is_active=True, audit_skip=True)
+            pmodels.Statement.objects.create(
+                requirement=reqs["am_ok"],
+                fpr=am.fingerprint,
+                statement=test_fpr3_signed_valid_text,
+                uploaded_by=am,
+                uploaded_time=now())
+            reqs["am_ok"].approved_by = am
+            reqs["am_ok"].approved_time = now()
+            reqs["am_ok"].save()
+
+        process.frozen_by = self.persons.dam
+        process.frozen_time = now()
+
+        process.approved_by = self.persons.dam
+        process.approved_time = now()
+
+        return process
+
+    def test_dc_dcga(self):
+        client = self.make_test_client(self.persons.dam)
+        process = self.make_process(const.STATUS_DC, const.STATUS_DC_GA)
+        response = client.get(reverse("process_rt_ticket", args=[process.pk]))
+        self.assertEqual(response.status_code, 200)
+
+    def test_dc_dm(self):
+        client = self.make_test_client(self.persons.dam)
+        process = self.make_process(const.STATUS_DC, const.STATUS_DM)
+        response = client.get(reverse("process_rt_ticket", args=[process.pk]))
+        self.assertEqual(response.status_code, 200)
+
+    def test_dc_ddnu(self):
+        client = self.make_test_client(self.persons.dam)
+        process = self.make_process(const.STATUS_DC, const.STATUS_DD_NU)
+        response = client.get(reverse("process_rt_ticket", args=[process.pk]))
+        self.assertEqual(response.status_code, 200)
+
+    def test_dc_ddu(self):
+        client = self.make_test_client(self.persons.dam)
+        process = self.make_process(const.STATUS_DC, const.STATUS_DD_U)
+        response = client.get(reverse("process_rt_ticket", args=[process.pk]))
+        self.assertEqual(response.status_code, 200)
+
+    def test_dcga_dmga(self):
+        client = self.make_test_client(self.persons.dam)
+        process = self.make_process(const.STATUS_DC_GA, const.STATUS_DM_GA)
+        response = client.get(reverse("process_rt_ticket", args=[process.pk]))
+        self.assertEqual(response.status_code, 200)
+
+    def test_dcga_ddnu(self):
+        client = self.make_test_client(self.persons.dam)
+        process = self.make_process(const.STATUS_DC_GA, const.STATUS_DD_NU)
+        response = client.get(reverse("process_rt_ticket", args=[process.pk]))
+        self.assertEqual(response.status_code, 200)
+
+    def test_dcga_ddu(self):
+        client = self.make_test_client(self.persons.dam)
+        process = self.make_process(const.STATUS_DC_GA, const.STATUS_DD_U)
+        response = client.get(reverse("process_rt_ticket", args=[process.pk]))
+        self.assertEqual(response.status_code, 200)
+
+    def test_dm_dmga(self):
+        client = self.make_test_client(self.persons.dam)
+        process = self.make_process(const.STATUS_DM, const.STATUS_DM_GA)
+        response = client.get(reverse("process_rt_ticket", args=[process.pk]))
+        self.assertEqual(response.status_code, 200)
+
+    def test_dm_dd_nu(self):
+        client = self.make_test_client(self.persons.dam)
+        process = self.make_process(const.STATUS_DM, const.STATUS_DD_NU)
+        response = client.get(reverse("process_rt_ticket", args=[process.pk]))
+        self.assertEqual(response.status_code, 200)
+
+    def test_dm_ddu(self):
+        client = self.make_test_client(self.persons.dam)
+        process = self.make_process(const.STATUS_DM, const.STATUS_DD_U)
+        response = client.get(reverse("process_rt_ticket", args=[process.pk]))
+        self.assertEqual(response.status_code, 200)
+
+    def test_dmga_ddnu(self):
+        client = self.make_test_client(self.persons.dam)
+        process = self.make_process(const.STATUS_DM_GA, const.STATUS_DD_NU)
+        response = client.get(reverse("process_rt_ticket", args=[process.pk]))
+        self.assertEqual(response.status_code, 200)
+
+    def test_dmga_ddu(self):
+        client = self.make_test_client(self.persons.dam)
+        process = self.make_process(const.STATUS_DM_GA, const.STATUS_DD_U)
+        response = client.get(reverse("process_rt_ticket", args=[process.pk]))
+        self.assertEqual(response.status_code, 200)
+
+    def test_ddnu_ddu(self):
+        client = self.make_test_client(self.persons.dam)
+        process = self.make_process(const.STATUS_DD_NU, const.STATUS_DD_U)
+        response = client.get(reverse("process_rt_ticket", args=[process.pk]))
+        self.assertEqual(response.status_code, 200)
+
+    def test_dde_ddnu(self):
+        client = self.make_test_client(self.persons.dam)
+        process = self.make_process(const.STATUS_EMERITUS_DD, const.STATUS_DD_NU)
+        response = client.get(reverse("process_rt_ticket", args=[process.pk]))
+        self.assertEqual(response.status_code, 200)
+
+    def test_dde_ddu(self):
+        client = self.make_test_client(self.persons.dam)
+        process = self.make_process(const.STATUS_EMERITUS_DD, const.STATUS_DD_U)
+        response = client.get(reverse("process_rt_ticket", args=[process.pk]))
+        self.assertEqual(response.status_code, 200)
