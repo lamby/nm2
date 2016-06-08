@@ -12,12 +12,17 @@ from django import forms
 from django.core.exceptions import PermissionDenied
 from backend.mixins import VisitorMixin
 import backend.models as bmodels
+from backend import const
+
 
 def is_valid_username(username):
     if username.endswith("@users.alioth.debian.org"): return True
     if username.endswith("@debian.org"): return True
     return False
 
+FORMER_ACTIVE = (const.STATUS_EMERITUS_DD, const.STATUS_EMERITUS_DM,
+                 const.STATUS_REMOVED_DD, const.STATUS_REMOVED_DM,
+                 const.STATUS_REMOVED_DC_GA)
 
 class ClaimForm(forms.Form):
     fpr = forms.CharField(label="Fingerprint", min_length=40, widget=forms.TextInput(attrs={"size": 60}))
@@ -34,7 +39,7 @@ class ClaimForm(forms.Form):
         if not fpr.is_active:
             raise forms.ValidationError("The GPG fingerprint corresponds to a key that is not currently the active key of the user.")
 
-        if is_valid_username(fpr.person.username):
+        if fpr.person.status not in FORMER_ACTIVE and is_valid_username(fpr.person.username):
             raise forms.ValidationError("The GPG fingerprint corresponds to a person that has a valid Single Sign-On username.")
 
         return data
@@ -114,7 +119,7 @@ class ClaimConfirm(VisitorMixin, TemplateView):
         if not self.fpr.is_active:
             self.errors.append("The GPG fingerprint corresponds to a key that is not currently the active key of the user.")
 
-        if is_valid_username(self.fpr.person.username):
+        if self.fpr.person.status not in FORMER_ACTIVE and is_valid_username(self.fpr.person.username):
             self.errors.append("The GPG fingerprint corresponds to a person that has a valid Single Sign-On username.")
 
         if self.fpr.person.is_dd:

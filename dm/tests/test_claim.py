@@ -20,7 +20,7 @@ class TestClaim(PersonFixtureMixin, TestCase):
 
     @classmethod
     def __add_extra_tests__(cls):
-        for person in ("pending", "dc", "dc_ga", "dm", "dm_ga"):
+        for person in ("pending", "dc", "dc_ga", "dm", "dm_ga", "dd_e", "dd_r"):
             cls._add_method(cls._test_success, person)
 
         for person in ("dd_nu", "dd_u", "fd", "dam"):
