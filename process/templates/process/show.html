@@ -190,10 +190,9 @@
 <a href="{% url 'process_download_statements' pk=process.pk %}">(download all signed statements in a single mailbox file)</a>
 {% if visitor.is_admin and "proc_unapprove" in visit_perms %}<br><a href="{% url 'process_rt_ticket' pk=process.pk %}">Draft RT ticket</a>{% endif %}
 
-{% endwith %}
-
 <h3>Log</h2>
 
-{% include "process/log_widget.html"  with entries=process.log.all %}
+{% include "process/log_widget.html"  with entries=status.log %}
 
+{% endwith %}
 {% endblock %}

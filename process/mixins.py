@@ -21,7 +21,7 @@ class VisitProcessMixin(VisitPersonMixin):
         return self.process.permissions_of(self.visitor)
 
     def get_process(self):
-        return get_object_or_404(pmodels.Process, pk=self.kwargs["pk"])
+        return get_object_or_404(pmodels.Process.objects.select_related("person"), pk=self.kwargs["pk"])
 
     def load_objects(self):
         self.process = self.get_process()

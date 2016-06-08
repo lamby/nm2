@@ -266,7 +266,7 @@ class Process(models.Model):
             for s in adv.statements.all():
                 advocates.add(s.uploaded_by)
 
-        log = list(self.log.order_by("logdate"))
+        log = list(self.log.order_by("logdate").select_related("changed_by", "requirement"))
 
         return {
             "requirements": requirements,
@@ -275,6 +275,7 @@ class Process(models.Model):
             "requirements_missing": sorted(rnok, key=lambda x: REQUIREMENT_TYPES_DICT[x.type].sort_order),
             "log_first": log[0] if log else None,
             "log_last": log[-1] if log else None,
+            "log": log,
             "advocates": sorted(advocates),
         }
 
@@ -372,7 +373,7 @@ class Requirement(models.Model):
         return res.sdesc
 
     def get_absolute_url(self):
-        return reverse("process_req_" + self.type, args=[self.process.pk])
+        return reverse("process_req_" + self.type, args=[self.process_id])
 
     def get_admin_url(self):
         return reverse("admin:process_requirement_change", args=[self.pk])
@@ -414,7 +415,7 @@ class Requirement(models.Model):
     def compute_status_intent(self):
         notes = []
         satisfied = False
-        for s in self.statements.all():
+        for s in self.statements.all().select_related("uploaded_by"):
             if s.uploaded_by != self.process.person:
                 notes.append(("warn", "statement of intent signed by {} instead of the applicant".format(s.uploaded_by.lookup_key)))
             satisfied = True
@@ -426,7 +427,7 @@ class Requirement(models.Model):
     def compute_status_sc_dmup(self):
         notes = []
         satisfied = False
-        for s in self.statements.all():
+        for s in self.statements.all().select_related("uploaded_by"):
             if s.uploaded_by != self.process.person:
                 notes.append(("warn", "statement of intent signed by {} instead of the applicant".format(s.uploaded_by.lookup_key)))
             satisfied = True
@@ -439,7 +440,7 @@ class Requirement(models.Model):
         notes = []
         satisfied_count = 0
         can_advocate_self = self.process.can_advocate_self
-        for s in self.statements.all():
+        for s in self.statements.all().select_related("uploaded_by"):
             if not can_advocate_self and s.uploaded_by == self.process.person:
                 notes.append(("warn", "statement signed by the applicant"))
             else:
@@ -462,7 +463,7 @@ class Requirement(models.Model):
                 latest_am = None
         notes = []
         satisfied = False
-        for s in self.statements.all():
+        for s in self.statements.all().select_related("uploaded_by"):
             if latest_am is None:
                 notes.append(("warn", "statement of intent signed by {} but no AMs have been assigned".format(s.uploaded_by.lookup_key)))
             elif s.uploaded_by != latest_am.am.person:

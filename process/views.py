@@ -30,9 +30,9 @@ class List(VisitorMixin, TemplateView):
 
     def get_context_data(self, **kw):
         ctx = super(List, self).get_context_data(**kw)
-        ctx["current"] = pmodels.Process.objects.filter(closed__isnull=True).order_by("applying_for")
+        ctx["current"] = pmodels.Process.objects.filter(closed__isnull=True).order_by("applying_for").select_related("person")
         cutoff = now() - datetime.timedelta(days=30)
-        ctx["last"] = pmodels.Process.objects.filter(closed__gte=cutoff).order_by("-closed")
+        ctx["last"] = pmodels.Process.objects.filter(closed__gte=cutoff).order_by("-closed").select_related("person")
         return ctx
 
 
