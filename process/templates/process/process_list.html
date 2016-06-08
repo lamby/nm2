@@ -16,14 +16,14 @@
     </tr>
 </thead>
 <tbody>
-    {% for p in procs %}
+    {% for process in procs %}
     <tr>
-        {% with p.compute_status as status %}
+        {% with process.compute_status as status %}
         <td>{{status.log_first.logdate|date:"Y-m-d"}}</td>
         <td>{{status.log_last.logdate|date:"Y-m-d"}}</td>
-        <td val="{{ p.applying_for|seq_status }}">{{p.applying_for|sdesc_status}}</td>
-        <td><a href="{{ p.get_absolute_url }}">{{p.person.fullname}}</a></td>
-        <td><a href="{{ p.get_absolute_url }}">{{p.person.uid}}</a></td>
+        <td val="{{ process.applying_for|seq_status }}">{{process.applying_for|sdesc_status}}</td>
+        <td><a href="{{ process.get_absolute_url }}">{{process.person.fullname}}</a></td>
+        <td><a href="{{ process.get_absolute_url }}">{{process.person.uid}}</a></td>
         <td>
         {% if process.frozen_by %}
           {% if process.approved_by %}
@@ -46,7 +46,7 @@
           {% for req in status.requirements_missing %}<a href="{{req.get_absolute_url}}">✘{{req.type_sdesc}}</a> {% endfor %}
         </td>
         {% if visitor.is_admin %}
-        <td>{{p.fd_comment}}</td>
+        <td>{{process.fd_comment}}</td>
         {% endif %}
         {% endwith %}
     </tr>
