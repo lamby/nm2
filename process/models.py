@@ -412,13 +412,25 @@ class Requirement(models.Model):
         if meth is None: return {}
         return meth()
 
-    def compute_status_intent(self):
-        notes = []
+    def _compute_warnings_own_statement(self, notes):
+        """
+        Check that the statement is signed with the current active key of the
+        process' person
+        """
         satisfied = False
         for s in self.statements.all().select_related("uploaded_by"):
             if s.uploaded_by != self.process.person:
-                notes.append(("warn", "statement of intent signed by {} instead of the applicant".format(s.uploaded_by.lookup_key)))
+                notes.append(("warn", "statement of intent uploaded by {} instead of the applicant".format(s.uploaded_by.lookup_key)))
+            if s.fpr.person != self.process.person:
+                notes.append(("warn", "statement of intent signed by {} instead of the applicant".format(s.fpr.person.lookup_key)))
+            elif not s.fpr.is_active:
+                notes.append(("warn", "statement of intent signed with key {} instead of the current active key".format(s.fpr.fpr)))
             satisfied = True
+        return satisfied
+
+    def compute_status_intent(self):
+        notes = []
+        satisfied = self._compute_warnings_own_statement(notes)
         return {
             "satisfied": satisfied,
             "notes": notes,
@@ -426,11 +438,7 @@ class Requirement(models.Model):
 
     def compute_status_sc_dmup(self):
         notes = []
-        satisfied = False
-        for s in self.statements.all().select_related("uploaded_by"):
-            if s.uploaded_by != self.process.person:
-                notes.append(("warn", "statement of intent signed by {} instead of the applicant".format(s.uploaded_by.lookup_key)))
-            satisfied = True
+        satisfied = self._compute_warnings_own_statement(notes)
         return {
             "satisfied": satisfied,
             "notes": notes,
