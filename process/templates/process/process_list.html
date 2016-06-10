@@ -19,9 +19,9 @@
     {% for process in procs %}
     <tr>
         {% with process.compute_status as status %}
-        <td>{{status.log_first.logdate|date:"Y-m-d"}}</td>
-        <td>{{status.log_last.logdate|date:"Y-m-d"}}</td>
-        <td val="{{ process.applying_for|seq_status }}">{{process.applying_for|sdesc_status}}</td>
+        <td class="word"><small>{{status.log_first.logdate|date:"Y-m-d"}}</small></td>
+        <td class="word"><small>{{status.log_last.logdate|date:"Y-m-d"}}</small></td>
+        <td class="word" val="{{ process.applying_for|seq_status }}">{{process.applying_for|sdesc_status}}</td>
         <td><a href="{{ process.get_absolute_url }}">{{process.person.fullname}}</a></td>
         <td><a href="{{ process.get_absolute_url }}">{{process.person.uid}}</a></td>
         <td>
@@ -41,7 +41,7 @@
           {% endif %}
         {% endif %}
         </td>
-        <td>
+        <td val="{{status.requirements_ok|length}}">
           {% for req in status.requirements_ok %}<a href="{{req.get_absolute_url}}">✔{{req.type_sdesc}}</a> {% endfor %}
           {% for req in status.requirements_missing %}<a href="{{req.get_absolute_url}}">✘{{req.type_sdesc}}</a> {% endfor %}
         </td>

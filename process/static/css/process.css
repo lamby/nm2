@@ -15,3 +15,6 @@ td.keycheck_key {
 td.keycheck_uid {
     font-size: small;
 }
+td.word {
+    white-space: nowrap;
+}
