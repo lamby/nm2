@@ -27,12 +27,30 @@ class AMMain(VisitorTemplateView):
     require_visitor = "am"
     template_name = "restricted/ammain.html"
 
+    def _show_process(self, process):
+        """
+        Return True if the process should be shown in ammain, False if it
+        should not.
+        """
+        for req in process.requirements.all():
+            if req.type == "intent":
+                if not req.approved_by_id: return False
+            elif req.type == "sc_dmup":
+                if not req.approved_by_id: return False
+            elif req.type == "advocate":
+                if not req.approved_by_id: return False
+        return True
+
     def get_context_data(self, **kw):
         from django.db.models import Min, Max
         ctx = super(AMMain, self).get_context_data(**kw)
 
         import process.models as pmodels
-        ctx["current_processes"] = pmodels.Process.objects.filter(closed__isnull=True).order_by("applying_for")
+        processes = []
+        for p in pmodels.Process.objects.filter(closed__isnull=True).order_by("applying_for"):
+            if not self._show_process(p): continue
+            processes.append(p)
+        ctx["current_processes"] = processes
 
         ctx["am_available"] = bmodels.AM.list_available(free_only=True)
 
