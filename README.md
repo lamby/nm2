@@ -69,5 +69,17 @@ fields:
 
 
 ## Development
-Development targets Django 1.7, although the codebase has been created with
+Development targets Django 1.8, although the codebase has been created with
 Django 1.2 and it still shows in some places. Feel free to cleanup.
+
+Unusual things in the design:
+
+* `backend/` has the core models. Note that `backend.models.Process` is the
+  old-style workflow, and `process.model.Process` is the new style workflow.
+* there is a custom permission system with a class hierarchy that starts at
+  `backend.models.VisitorPermissions`, and that generates a set of permission
+  strings that get tested in views and templates with things like `if
+  "edit_bio" in visit_perms: …`.
+* `backend.mixins.VisitorMixin` is the root of a class hierarchy of mixins used
+  by most views in the site; those mixins implement the basis of resource
+  instantiation and permission checking.
