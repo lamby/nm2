@@ -701,8 +701,7 @@ class Findperson(VisitorMixin, FormView):
 class StatsLatest(VisitorTemplateView):
     template_name = "public/stats_latest.html"
 
-    def get_context_data(self, **kw):
-        ctx = super(StatsLatest, self).get_context_data(**kw)
+    def compute_stats(self):
         from django.db.models import Count, Min, Max
 
         days = int(self.request.GET.get("days", "7"))
@@ -752,16 +751,17 @@ class StatsLatest(VisitorTemplateView):
                     old_progress = l.progress
 
         events.sort(key=lambda x:x["time"])
+        return {
+            "counts": counts,
+            "raw_counts": raw_counts,
+            "irc_topic": irc_topic,
+            "events": events,
+        }
 
-        ctx = dict(
-            counts=counts,
-            raw_counts=raw_counts,
-            irc_topic=irc_topic,
-            events=events,
-        )
-
+    def get(self, request, *args, **kw):
         # If JSON is requested, dump them right away
         if 'json' in self.request.GET:
+            ctx = self.compute_stats()
             json_evs = []
             for e in ctx["events"]:
                 ne = dict(
@@ -787,8 +787,14 @@ class StatsLatest(VisitorTemplateView):
             res["Content-Disposition"] = "attachment; filename=stats.json"
             json.dump(ctx, res, indent=1)
             return res
+        else:
+            super(StatsLatest, self).get(request, *args, **kw)
 
+    def get_context_data(self, **kw):
+        ctx = super(StatsLatest, self).get_context_data(**kw)
+        ctx.update(**self.compute_stats())
         return ctx
+
 
 class StatsGraph(VisitorTemplateView):
     template_name = "public/stats_graph.html"
