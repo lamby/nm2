@@ -188,7 +188,7 @@
 </table>
 
 <a href="{% url 'process_download_statements' pk=process.pk %}">(download all signed statements in a single mailbox file)</a>
-{% if visitor.is_admin and "proc_unapprove" in visit_perms %}<br><a href="{% url 'process_rt_ticket' pk=process.pk %}">Draft RT ticket</a>{% endif %}
+{% if visitor.is_admin and process.frozen_by %}<br><a href="{% url 'process_rt_ticket' pk=process.pk %}">Draft RT ticket</a>{% endif %}
 
 <h3>Log</h2>
 
