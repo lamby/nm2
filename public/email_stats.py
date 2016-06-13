@@ -59,7 +59,11 @@ def read_mbox(pathname):
     mbox = mailbox.mbox(pathname)
     for msg in mbox:
         realname, addr = email.utils.parseaddr(msg["From"])
-        ts = email.utils.mktime_tz(email.utils.parsedate_tz(msg["Date"]))
+        parsed = email.utils.parsedate_tz(msg["Date"])
+        if parsed is None:
+            ts = None
+        else:
+            ts = email.utils.mktime_tz(parsed)
         yield ts, addr, realname
 
 def aggregate(parsed_mbox):
