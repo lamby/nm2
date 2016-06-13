@@ -788,7 +788,7 @@ class StatsLatest(VisitorTemplateView):
             json.dump(ctx, res, indent=1)
             return res
         else:
-            super(StatsLatest, self).get(request, *args, **kw)
+            return super(StatsLatest, self).get(request, *args, **kw)
 
     def get_context_data(self, **kw):
         ctx = super(StatsLatest, self).get_context_data(**kw)
