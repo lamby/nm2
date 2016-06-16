@@ -1,0 +1,67 @@
+#!/usr/bin/python3
+# coding: utf-8
+import subprocess
+import tempfile
+import requests
+import ssl
+import os
+
+class Certs:
+    def __init__(self, workdir):
+        self.workdir = workdir
+        self.dbname = "sql:" + os.path.expanduser("~/.pki/nssdb")
+
+    def run_certutil(self, args, input=None):
+        cmd = ["certutil", "-d", self.dbname]
+        cmd.extend(args)
+        output = subprocess.check_output(cmd, universal_newlines=True, input=input)
+        return output
+
+    def run_pk12util(self, args, input=None):
+        cmd = ["pk12util", "-d", self.dbname]
+        cmd.extend(args)
+        output = subprocess.check_output(cmd, universal_newlines=False, input=input)
+        return output
+
+    def get_key_nicks(self):
+        output = self.run_certutil(["-L"])
+        payload = output.split("\n\n")[1]
+        for line in payload.splitlines():
+            nick, flags = line.rsplit(None, 1)
+            yield nick, flags
+
+    def get_sso_cert_nickname(self):
+        debemail = os.environ.get("DEBEMAIL", None)
+        if debemail is None: raise RuntimeError("$DEBEMAIL is not set")
+        for nick, flags in self.get_key_nicks():
+            if flags != "u,u,u": continue
+            if not nick.startswith(debemail): continue
+            if not "SSO" in nick: continue
+            return nick
+
+    def get_cert(self, nick, outfile):
+        self.run_certutil(["-L", "-n", nick, "-a", "-o", outfile])
+
+    def get_key(self, nick, outfile):
+        pkcs12 = self.run_pk12util(["-n", nick, "-o", "/dev/stdout", "-W", ""])
+        pem = subprocess.check_output(["openssl", "pkcs12", "-nodes", "-passin", "pass:"], input=pkcs12, stderr=open("/dev/null", "wb"))
+        with open(outfile, "wb") as out:
+            out.write(pem)
+
+
+# Try to get SSO keys out of the browser and connect to nm.debian.org with
+# them.
+# Requires $DEBEMAIL to be set.
+# Requires libnss3-tools, openssl, python3-requests
+# Tested with chromium.
+
+with tempfile.TemporaryDirectory() as tmpdir:
+    certs = Certs(tmpdir)
+    nick = certs.get_sso_cert_nickname()
+    #print("Nickname:", repr(nick))
+    cert_file = os.path.join(certs.workdir, "tmp.cert")
+    key_file = os.path.join(certs.workdir, "tmp.key")
+    certs.get_cert(nick, cert_file)
+    certs.get_key(nick, key_file)
+    res = requests.get("https://nm.debian.org/api/whoami", cert=(cert_file, key_file))
+    print(res.text)
