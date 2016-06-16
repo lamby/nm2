@@ -146,3 +146,18 @@ class Status(APIVisitorMixin, View):
     @csrf_exempt
     def dispatch(self, *args, **kwargs):
         return super(Status, self).dispatch(*args, **kwargs)
+
+
+class Whoami(APIVisitorMixin, View):
+    """
+    Return a JSON with information on the currently logged in user
+    """
+    def get(self, request, *args, **kw):
+        if request.user.is_authenticated:
+            data = model_to_dict(self.visitor, fields=["username", "cn", "mn", "sn", "email", "uid", "status", "status_changed"])
+            data["fpr"] = self.visitor.fpr
+        else:
+            data = {}
+        res = http.HttpResponse(content_type="application/json")
+        json.dump(data, res, indent=1, cls=Serializer)
+        return res
