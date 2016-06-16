@@ -94,7 +94,7 @@ class People(APIVisitorMixin, View):
                 res.append(person_to_json(p, fields=fields))
 
             return json_response(dict(r=res))
-        except Exception, e:
+        except Exception as e:
             return json_response(dict(e=str(e)), status_code=500)
 
 
@@ -153,7 +153,7 @@ class Whoami(APIVisitorMixin, View):
     Return a JSON with information on the currently logged in user
     """
     def get(self, request, *args, **kw):
-        if request.user.is_authenticated:
+        if request.user.is_authenticated():
             data = model_to_dict(self.visitor, fields=["username", "cn", "mn", "sn", "email", "uid", "status", "status_changed"])
             data["fpr"] = self.visitor.fpr
         else:
