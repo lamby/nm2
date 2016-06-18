@@ -35,6 +35,9 @@ class AMMain(VisitorTemplateView):
         for req in process.requirements.all():
             if req.type == "intent":
                 if not req.approved_by_id: return False
+                # Hide all processes with a statement of intent approved less
+                # than 4 days ago
+                if req.approved_time + datetime.timedelta(days=4) > now(): return False
             elif req.type == "sc_dmup":
                 if not req.approved_by_id: return False
             elif req.type == "advocate":
