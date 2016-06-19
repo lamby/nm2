@@ -232,8 +232,8 @@ class CleanUserKeys(hk.Task):
 
         for key in kmodels.Key.objects.all():
             try:
-                fpr = backend.models.Fingerprint.get(fpr=key.fpr)
-            except backend.models.Fingerprint.DoesNotExist:
+                fpr = bmodels.Fingerprint.get(fpr=key.fpr)
+            except bmodels.Fingerprint.DoesNotExist:
                 fpr = None
 
             in_use = fpr is not None and fpr.is_active and (fpr.person.pending or fpr.person.active_processes)
