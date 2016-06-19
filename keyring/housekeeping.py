@@ -11,6 +11,7 @@ import backend.models as bmodels
 from backend import const
 from . import models as kmodels
 from .keyring_maint_import import KeyringMaintImport
+from .git import GitKeyring
 import os
 import os.path
 import time
@@ -288,7 +289,7 @@ class KeyringGit(hk.Task):
     DEPENDS = [KeyringMaint]
 
     def run_main(self, stage):
-        self.keyring = kmodels.GitKeyring()
+        self.keyring = GitKeyring()
         self.keyring.run_git("fetch")
 
 class CheckKeyringLogs(hk.Task):
