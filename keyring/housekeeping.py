@@ -232,7 +232,7 @@ class CleanUserKeys(hk.Task):
 
         for key in kmodels.Key.objects.all():
             try:
-                fpr = bmodels.Fingerprint.get(fpr=key.fpr)
+                fpr = bmodels.Fingerprint.objects.get(fpr=key.fpr)
             except bmodels.Fingerprint.DoesNotExist:
                 fpr = None
 
