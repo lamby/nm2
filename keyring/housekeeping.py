@@ -10,8 +10,8 @@ from backend.housekeeping import MakeLink
 import backend.models as bmodels
 from backend import const
 from . import models as kmodels
-from .keyring_maint_import import KeyringMaintImport
 from .git import GitKeyring
+from . import git_ops
 import os
 import os.path
 import time
@@ -280,6 +280,7 @@ class KeyringMaint(hk.Task):
         # Move the new directory to the destination place
         os.rename(tmpdir, kmodels.KEYRING_MAINT_KEYRING)
 
+
 class KeyringGit(hk.Task):
     """
     Update the local keyring repository
@@ -290,7 +291,8 @@ class KeyringGit(hk.Task):
 
     def run_main(self, stage):
         self.keyring = GitKeyring()
-        self.keyring.run_git("fetch")
+        self.keyring.git("fetch")
+
 
 class CheckKeyringLogs(hk.Task):
     """
@@ -302,31 +304,23 @@ class CheckKeyringLogs(hk.Task):
         """
         Parse changes from changelog entries after the given date (non inclusive).
         """
-        importer = KeyringMaintImport(self.IDENTIFIER, self.hk.keyring_maint.persons, self.hk.link)
         gk = self.hk.keyring_git.keyring
-        parser = gk.get_changelog_parser()
-        actions = list(parser.parse_git("keyring_maint_import..remotes/origin/master"))
-        for state, operation in reversed(actions):
-            sig_status = state.get("sig_status", None)
-            # %G?: show "G" for a Good signature, "B" for a Bad signature, "U" for a good, untrusted signature and "N" for no signature
-            if sig_status not in "GU":
-                log.info("%s: Skipping commit %s: sig_status: %s, author: %s",
-                         self.IDENTIFIER, state.get("commit", "(unknown)"), sig_status, state.get("author_email", "(unknown)"))
-                continue
+        actions = list(gk.read_log("keyring_maint_import..remotes/origin/master"))
+        for entry in actions[::-1]:
+            if entry.parsed is None: continue
 
-            if operation['action'] == 'add':
-                processed = importer.do_add(state, operation)
-            elif operation['action'] == 'remove':
-                processed = importer.do_remove(state, operation)
-            elif operation['action'] == 'replace':
-                processed = importer.do_replace(state, operation)
-            else:
-                log.warn("%s: Unknown action %s in commit %s", self.IDENTIFIER, operation["action"], state["commit"])
-                processed = False
-
-            if processed:
-                # Update our bookmark
-                gk.run_git("update-ref", "refs/heads/keyring_maint_import", state["commit"])
-                log.info("%s: Updating ref keyring_maint_import to commit %s", self.IDENTIFIER, state["commit"])
-            else:
+            try:
+                op = git_ops.Operation.from_log_entry(entry)
+            except git_ops.ParseError as e:
+                log.warn("%s: commit %s: parse error: %s", self.IDENTIFIER, entry.shasum, e)
                 break
+
+            try:
+                op.execute()
+            except git_ops.OperationError as e:
+                log.warn("%s: commit %s: execution error: %s", self.IDENTIFIER, entry.shasum, e)
+                break
+
+            # Update our bookmark
+            gk.run_git("update-ref", "refs/heads/keyring_maint_import", state["commit"])
+            log.info("%s: Updating ref keyring_maint_import to commit %s", self.IDENTIFIER, state["commit"])

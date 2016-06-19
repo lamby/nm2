@@ -10,6 +10,8 @@ import datetime
 import logging
 import keyring.models as kmodels
 from keyring.git import GitKeyring
+from keyring import git_ops
+import json
 
 log = logging.getLogger(__name__)
 
@@ -32,6 +34,13 @@ class Command(BaseCommand):
         if since is None: since = (datetime.datetime.strptime(until, "%Y-%m-%d") - datetime.timedelta(days=60)).strftime("%Y-%m-%d")
 
         gk = GitKeyring()
-        for shasum, ts in gk.get_valid_shasums("--since", since, "--until", until):
-            c = gk.get_commit_message(shasum)
-            print(shasum, ts, repr(c))
+        for entry in gk.read_log("--since", since, "--until", until):
+            print("{} {} {} {} {}".format(entry.shasum, entry.validated, "valid" if entry.is_valid else "invalid", entry.dt, entry.keyid))
+            print(json.dumps(entry.parsed, indent=1))
+            if entry.parsed is None: continue
+            try:
+                op = git_ops.Operation.from_log_entry(entry)
+            except git_ops.ParseError as e:
+                print("Parse error:", e)
+                continue
+            print(op)

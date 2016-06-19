@@ -12,12 +12,8 @@ import re
 import git
 
 
-class GitKeyring(object):
-    """
-    Access the git repository of keyring-maint
-    """
-    # http://mikegerwitz.com/papers/git-horror-story
-    re_update_changelog = re.compile(r"Update changelog", re.I)
+class LogEntry(object):
+    re_update_changelog = re.compile(r"^\s*Update changelog\s*$", re.I)
     re_import_changes = re.compile(r"Import changes sent to keyring.debian.org HKP interface", re.I)
     re_field_split = re.compile(r":\s*")
     re_summaries = [
@@ -39,35 +35,44 @@ class GitKeyring(object):
         },
     ]
 
-    def __init__(self):
-        self.KEYRING_MAINT_KEYRING = getattr(settings, "KEYRING_MAINT_KEYRING", "data/keyring-maint.gpg")
-        self.KEYRING_MAINT_GIT_REPO = getattr(settings, "KEYRING_MAINT_GIT_REPO", "data/keyring-maint.git")
-        self.repo = git.Repo(self.KEYRING_MAINT_GIT_REPO)
-        self.git = git.cmd.Git(self.KEYRING_MAINT_GIT_REPO)
-        self.git.update_environment(GNUPGHOME=self.KEYRING_MAINT_KEYRING)
+    def __init__(self, gk, shasum, dt, keyid, validated):
+        # Master GitKeyring object
+        self.gk = gk
+        # Commit shasum
+        self.shasum = shasum
+        # Datetime
+        self.dt = dt
+        # GPG Key ID
+        self.keyid = keyid
+        # Validated (%G? in git --pretty format)
+        self.validated = validated
+        # "G" for a Good signature, "B" for a Bad signature, "U" for a good, untrusted signature and "N" for no signature
+        # "U" for good but untrusted is ok, because we are verifying against a
+        #     curated keyring
+        self.is_valid = self.validated in "GU"
+        # gitpython Commit
+        self.commit = gk.repo.commit(self.shasum)
+        # Parsed dict, or None
+        parsed = self._parse()
+        if parsed:
+            self.parsed = { k.lower(): v for k, v in parsed.items() }
+        else:
+            self.parsed = None
 
-    def get_valid_shasums(self, *args):
+    def _parse(self):
         """
-        Run git log on the keyring dir and return the valid shasums that it found.
-
-        Extra git log options passed as *args will be appended to the command line
+        Return the commit message for this log entry, parsed into a dict with
+        all the details of the operation.
         """
-        for line in self.git.log("--pretty=format:%H:%ct:%G?", "origin/master", *args).split("\n"):
-            shasum, ts, validated = line.split(":")
-            # "G" for a Good signature, "B" for a Bad signature, "U" for a good, untrusted signature and "N" for no signature
-            if validated in "GU":
-                yield shasum, datetime.datetime.fromtimestamp(int(ts), utc)
-
-    def get_commit_message(self, shasum):
-        """
-        Return the commit message for the given shasum
-        """
-        body = self.git.show("--pretty=format:%B", shasum)
+        import email
+        body = self.commit.message
+        if "\n\n" not in body: return None
         subject, body = body.split("\n\n", 1)
         if self.re_update_changelog.match(subject): return None
         if self.re_import_changes.match(subject): return None
         if body.startswith("Action:"):
-            return { k: v for k, v in self.parse_action(body) }
+            operation = email.message_from_string(body.encode("utf-8"))
+            return dict(operation.items())
         else:
             for match in self.re_summaries:
                 mo = match["re"].match(subject)
@@ -75,30 +80,43 @@ class GitKeyring(object):
             #print("UNKNOWN", repr(subject))
             return None
 
-    def parse_action(self, body):
-        """
-        Parse an Action: * body
-        """
-        name = None
-        cur = []
-        for line in body.split("\n"):
-            if not line: break
-            if not line[0].isspace():
-                if name:
-                    yield name, "\n".join(cur)
-                    name = None
-                    cur = []
-                name, content = self.re_field_split.split(line, 1)
-                cur.append(content)
-            else:
-                cur.append(line.lstrip())
 
-        if name:
-            yield name, "\n".join(cur)
+class GitKeyring(object):
+    """
+    Access the git repository of keyring-maint
+    """
+    # http://mikegerwitz.com/papers/git-horror-story
 
-    def get_changelog_parser(self):
+    def __init__(self):
+        self.KEYRING_MAINT_KEYRING = os.path.abspath(getattr(settings, "KEYRING_MAINT_KEYRING", "data/keyring-maint.gpg"))
+        self.KEYRING_MAINT_GIT_REPO = os.path.abspath(getattr(settings, "KEYRING_MAINT_GIT_REPO", "data/keyring-maint.git"))
+        self.repo = git.Repo(self.KEYRING_MAINT_GIT_REPO)
+        self.git = git.cmd.Git(self.KEYRING_MAINT_GIT_REPO)
+        self.git.update_environment(GNUPGHOME=self.KEYRING_MAINT_KEYRING)
+        self.verified_shasums = set()
+
+    def read_log(self, *args):
         """
-        Create and return an instance of the keyring-maint changelog parser
+        Run git log on the keyring dir and return the valid shasums that it
+        found, as LogEntry objects.
+
+        Extra git log options passed as *args will be appended to the command
+        line.
         """
-        from . import gitchangelog
-        return gitchangelog.Parser(repo=self.KEYRING_MAINT_GIT_REPO, gnupghome=self.KEYRING_MAINT_KEYRING)
+        for line in self.git.log("--pretty=format:%H:%ct:%GK:%G?", "origin/master", *args).split("\n"):
+            shasum, ts, keyid, validated = line.split(":")
+            entry = LogEntry(self, shasum, datetime.datetime.fromtimestamp(int(ts), utc), keyid, validated)
+
+            # If the commit is not signed, check if we have seen a signed
+            # descendant
+            if not entry.is_valid:
+                entry.is_valid = entry.shasum in self.verified_shasums
+
+            # If the commit can be trusted, take note of its shasum and those
+            # of its ancestors
+            if entry.is_valid:
+                self.verified_shasums.add(entry.shasum)
+                for parent in entry.commit.parents:
+                    self.verified_shasums.add(parent.hexsha)
+
+                yield entry
