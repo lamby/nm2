@@ -25,6 +25,6 @@ class Command(BaseCommand):
             logging.basicConfig(level=logging.INFO, stream=sys.stderr, format=FORMAT)
 
         gk = kmodels.GitKeyring()
-        for shasum, ts in gk.get_valid_shasums("--since", "2014-03-01", "--until", "2014-09-01"):
+        for shasum, ts in gk.get_valid_shasums("--since", "2016-01-01", "--until", "2016-06-19"):
             c = gk.get_commit_message(shasum)
             print(shasum, ts, repr(c))
