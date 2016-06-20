@@ -30,6 +30,9 @@ class CloseProcess(Operation):
         self.process.add_log(self.audit_author, self.logtext, is_public=True, action="done", logdate=self.logdate)
         self.process.closed = self.logdate
         self.process.save()
+        self.process.person.status = self.process.applying_for
+        self.process.person.status_changed = self.logdate
+        self.process.person.save(audit_author=self.audit_author, audit_notes=self.logtext)
 
     def to_dict(self):
         res = super(CloseProcess, self).to_dict()
