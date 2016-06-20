@@ -690,6 +690,12 @@ class Fingerprint(models.Model):
                 PersonAuditLog.objects.create(person=existing_fingerprint.person, author=author, notes=notes, changes=PersonAuditLog.serialize_changes(changes))
             PersonAuditLog.objects.create(person=self.person, author=author, notes=notes, changes=PersonAuditLog.serialize_changes(changes))
 
+        # If we are saving an active fingerprint, make all others inactive
+        if self.is_active:
+            for fpr in Fingerprint.objects.filter(person=self.person, is_active=True).exclude(pk=self.pk):
+                fpr.is_active = False
+                fpr.save(audit_notes=notes, audit_author=author, audit_skip=audit_skip)
+
 
 class PersonAuditLog(models.Model):
     person = models.ForeignKey(Person, related_name="audit_log")
