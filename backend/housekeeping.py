@@ -211,14 +211,28 @@ class CheckStatusProgressMatch(hk.Task):
 
     def run_main(self, stage):
         from django.db.models import Max
-        for p in bmodels.Person.objects.all():
-            try:
-                last_proc = bmodels.Process.objects.filter(person=p, progress=const.PROGRESS_DONE).annotate(ended=Max("log__logdate")).order_by("-ended")[0]
-            except IndexError:
-                continue
-            if p.status != last_proc.applying_for:
+        import process.models as pmodels
+
+        process_byperson = {}
+
+        for p in bmodels.Process.objects.filter(closed__isnull=False).select_related("person"):
+            existing = process_byperson.get(p.person, None)
+            if existing is None:
+                process_byperson[p.person] = p
+            elif existing.closed < p.closed:
+                process_byperson[p.person] = p
+
+        for p in pmodels.Process.objects.filter(closed__isnull=False).select_related("person"):
+            existing = process_byperson.get(p.person, None)
+            if existing is None:
+                process_byperson[p.person] = p
+            elif existing.closed < p.closed:
+                process_byperson[p.person] = p
+
+        for person, process in process_byperson.items():
+            if person.status != process.applying_for:
                 log.warn("%s: %s has status %s but the last completed process was applying for %s",
-                         self.IDENTIFIER, self.hk.link(p), p.status, last_proc.applying_for)
+                         self.IDENTIFIER, self.hk.link(person), person.status, process.applying_for)
 
 
 class CheckLogProgressMatch(hk.Task):
