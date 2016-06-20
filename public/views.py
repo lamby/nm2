@@ -500,6 +500,10 @@ class Person(VisitPersonTemplateView):
         import process.models as pmodels
         processes2 = pmodels.Process.objects.filter(person=self.person).order_by("-closed")
 
+        adv_processes2 = []
+        for req in pmodels.Requirement.objects.filter(type="advocate", statements__uploaded_by=self.person).distinct().select_related("process"):
+            adv_processes2.append(req.process)
+
         if self.person.is_am:
             am = self.person.am
             am_processes = am.processed \
@@ -532,6 +536,7 @@ class Person(VisitPersonTemplateView):
             adv_processes=self.person.advocated \
                     .annotate(started=Min("log__logdate"), ended=Max("log__logdate")) \
                     .order_by("is_active", "ended"),
+            adv_processes2=adv_processes2,
             audit_log=audit_log,
         )
 

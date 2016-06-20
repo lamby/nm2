@@ -80,6 +80,8 @@
 
 <h2>Advocate history</h2>
 
+{% include "process/process_list.html" with procs=adv_processes2 %}
+
 {% include "public/person_process_table.html" with p=p processes=adv_processes only %}
 
 {% endif %}

@@ -48,6 +48,11 @@ table.tablesorter th.headerSortDown:after {
     content: "▼";
 }
 
+table.proctable {
+    margin-top: 1em;
+    margin-bottom: 1em;
+}
+
 form.inline {
     display: inline;
 }
