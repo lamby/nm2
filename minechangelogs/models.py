@@ -1,3 +1,9 @@
+# coding: utf-8
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+from django.utils.timezone import utc, now
 from django.db import models
 from django.conf import settings
 import logging
@@ -68,9 +74,15 @@ class parse_projectb(object):
         """
         try:
             with open(self.statefile) as infd:
-                self.state = json.load(infd)
+                state = json.load(infd)
         except IOError:
-            self.state = {}
+            state = {}
+
+        if "old_seen" in state:
+            dt = datetime.datetime.strptime(state["old_seen"], "%Y-%m-%d %H:%M:%S")
+            state["old_seen"] = dt.replace(tzinfo=utc)
+
+        self.state = state
 
     def save_state(self):
         """
@@ -81,8 +93,14 @@ class parse_projectb(object):
         if not os.path.isdir(dirname):
             os.makedirs(dirname)
 
+        state = {}
+        if "old_seen" in self.state:
+            state["old_seen"] = self.state["old_seen"].astimezone(utc).strftime("%Y-%m-%d %H:%M:%S")
+        if "old_seen_ids" in self.state:
+            state["old_seen_ids"] = self.state["old_seen_ids"]
+
         with utils.atomic_writer(self.statefile) as outfd:
-            json.dump(self.state, outfd)
+            json.dump(state, outfd)
 
     def get_changes(self):
         """
@@ -111,8 +129,6 @@ SELECT c.id, c.seen, c.source, c.version,
         last_year = None
         last_year_count = 0
         for id, seen, source, version, date, changedby, changelog in cur:
-            # FIXME: replace with seen.timestamp in python3
-            seen = int(seen.strftime("%s"))
             if last_year is None or last_year != seen.year:
                 if last_year is None:
                     log.info("projectb: start of changelog stream.")
