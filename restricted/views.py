@@ -46,7 +46,7 @@ class AMMain(VisitorTemplateView):
             elif req.type == "advocate":
                 if not req.approved_by_id: return False
             elif req.type == "am_ok":
-                needs_am_report = req.approved_by_id
+                needs_am_report = req.approved_by_id is None
 
         if needs_am_report and process.current_am_assignment:
             return False
