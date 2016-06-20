@@ -293,7 +293,7 @@ class KeyringGit(hk.Task):
 
     def run_main(self, stage):
         self.keyring = GitKeyring()
-        self.keyring.git("fetch")
+        self.keyring.git.fetch()
 
 
 class CheckKeyringLogs(hk.Task):
