@@ -51,15 +51,17 @@ $(function() {
     {% if visitor.am.is_dam %}<li>Debian Account Manager</li>{% endif %}
 </ul>
 
-<h2>Currently open processes</h2>
-
-{% include "process/process_list.html" with procs=current_processes %}
-
 {% if visitor.is_admin %}
 
 <h2>Front desk</h2>
 
+<h3>Processes needing attention</h3>
+
+{% include "process/process_list.html" with procs=current_processes %}
+
 {% if am_available %}
+
+<h3>Application manager availability</h3>
 <p>The following managers have free slots (#free/#slots):</p>
 <ul class="horizontal">
     {% for a in am_available %}
@@ -70,6 +72,8 @@ $(function() {
 {% else %}
 <p>Currently there are no free application managers.</p>
 {% endif %}
+
+<h3>Old style processes</h3>
 
 <p>The following people have applied but have not enough advocates or we did not send the activity poll yet.</p>
 {% include "restricted/process_table.html" with p=p progs=prog_app_new extras="" only %}
