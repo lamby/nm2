@@ -251,15 +251,15 @@ class AddDM(Add):
                 const.STATUS_EMERITUS_DM, const.STATUS_REMOVED_DM):
             raise OperationError(self.log_entry, "commit is for a new DM, but it corresponds to {} who has status {}".format(person.lookup_key, person.status))
 
-        if self.rt:
-            audit_notes = "Set status to {}, RT #{}".format(const.ALL_STATUS_DESCS[person.status], self.rt)
-        else:
-            audit_notes = "Set status to {}, RT unknown".format(const.ALL_STATUS_DESCS[person.status])
-
         if person.status == const.STATUS_DC_GA:
             status = const.STATUS_DM_GA
         else:
             status = const.STATUS_DM
+
+        if self.rt:
+            audit_notes = "Set status to {}, RT #{}".format(const.ALL_STATUS_DESCS[status], self.rt)
+        else:
+            audit_notes = "Set status to {}, RT unknown".format(const.ALL_STATUS_DESCS[status])
 
         yield bops.ChangeStatus(
             person=person,
