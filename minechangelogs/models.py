@@ -8,7 +8,7 @@ import re
 import os
 import os.path
 import email.utils
-import pickle
+import json
 import xapian
 
 log = logging.getLogger(__name__)
@@ -59,7 +59,7 @@ class parse_projectb(object):
     """
     def __init__(self, statefile=None):
         if statefile is None:
-            statefile = os.path.join(MINECHANGELOGS_CACHEDIR, "index-checkpoint.pickle")
+            statefile = os.path.join(MINECHANGELOGS_CACHEDIR, "index-checkpoint.json")
         self.statefile = statefile
 
     def load_state(self):
@@ -68,9 +68,9 @@ class parse_projectb(object):
         """
         try:
             with open(self.statefile) as infd:
-                self.state = pickle.load(infd)
+                self.state = json.load(infd)
         except IOError:
-            self.state = dict()
+            self.state = {}
 
     def save_state(self):
         """
@@ -82,7 +82,7 @@ class parse_projectb(object):
             os.makedirs(dirname)
 
         with utils.atomic_writer(self.statefile) as outfd:
-            pickle.dump(self.state, outfd, pickle.HIGHEST_PROTOCOL)
+            json.dump(self.state, outfd)
 
     def get_changes(self):
         """
@@ -111,6 +111,8 @@ SELECT c.id, c.seen, c.source, c.version,
         last_year = None
         last_year_count = 0
         for id, seen, source, version, date, changedby, changelog in cur:
+            # FIXME: replace with seen.timestamp in python3
+            seen = int(seen.strftime("%s"))
             if last_year is None or last_year != seen.year:
                 if last_year is None:
                     log.info("projectb: start of changelog stream.")
