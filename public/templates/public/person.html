@@ -90,6 +90,8 @@
 
 <h2>AM history</h2>
 
+{% include "process/process_list.html" with procs=am_processes2 %}
+
 {% include "public/person_process_table.html" with p=p processes=am_processes only %}
 
 {% endif %}

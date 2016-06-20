@@ -509,9 +509,12 @@ class Person(VisitPersonTemplateView):
             am_processes = am.processed \
                     .annotate(started=Min("log__logdate"), ended=Max("log__logdate")) \
                     .order_by("is_active", "ended")
+
+            am_processes2 = pmodels.Process.objects.filter(ams__am=am).distinct()
         else:
             am = None
             am_processes = []
+            am_processes2 = []
 
         audit_log = []
         if "view_person_audit_log" in self.visit_perms:
@@ -533,6 +536,7 @@ class Person(VisitPersonTemplateView):
             processes=processes,
             processes2=processes2,
             am_processes=am_processes,
+            am_processes2=am_processes2,
             adv_processes=self.person.advocated \
                     .annotate(started=Min("log__logdate"), ended=Max("log__logdate")) \
                     .order_by("is_active", "ended"),
