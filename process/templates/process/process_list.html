@@ -9,9 +9,12 @@
         <th>Applicant</th>
         <th>UID</th>
         <th>Status</th>
+        <th>AM</th>
+        {% if not proctable_archive %}
         <th>Requirements</th>
         {% if visitor.is_admin %}
         <th>FD comments</th>
+        {% endif %}
         {% endif %}
     </tr>
 </thead>
@@ -41,12 +44,19 @@
           {% endif %}
         {% endif %}
         </td>
+        <td>
+          {% with process.current_am_assignment as assignment %}
+          {% if assignment %}{{assignment.am.person.a_link}}{% endif %}
+          {% endwith %}
+        </td>
+        {% if not proctable_archive %}
         <td val="{{status.requirements_ok|length}}">
           {% for req in status.requirements_ok %}<a href="{{req.get_absolute_url}}">✔{{req.type_sdesc}}</a> {% endfor %}
           {% for req in status.requirements_missing %}<a href="{{req.get_absolute_url}}">✘{{req.type_sdesc}}</a> {% endfor %}
         </td>
         {% if visitor.is_admin %}
         <td>{{process.fd_comment}}</td>
+        {% endif %}
         {% endif %}
         {% endwith %}
     </tr>

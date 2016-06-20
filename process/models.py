@@ -238,7 +238,7 @@ class Process(models.Model):
         None if there is none.
         """
         try:
-            return self.ams.get(unassigned_by__isnull=True)
+            return self.ams.select_related("am", "am__person").get(unassigned_by__isnull=True)
         except AMAssignment.DoesNotExist:
             return None
 

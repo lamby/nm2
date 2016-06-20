@@ -1,5 +1,5 @@
 {% load nm %}
-<table class="proctable">
+<table class="proctable tablesorter">
     <thead>
         <tr>
             <th>Applicant</th>
@@ -14,8 +14,8 @@
         {% for p in processes %}
         <tr>
         <td><a href="{{ p.get_absolute_url }}" title="{{p.person.fullname}}">{{p.person.uid|default:p.person.fullname}}</a></td>
-            <td>{{p.started.date}}</td>
-            <td>{{p.ended.date}}</td>
+            <td val="{{p.started|date:'Y-m-d'}}">{{p.started.date}}</td>
+            <td val="{{p.started|date:'Y-m-d'}}">{{p.ended.date}}</td>
             <td>{{p.applying_for|desc_status}} ({{p.is_active|yesno:"in progress,done"}})</td>
             <td>
                 {% if p.is_active %}

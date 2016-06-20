@@ -5,6 +5,23 @@
 {% block head_resources %}
   {{block.super}}
   {% jsinclude "nm" %}
+  {% jsinclude "tables" %}
+{% endblock %}
+
+{% block head %}
+{{block.super}}
+<script type="text/javascript">
+$(function() {
+    $(".proctable").tablesorter({
+        textExtraction: function(node) {
+            val = node.getAttribute("val");
+            if (val == null)
+                val = node.textContent || node.innerText;
+            return val;
+        },
+    });
+});
+</script>
 {% endblock %}
 
 {% block content %}
@@ -72,7 +89,7 @@
 
 <h2>Personal history</h2>
 
-{% include "process/process_list.html" with procs=processes2 %}
+{% include "process/process_list.html" with procs=processes2 proctable_archive=True %}
 
 {% include "public/person_process_table.html" with p=p processes=processes only %}
 
@@ -80,7 +97,7 @@
 
 <h2>Advocate history</h2>
 
-{% include "process/process_list.html" with procs=adv_processes2 %}
+{% include "process/process_list.html" with procs=adv_processes2 proctable_archive=True %}
 
 {% include "public/person_process_table.html" with p=p processes=adv_processes only %}
 
@@ -90,7 +107,7 @@
 
 <h2>AM history</h2>
 
-{% include "process/process_list.html" with procs=am_processes2 %}
+{% include "process/process_list.html" with procs=am_processes2 proctable_archive=True %}
 
 {% include "public/person_process_table.html" with p=p processes=am_processes only %}
 
