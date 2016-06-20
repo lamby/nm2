@@ -62,11 +62,13 @@ class Create(VisitPersonMixin, FormView):
 
     def form_valid(self, form):
         applying_for = form.cleaned_data["applying_for"]
-        # TODO: ensure visitor can create processes for person
-        # TODO: ensure that applying_for is a valid new process for person
         with transaction.atomic():
             p = pmodels.Process.objects.create(self.person, applying_for)
             p.add_log(self.visitor, "Process created", is_public=True)
+
+        from .email import notify_new_process
+        notify_new_process(p, self.request)
+
         return redirect(p.get_absolute_url())
 
 

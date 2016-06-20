@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import unicode_literals
 from django.test import TestCase
 from django.core.urlresolvers import reverse
+from backend import const
 from .common import ProcessFixtureMixin
 import process.models as pmodels
 
@@ -68,6 +69,11 @@ class TestCreate(ProcessFixtureMixin, TestCase):
         self.assertIsNone(p.approved_time)
         self.assertIsNone(p.closed)
         self.assertEquals(p.fd_comment, "")
+
+        from django.core import mail
+        self.assertEquals(len(mail.outbox), 1)
+        self.assertEquals(mail.outbox[0].cc, [p.archive_email])
+        self.assertIn(const.ALL_STATUS_DESCS[target], mail.outbox[0].subject)
 
     def _test_invalid(self, visitor, visited, target):
         client = self.make_test_client(visitor)

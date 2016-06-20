@@ -104,6 +104,55 @@ def build_django_message(from_email=None, to=None, cc=None, reply_to=None, subje
     return msg
 
 
+def notify_new_process(process, request=None):
+    """
+    Render a notification email template for a newly uploaded statement, then
+    send the resulting email.
+    """
+    try:
+        if request is None:
+            url = "https://{}{}".format(
+                Site.objects.get_current().domain,
+                process.get_absolute_url())
+        else:
+            url = request.build_absolute_uri(process.get_absolute_url())
+
+        body = """Hello,
+
+you have just started a new process to become {applying_for}.
+
+The nm.debian.org page for managing this process is at {url}
+
+That page lists several requirements that need to be fulfilled for this process
+to complete. Some of those you can provide yourself: look at the page for a
+list and some explanation.
+
+I hope you have a smooth process, and if you need anything please mail
+nm@debian.org."
+
+
+Yours,
+the nm.debian.org housekeeping robot
+"""
+        body = body.format(applying_for=const.ALL_STATUS_DESCS[process.applying_for], process=process, url=url)
+
+        msg = build_django_message(
+            "Debian NM Front Desk <nm@debian.org>",
+            to=process.person,
+            cc=process.archive_email,
+            subject="New Member process, {}".format(const.ALL_STATUS_DESCS[process.applying_for]),
+            body=body)
+        msg.send()
+        log.debug("sent mail from %s to %s cc %s bcc %s subject %s",
+                msg.from_email,
+                ", ".join(msg.to),
+                ", ".join(msg.cc),
+                ", ".join(msg.bcc),
+                msg.subject)
+    except:
+        log.debug("failed to sent mail for process %s", process)
+
+
 def notify_new_statement(statement, request=None):
     """
     Render a notification email template for a newly uploaded statement, then
@@ -195,7 +244,7 @@ def notify_am_assigned(assignment, request=None):
                 ", ".join(msg.bcc),
                 msg.subject)
     except:
-        log.debug("failed to sent mail for statement %s", statement)
+        log.debug("failed to sent mail for assignment %s", assignment)
 
 
 def send_notification(template_name, log_next, log_prev=None):
