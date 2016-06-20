@@ -455,12 +455,12 @@ class Replace(Operation):
                 pass
 
         try:
-            old_person = bmodels.Person.objects.get(fprs__fpr=self.old_key)
+            old_person = bmodels.Person.objects.get(fprs__fpr=self.old_key, fprs__is_active=True)
         except bmodels.Person.DoesNotExist:
             old_person = None
 
         try:
-            new_person = bmodels.Person.objects.get(fprs__fpr=self.new_key)
+            new_person = bmodels.Person.objects.get(fprs__fpr=self.new_key, fprs__is_active=True)
         except bmodels.Person.DoesNotExist:
             new_person = None
 
