@@ -5,7 +5,7 @@ from __future__ import division
 from __future__ import unicode_literals
 from django.test import TestCase
 from django.core.urlresolvers import reverse
-from django.utils.timezone import now
+from django.utils.timezone import now, utc
 from backend import const
 from mock import patch
 from .common import ProcessFixtureMixin, get_all_process_types
@@ -13,13 +13,13 @@ import process.models as pmodels
 import datetime
 import uuid
 
-mock_ts = datetime.datetime(2016, 1, 1, 0, 0, 0)
+mock_ts = datetime.datetime(2016, 1, 1, 0, 0, 0, tzinfo=utc)
 
 class TestLog(ProcessFixtureMixin, TestCase):
     @classmethod
     def setUpClass(cls):
         super(TestLog, cls).setUpClass()
-        cls.orig_ts = datetime.datetime(2015, 1, 1, 0, 0, 0)
+        cls.orig_ts = datetime.datetime(2015, 1, 1, 0, 0, 0, tzinfo=utc)
 
         # Create a process with an AM
         cls.persons.create("app", status=const.STATUS_DM)
