@@ -59,9 +59,10 @@ $(function() {
 
 {% include "process/process_list.html" with procs=current_processes %}
 
+<h3>Application manager availability</h3>
+
 {% if am_available %}
 
-<h3>Application manager availability</h3>
 <p>The following managers have free slots (#free/#slots):</p>
 <ul class="horizontal">
     {% for a in am_available %}
