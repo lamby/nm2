@@ -132,6 +132,23 @@ class ChangeStatus(Operation):
         return "Change status of {} to {}".format(self.person.lookup_key, self.status)
 
     def execute(self):
+        import process.models as pmodels
+        process = pmodels.Process.objects.create(
+            person=self.person,
+            applying_for=self.status,
+            frozen_by=self.audit_author,
+            frozen_time=self.status_changed,
+            approved_by=self.audit_author,
+            approved_time=self.status_changed,
+            closed=self.status_changed,
+        )
+        process.add_log(
+            changed_by=self.audit_author,
+            logtext=self.audit_notes,
+            is_public=False,
+            action="proc_approve",
+            logdate=self.status_changed
+        )
         self.person.status = self.status
         self.person.status_changed = self.status_changed
         self.person.save(
