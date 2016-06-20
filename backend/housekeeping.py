@@ -25,6 +25,7 @@ from django.conf import settings
 import django_housekeeping as hk
 from django.db import connection, transaction
 from django.contrib.sites.models import Site
+from backend import const
 from . import models as bmodels
 from . import utils, const
 import gzip
@@ -215,14 +216,14 @@ class CheckStatusProgressMatch(hk.Task):
 
         process_byperson = {}
 
-        for p in bmodels.Process.objects.filter(closed__isnull=False).select_related("person"):
+        for p in bmodels.Process.objects.filter(closed__isnull=False, progress=const.PROGRESS_DONE).select_related("person"):
             existing = process_byperson.get(p.person, None)
             if existing is None:
                 process_byperson[p.person] = p
             elif existing.closed < p.closed:
                 process_byperson[p.person] = p
 
-        for p in pmodels.Process.objects.filter(closed__isnull=False).select_related("person"):
+        for p in pmodels.Process.objects.filter(closed__isnull=False, approved__isnull=False).select_related("person"):
             existing = process_byperson.get(p.person, None)
             if existing is None:
                 process_byperson[p.person] = p
