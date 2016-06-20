@@ -181,6 +181,7 @@ class AddDM(Add):
         """
         super(AddDM, self).__init__(log_entry)
 
+        self.process = None
         details = log_entry.parsed.get("details", None)
         if details is not None:
             try:
@@ -189,11 +190,15 @@ class AddDM(Add):
                 raise ParseError(log_entry, "cannot extract process ID from {}".format(details))
 
             try:
-                process = pmodels.Process.objects.get(pk=process_id)
+                self.process = pmodels.Process.objects.get(pk=process_id)
             except pmodels.Process.DoesNotExist:
                 raise ParseError(log_entry, "process {} not found in the site".format(details))
 
-            self.email = process.person.email
+            if self.process.person.fpr != self.fpr:
+                raise ParseError(log_entry, "{} in process {} has fingerprint {} but the commit has {}".format(
+                    self.process.person.lookup_key, details, self.process.person.fpr, self.fpr))
+
+            self.email = self.process.person.email
         else:
             # To get the email, we need to go and scan the agreement post from the
             # list archives
@@ -217,6 +222,20 @@ class AddDM(Add):
     def ops(self):
         # Check for existing records in the database
         person = self._get_person()
+
+        if self.process is not None:
+            if self.rt:
+                logtext = "Added to {} keyring, RT #{}".format(self.role, self.rt)
+            else:
+                logtext = "Added to {} keyring, RT unknown".format(self.role)
+            yield pops.CloseProcess(
+                process=self.process,
+                logtext=logtext,
+                logdate=self.log_entry.dt,
+                audit_author=self.author,
+                audit_notes=logtext,
+            )
+            return
 
         # If it is all new, create and we are done
         if person is None:
