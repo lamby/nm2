@@ -142,7 +142,7 @@ class CheckKeyringConsistency(hk.Task):
         for fpr in no_keyring:
             f = fingerprints_by_fpr[fpr]
             if not f.is_active: continue
-            if f.person.status in (const.STATUS_REMOVED_DD, const.STATUS_DC, const.STATUS_DC_GA): continue
+            if f.person.status in (const.STATUS_REMOVED_DD, const.STATUS_REMOVED_DM, const.STATUS_DC, const.STATUS_DC_GA): continue
             log.warn("%s: %s has status %s in the database, but the key %s is not in any keyring",
                         self.IDENTIFIER, self.hk.link(f.person), const.ALL_STATUS_DESCS[f.person.status], fpr)
             self.count += 1
