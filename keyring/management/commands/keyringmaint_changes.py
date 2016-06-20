@@ -35,24 +35,24 @@ class Command(BaseCommand):
 
         gk = GitKeyring()
         for entry in gk.read_log("--since", since, "--until", until):
-            print("{} {} {} {} {}".format(entry.shasum, entry.validated, "valid" if entry.is_valid else "invalid", entry.dt, entry.keyid))
-            print(json.dumps(entry.parsed, indent=1))
+            print("{} {} {} {} {}".format(entry.shasum, entry.dt, entry.validated, "valid" if entry.is_valid else "invalid", entry.keyid))
+            print("{} {} raw entry: {}".format(entry.shasum, entry.dt, json.dumps(entry.parsed, indent=1)))
             if entry.parsed is None: continue
             try:
                 op = git_ops.Operation.from_log_entry(entry)
             except git_ops.ParseError as e:
-                print("Parse error:", e)
+                print("{} {} parse error: {}".format(entry.shasum, entry.dt, e))
                 continue
-            print("Keyring-maint op:", op)
+            print("{} {} keyring-maint op: {}".format(entry.shasum, entry.dt, op))
 
             if op is None: continue
 
             try:
                 ops = list(op.ops())
             except git_ops.OperationError as e:
-                print("Error computing changes:", e)
+                print("{} {} error computing changes: {}".format(entry.shasum, entry.dt, e))
                 continue
 
             for o in ops:
-                print("nm.debian.org op:", o.to_json())
+                print("{} {} nm.debian.org op: {}".format(entry.shasum, entry.dt, o.to_json()))
 
