@@ -43,4 +43,16 @@ class Command(BaseCommand):
             except git_ops.ParseError as e:
                 print("Parse error:", e)
                 continue
-            print(op)
+            print("Keyring-maint op:", op)
+
+            if op is None: continue
+
+            try:
+                ops = list(op.ops())
+            except git_ops.OperationError as e:
+                print("Error computing changes:", e)
+                continue
+
+            for o in ops:
+                print("nm.debian.org op:", o)
+

@@ -285,11 +285,12 @@ class Process(models.Model):
         """
         return ProcessVisitorPermissions(self, visitor)
 
-    def add_log(self, changed_by, logtext, is_public=False, action=""):
+    def add_log(self, changed_by, logtext, is_public=False, action="", logdate=None):
         """
         Add a log entry for this process
         """
-        return Log.objects.create(changed_by=changed_by, process=self, is_public=is_public, logtext=logtext, action=action)
+        if logdate is None: logdate = now()
+        return Log.objects.create(changed_by=changed_by, process=self, is_public=is_public, logtext=logtext, action=action, logdate=logdate)
 
     def get_statements_as_mbox(self):
         from .email import build_python_message

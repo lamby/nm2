@@ -315,11 +315,16 @@ class CheckKeyringLogs(hk.Task):
                 log.warn("%s: commit %s: parse error: %s", self.IDENTIFIER, entry.shasum, e)
                 break
 
+            if op is None: continue
+
             try:
-                op.execute()
+                ops = list(op.ops())
             except git_ops.OperationError as e:
-                log.warn("%s: commit %s: execution error: %s", self.IDENTIFIER, entry.shasum, e)
+                log.warn("%s: commit %s: error computing changes to apply: %s", self.IDENTIFIER, entry.shasum, e)
                 break
+
+            for op in ops:
+                op.execute()
 
             # Update our bookmark
             gk.run_git("update-ref", "refs/heads/keyring_maint_import", state["commit"])

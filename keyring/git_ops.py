@@ -3,8 +3,11 @@ from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
+from backend import const
 import backend.models as bmodels
+import backend.ops as bops
 import process.models as pmodels
+import process.ops as pops
 import os
 import requests
 import re
@@ -14,9 +17,10 @@ class ParseError(Exception):
         super(ParseError, self).__init__(*args, **kw)
         self.log_entry = log_entry
 
+
 class OperationError(Exception):
     def __init__(self, log_entry, *args, **kw):
-        super(ParseError, self).__init__(*args, **kw)
+        super(OperationError, self).__init__(*args, **kw)
         self.log_entry = log_entry
 
 
@@ -139,19 +143,19 @@ class Add(RoleOperation):
 
         if self.fpr:
             try:
-                persons["fpr"] = bmodels.Person.objects.get(fprs__fpr=info["fpr"])
+                persons["fpr"] = bmodels.Person.objects.get(fprs__fpr=self.fpr)
             except bmodels.Person.DoesNotExist:
                 pass
 
         if self.email:
             try:
-                persons["email"] = bmodels.Person.objects.get(email=info["email"])
+                persons["email"] = bmodels.Person.objects.get(email=self.email)
             except bmodels.Person.DoesNotExist:
                 pass
 
         if self.uid:
             try:
-                persons["uid"] = bmodels.Person.objects.get(uid=info["uid"])
+                persons["uid"] = bmodels.Person.objects.get(uid=self.uid)
             except bmodels.Person.DoesNotExist:
                 pass
 
@@ -201,19 +205,19 @@ class AddDM(Add):
         else:
             return requests.get(url)
 
-    def execute(self):
+    def ops(self):
         # Check for existing records in the database
         person = self._get_person()
 
         # If it is all new, create and we are done
         if person is None:
             if self.rt:
-                audit_notes = "Created DM entry, RT #{}".format(rt)
+                audit_notes = "Created DM entry, RT #{}".format(self.rt)
             else:
                 audit_notes = "Created DM entry, RT unknown"
-            p = bmodels.Person.objects.create_user(
+            yield bops.CreateUser(
                 # Dummy username used to avoid unique entry conflicts
-                username="{}@example.org".format(fpr),
+                username="{}@example.org".format(self.fpr),
                 cn=self.cn,
                 mn=self.mn,
                 sn=self.sn,
@@ -222,15 +226,9 @@ class AddDM(Add):
                 status_changed=self.log_entry.dt,
                 audit_author=self.author,
                 audit_notes=audit_notes,
-            )
-            fpr = bmodels.Fingerpring.objects.create(
-                person=p,
+
                 fpr=self.fpr,
-                is_active=True,
-                audit_author=self.author,
-                audit_notes=audit_notes,
             )
-            #log.info("%s: %s: %s", self.logtag, self.person_link(p), info["audit_notes"])
             return
 
 
@@ -244,20 +242,23 @@ class AddDM(Add):
                 const.STATUS_EMERITUS_DM, const.STATUS_REMOVED_DM):
             raise OperationError(self.log_entry, "commit is for a new DM, but it corresponds to {} who has status {}".format(person.lookup_key, person.status))
 
-        if person.status == const.STATUS_DC_GA:
-            person.status = const.STATUS_DM_GA
-        else:
-            person.status = const.STATUS_DM
-        person.status_changed = self.log_entry.dt
-
         if self.rt:
             audit_notes = "Set status to {}, RT #{}".format(const.ALL_STATUS_DESCS[person.status], self.rt)
         else:
             audit_notes = "Set status to {}, RT unknown".format(const.ALL_STATUS_DESCS[person.status])
 
-        person.save(
+        if person.status == const.STATUS_DC_GA:
+            status = const.STATUS_DM_GA
+        else:
+            status = const.STATUS_DM
+
+        yield bops.ChangeStatus(
+            person=person,
+            status=status,
+            status_changed=self.log_entry.dt,
             audit_author=self.author,
             audit_notes=audit_notes)
+
         #log.info("%s: %s: %s", self.logtag, self.person_link(person), audit_notes)
 
     def __str__(self):
@@ -278,14 +279,14 @@ class AddDD(Add):
     def __str__(self):
         return "Add DD"
 
-    def execute(self):
+    def ops(self):
         # Check for existing records in the database
         person = self._get_person()
 
         # If it is all new, keyring has a DD that DAM does not know about:
         # yell.
         if person is None:
-            raise OperationError(self.log_entry, "commit has new DD {} {} that we do not know about".format(person.lookup_key, self.fpr))
+            raise OperationError(self.log_entry, "commit has new DD {} {} that we do not know about".format(self.uid, self.fpr))
 
         if person.fpr != self.fpr:
             # Keyring-maint added a different key: sync with them
@@ -293,8 +294,10 @@ class AddDD(Add):
                 audit_notes = "Set fingerprint to {}, RT #{}".format(self.fpr, self.rt)
             else:
                 audit_notes = "Set fingerprint to {}, RT unknown".format(self.fpr)
-            fpr = person.fprs.create(fpr=self.fpr, is_active=True, audit_author=self.author, audit_notes=audit_notes)
-            person.save(audit_author=self.author, audit_notes=audit_notes)
+            yield bops.ChangeFingerprint(
+                person=person, fpr=self.fpr,
+                audit_author=self.author, audit_notes=audit_notes)
+            #person.save(audit_author=self.author, audit_notes=audit_notes)
             #log.info("%s: %s: %s", self.logtag, self.person_link(person), audit_notes)
             # Do not return yet, we still need to check the status
 
@@ -309,19 +312,43 @@ class AddDD(Add):
             return
 
         # Look for a process to close
+        applying_for = role_status_map[self.role]
+
         found = False
         for p in person.active_processes:
-            if p.applying_for != role_status_map[self.role]: continue
+            if p.applying_for != applying_for: continue
             if self.rt:
                 logtext = "Added to {} keyring, RT #{}".format(self.role, self.rt)
             else:
                 logtext = "Added to {} keyring, RT unknown".format(self.role)
             if not bmodels.Log.objects.filter(process=p, changed_by=self.author, logdate=self.log_entry.dt, logtext=logtext).exists():
-                l = bmodels.Log.for_process(p, changed_by=self.author, logdate=self.log_entry.dt, logtext=logtext)
-                l.save()
+                yield bops.CloseOldProcess(
+                    process=p,
+                    logtext=logtext,
+                    logdate=self.log_entry.dt,
+                    audit_author=self.author,
+                    audit_notes=logtext,
+                )
             #log.info("%s: %s has an open process to become %s, keyring added them as %s",
             #            self.logtag, self.person_link(person), const.ALL_STATUS_DESCS[p.applying_for], self.role)
             found = True
+
+        for p in pmodels.Process.objects.filter(person=person, applying_for=applying_for, closed__isnull=True):
+            if self.rt:
+                logtext = "Added to {} keyring, RT #{}".format(self.role, self.rt)
+            else:
+                logtext = "Added to {} keyring, RT unknown".format(self.role)
+            yield pops.CloseProcess(
+                process=p,
+                logtext=logtext,
+                logdate=self.log_entry.dt,
+                audit_author=self.author,
+                audit_notes=logtext,
+            )
+            #log.info("%s: %s has an open process to become %s, keyring added them as %s",
+            #            self.logtag, self.person_link(person), const.ALL_STATUS_DESCS[p.applying_for], self.role)
+            found = True
+
         if not found:
             # f3d1c1ee92bba3ebe05f584b7efea0cfd6e4ebe4 is an example commit
             # that triggers this
@@ -345,7 +372,7 @@ class RemoveDD(Remove):
         if self.fpr is None:
             raise ParseError(log_entry, "commit without Key field")
 
-    def execute(self):
+    def ops(self):
         persons = {}
 
         if self.uid:
@@ -355,7 +382,7 @@ class RemoveDD(Remove):
                 pass
 
         try:
-            persons["fpr"] = bmodels.Person.objects.get(fprs__fpr=fpr)
+            persons["fpr"] = bmodels.Person.objects.get(fprs__fpr=self.fpr)
         except bmodels.Person.DoesNotExist:
             pass
 
@@ -368,8 +395,13 @@ class RemoveDD(Remove):
                 audit_notes = "Moved to emeritus keyring, RT #{}".format(self.rt)
             else:
                 audit_notes = "Moved to emeritus keyring, RT unknown"
-            person.status = const.STATUS_EMERITUS_DD
-            person.save(audit_author=self.author, audit_notes=audit_notes)
+
+            yield bops.ChangeStatus(
+                person=person,
+                status=const.STATUS_EMERITUS_DD,
+                status_changed=self.log_entry.dt,
+                audit_author=self.author,
+                audit_notes=audit_notes)
             #log.info("%s: %s: %s", self.logtag, self.person_link(person), audit_notes)
             return
 
@@ -405,7 +437,7 @@ class Replace(Operation):
     def from_log_entry(cls, log_entry):
         return cls(log_entry)
 
-    def execute(self):
+    def ops(self):
         uid_person = None
         if self.uid is not None:
             try:
@@ -461,5 +493,8 @@ class Replace(Operation):
             audit_notes = "GPG key changed, RT #{}".format(self.rt)
         else:
             audit_notes = "GPG key changed, RT unknown"
-        person.fprs.create(fpr=self.new_key, is_active=True, audit_author=self.author, audit_notes=audit_notes)
+        #person.fprs.create(fpr=self.new_key, is_active=True, audit_author=self.author, audit_notes=audit_notes)
+        yield bops.ChangeFingerprint(
+            person=person, fpr=self.new_key,
+            audit_author=self.author, audit_notes=audit_notes)
         #log.info("%s: %s: %s", self.logtag, self.person_link(person), audit_notes)
