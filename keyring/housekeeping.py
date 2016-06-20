@@ -253,6 +253,8 @@ class KeyringMaint(hk.Task):
     NAME = "keyring_maint"
 
     def run_main(self, stage):
+        KEYRING_MAINT_KEYRING = os.path.abspath(getattr(settings, "KEYRING_MAINT_KEYRING", "data/keyring-maint.gpg"))
+
         # Get the Person entries for keyring-maint people, indexed by the email
         # that they use in git commits.
         self.persons = {}
@@ -261,7 +263,7 @@ class KeyringMaint(hk.Task):
                 self.persons[email] = bmodels.Person.objects.get(uid=entry["uid"])
 
         # Regenerate the keyring in a new directory
-        tmpdir = kmodels.KEYRING_MAINT_KEYRING + ".tmp"
+        tmpdir = KEYRING_MAINT_KEYRING + ".tmp"
         if os.path.exists(tmpdir): shutil.rmtree(tmpdir)
         os.mkdir(tmpdir)
         cmd = ["/usr/bin/gpg", "--homedir", tmpdir, "--keyserver", kmodels.KEYSERVER, "-q", "--no-default-keyring", "--no-auto-check-trustdb", "--no-permission-warning", "--recv"]
@@ -274,11 +276,11 @@ class KeyringMaint(hk.Task):
             raise RuntimeError("{} returned error code {}. Stderr: {}", " ".join(pipes.quote(x) for x in cmd), res, stderr);
 
         # Remove the old directory
-        if os.path.exists(kmodels.KEYRING_MAINT_KEYRING):
-            shutil.rmtree(kmodels.KEYRING_MAINT_KEYRING)
+        if os.path.exists(KEYRING_MAINT_KEYRING):
+            shutil.rmtree(KEYRING_MAINT_KEYRING)
 
         # Move the new directory to the destination place
-        os.rename(tmpdir, kmodels.KEYRING_MAINT_KEYRING)
+        os.rename(tmpdir, KEYRING_MAINT_KEYRING)
 
 
 class KeyringGit(hk.Task):
