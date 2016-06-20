@@ -832,27 +832,30 @@ class AM(models.Model):
         from django.db import connection
         import process.models as pmodels
 
-        res = []
+        ams = {}
         for am in AM.objects.all():
-            active = []
-            held = []
+            am.proc_active = []
+            am.proc_held = []
+            ams[am] = am
 
-            for p in Process.objects.filter(manager=am, is_active=True, progress__in=(const.PROGRESS_AM_RCVD, const.PROGRESS_AM, const.PROGRESS_AM_HOLD)):
-                if p.progress == const.PROGRESS_AM_HOLD:
-                    held.append(p)
-                else:
-                    active.append(p)
+        for p in Process.objects.filter(manager__isnull=False, is_active=True, progress__in=(const.PROGRESS_AM_RCVD, const.PROGRESS_AM, const.PROGRESS_AM_HOLD)).select_related("manager"):
+            am = ams[p.manager]
+            if p.progress == const.PROGRESS_AM_HOLD:
+                am.proc_held.append(p)
+            else:
+                am.proc_active.append(p)
 
-            for p in pmodels.AMAssignment.objects.filter(am=am, unassigned_by__isnull=True, process__frozen_by__isnull=True, process__approved_by__isnull=True, process__closed__isnull=True):
-                if p.paused:
-                    held.append(p)
-                else:
-                    active.append(p)
+        for p in pmodels.AMAssignment.objects.filter(unassigned_by__isnull=True, process__frozen_by__isnull=True, process__approved_by__isnull=True, process__closed__isnull=True).select_related("am"):
+            am = ams[p.am]
+            if p.paused:
+                am.proc_held.append(p)
+            else:
+                am.proc_active.append(p)
 
-            am.proc_active = active
-            am.proc_held = held
-            am.stats_active = len(active)
-            am.stats_held = len(held)
+        res = []
+        for am in ams.values():
+            am.stats_active = len(am.proc_active)
+            am.stats_held = len(am.proc_held)
             am.stats_free = am.slots - am.stats_active
 
             if free_only and am.stats_free <= 0:
