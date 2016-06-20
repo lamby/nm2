@@ -358,6 +358,11 @@ def _assign_am(request, visitor, nm, am):
     nm.manager = am
     nm.progress = const.PROGRESS_AM_RCVD
     nm.save()
+
+    if not am.is_am:
+        am.is_am = True
+        am.save()
+
     # Parameters for the following templates
     parms = dict(
         fduid=visitor.uid,

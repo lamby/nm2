@@ -242,6 +242,10 @@ class AssignAM(RequirementMixin, TemplateView):
             assigned_by=self.visitor,
             assigned_time=now())
 
+        if not am.is_am:
+            am.is_am = True
+            am.save()
+
         self.requirement.add_log(self.visitor, "Assigned AM {}".format(am.person.lookup_key), is_public=True, action="assign_am")
 
         from .email import notify_am_assigned
