@@ -7,6 +7,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 from django.utils.translation import ugettext_lazy as _
+from django.utils.timezone import utc, now
 from django.db import models
 from django.conf import settings
 from django.utils.timezone import now
@@ -268,10 +269,10 @@ class Person(PermissionsMixin, models.Model):
     # Membership status
     status = models.CharField("current status in the project", max_length=20, null=False,
                               choices=[(x.tag, x.ldesc) for x in const.ALL_STATUS])
-    status_changed = models.DateTimeField("when the status last changed", null=False, default=datetime.datetime.utcnow)
+    status_changed = models.DateTimeField("when the status last changed", null=False, default=now)
     fd_comment = models.TextField("Front Desk comments", null=False, blank=True, default="")
     # null=True because we currently do not have the info for old entries
-    created = models.DateTimeField("Person record created", null=True, default=datetime.datetime.utcnow)
+    created = models.DateTimeField("Person record created", null=True, default=now)
     expires = models.DateField("Expiration date for the account", null=True, blank=True, default=None,
             help_text="This person will be deleted after this date if the status is still {} and"
                       " no Process has started".format(const.STATUS_DC))
@@ -766,7 +767,7 @@ class AM(models.Model):
     # 6 months
     is_am_ctte = models.BooleanField("NM CTTE member", null=False, default=False)
     # null=True because we currently do not have the info for old entries
-    created = models.DateTimeField("AM record created", null=True, default=datetime.datetime.utcnow)
+    created = models.DateTimeField("AM record created", null=True, default=now)
     fd_comment = models.TextField("Front Desk comments", null=False, blank=True, default="")
 
     def __unicode__(self):
@@ -944,7 +945,7 @@ class Process(models.Model):
 
     def save(self, *args, **kw):
         if not self.archive_key:
-            ts = datetime.datetime.utcnow().strftime("%Y%m%d%H%M%S")
+            ts = now().strftime("%Y%m%d%H%M%S")
             if self.person.uid:
                 self.archive_key = "-".join((ts, self.applying_for, self.person.uid))
             else:
@@ -1088,7 +1089,7 @@ class Process(models.Model):
             """
             if not self.last_am_history: return
             if end is None:
-                end = datetime.datetime.utcnow()
+                end = now()
 
             time_for_progress = dict()
             period_start = None
@@ -1183,7 +1184,7 @@ class Process(models.Model):
                 unicode(self), self.progress, const.PROGRESS_DAM_OK))
 
         if tstamp is None:
-            tstamp = datetime.datetime.utcnow()
+            tstamp = now()
 
         self.progress = const.PROGRESS_DONE
         self.person.status = self.applying_for
@@ -1217,7 +1218,7 @@ class Log(models.Model):
                                 choices=[(x.tag, x.ldesc) for x in const.ALL_PROGRESS])
 
     is_public = models.BooleanField(default=False, null=False)
-    logdate = models.DateTimeField(null=False, default=datetime.datetime.utcnow)
+    logdate = models.DateTimeField(null=False, default=now)
     logtext = models.TextField(null=False, blank=True, default="")
 
     def __unicode__(self):

@@ -551,7 +551,7 @@ class AuditLog(VisitorTemplateView):
 
         audit_log = []
         is_admin = self.visitor.is_admin
-        cutoff = datetime.datetime.utcnow() - datetime.timedelta(days=30)
+        cutoff = now() - datetime.timedelta(days=30)
         for e in bmodels.PersonAuditLog.objects.filter(logdate__gte=cutoff).order_by("-logdate"):
             if is_admin:
                 changes = sorted((k, v[0], v[1]) for k, v in json.loads(e.changes).items())

@@ -20,6 +20,7 @@ from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
+from django.utils.timezone import now
 from django.conf import settings
 import django_housekeeping as hk
 from django.db import connection, transaction
@@ -115,7 +116,7 @@ class ComputeAMCTTE(hk.Task):
         # Set all to False
         bmodels.AM.objects.update(is_am_ctte=False)
 
-        cutoff = datetime.datetime.utcnow()
+        cutoff = now()
         cutoff = cutoff - datetime.timedelta(days=30 * 6)
 
         # Set the active ones to True
