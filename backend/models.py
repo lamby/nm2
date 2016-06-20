@@ -1050,7 +1050,7 @@ class Process(models.Model):
         """
         fname = self.mailbox_file
         if fname is None: return None
-        return datetime.datetime.fromtimestamp(os.path.getmtime(fname))
+        return datetime.datetime.utcfromtimestamp(os.path.getmtime(fname)).replace(tzinfo=utc)
 
     @property
     def archive_email(self):
