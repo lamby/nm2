@@ -201,8 +201,8 @@ class Process(models.Model):
     frozen_by = models.ForeignKey(bmodels.Person, related_name="+", blank=True, null=True, help_text=_("Person that froze this process for review, or NULL if it is still being worked on"))
     frozen_time = models.DateTimeField(null=True, blank=True, help_text=_("Date the process was frozen for review, or NULL if it is still being worked on"))
     approved_by = models.ForeignKey(bmodels.Person, related_name="+", blank=True, null=True, help_text=_("Person that reviewed this process and considered it complete, or NULL if not yet reviewed"))
-    approved_time = models.DateTimeField(null=True, help_text=_("Date the process was reviewed and considered complete, or NULL if not yet reviewed"))
-    closed = models.DateTimeField(null=True, help_text=_("Date the process was closed, or NULL if still open"))
+    approved_time = models.DateTimeField(null=True, blank=True, help_text=_("Date the process was reviewed and considered complete, or NULL if not yet reviewed"))
+    closed = models.DateTimeField(null=True, blank=True, help_text=_("Date the process was closed, or NULL if still open"))
     fd_comment = models.TextField("Front Desk comments", blank=True, default="")
 
     objects = ProcessManager()
