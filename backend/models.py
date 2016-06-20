@@ -947,6 +947,8 @@ class Process(models.Model):
     # True if progress NOT IN (PROGRESS_DONE, PROGRESS_CANCELLED)
     is_active = models.BooleanField(null=False, default=False)
 
+    closed = models.DateTimeField(null=True, blank=True, help_text=_("Date the process was closed, or NULL if still open"))
+
     archive_key = models.CharField("mailbox archive key", max_length=128, null=False, unique=True)
 
     def save(self, *args, **kw):
