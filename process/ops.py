@@ -7,6 +7,9 @@ from django.utils.timezone import now
 from backend import const
 from backend.ops import Operation
 from . import models as pmodels
+import logging
+
+log = logging.getLogger(__name__)
 
 def ensure_process(val):
     if isinstance(val, pmodels.Process):

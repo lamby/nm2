@@ -7,7 +7,10 @@ from django.utils.timezone import now, utc
 from backend import const
 from . import models as bmodels
 import datetime
+import logging
 import json
+
+log = logging.getLogger(__name__)
 
 
 class JSONSerializer(json.JSONEncoder):

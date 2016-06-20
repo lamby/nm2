@@ -54,5 +54,5 @@ class Command(BaseCommand):
                 continue
 
             for o in ops:
-                print("{} {} nm.debian.org op: {}".format(entry.shasum, entry.dt, o.to_json()))
+                print("{} {} nm.debian.org op: {}".format(entry.shasum, entry.dt, o.to_json(indent=1)))
 
