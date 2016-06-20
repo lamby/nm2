@@ -31,6 +31,11 @@ class Operation(object):
     # Available actions
     actions = {}
 
+    email_map = {
+        "gwolf@gwolf.org": "gwolf",
+        "noodles@earth.li": "noodles",
+    }
+
     @classmethod
     def action(cls, _class):
         """
@@ -50,11 +55,15 @@ class Operation(object):
     def __init__(self, log_entry):
         self.log_entry = log_entry
         author_email = log_entry.commit.author.email
-        if author_email == "gwolf@gwolf.org": author_email = "gwolf@debian.org"
+        author_uid = self.email_map.get(author_email, None)
+        if author_uid is None:
+            search = { "email": author_email }
+        else:
+            search = { "uid": author_uid }
         try:
-            self.author = bmodels.Person.objects.get(email=author_email)
+            self.author = bmodels.Person.objects.get(**search)
         except bmodels.Person.DoesNotExist:
-            raise ParseError(log_entry, "author {} not found in nm.debian.org".format(author_email))
+            raise ParseError(log_entry, "author {} not found in nm.debian.org".format(log_entry.commit.author.email))
 
         self.role = log_entry.parsed.get("role", None)
         if self.role is None: raise ParseError(log_entry, "Role not found in commit message")
