@@ -497,7 +497,7 @@ class MakeRTTicket(VisitProcessMixin, TemplateView):
                 request.append("Key {person.fpr} should be moved from the '{status}' to the '{applying_for}' keyring.")
 
         if self.visit_perms.person_has_ldap_record:
-            request.append("Note that {{person.fullname}} already has an account in LDAP.")
+            request.append("Note that {person.fullname} already has an account in LDAP.")
 
         sponsors = set()
         try:
