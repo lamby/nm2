@@ -54,5 +54,5 @@ class Command(BaseCommand):
                 continue
 
             for o in ops:
-                print("nm.debian.org op:", o)
+                print("nm.debian.org op:", o.to_json())
 

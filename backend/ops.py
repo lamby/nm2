@@ -3,20 +3,95 @@ from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
-from django.utils.timezone import now
+from django.utils.timezone import now, utc
 from backend import const
 from . import models as bmodels
+import datetime
+import json
+
+
+class JSONSerializer(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, datetime.datetime):
+            if o.tzinfo: o = o.astimezone(utc)
+            return o.strftime("%Y-%m-%d %H:%M:%S")
+        elif isinstance(o, datetime.date):
+            return o.strftime("%Y-%m-%d")
+        elif isinstance(o, bmodels.Person):
+            return o.lookup_key
+        else:
+            return super(JSONSerializer, self).default(o)
+
+
+def ensure_datetime(val):
+    if isinstance(val, datetime.datetime): return val
+    val = datetime.datetime.strptime(val, "%Y-%m-%d %H:%M:%S")
+    val = val.replace(tzinfo=utc)
+    return val
+
+def ensure_date(val):
+    if isinstance(val, datetime.date): return val
+    val = datetime.datetime.strptime(val, "%Y-%m-%d")
+    return val.date()
+
+def ensure_person(val):
+    if isinstance(val, bmodels.Person):
+        return val
+    else:
+        return bmodels.Person.lookup(val)
+
+def ensure_old_process(val):
+    if isinstance(val, bmodels.Process):
+        return val
+    else:
+        return bmodels.Process.objects.get(pk=val)
+
 
 class Operation(object):
+    classes = {}
+
     def __init__(self, audit_author, audit_notes):
-        self.audit_author = audit_author
+        self.audit_author = ensure_person(audit_author)
         self.audit_notes = audit_notes
 
+    def to_dict(self):
+        """
+        Returns a dict with all the constructor arguments to recreate this
+        operation
+        """
+        return {
+            "audit_author": self.audit_author,
+            "audit_notes": self.audit_notes,
+        }
 
+    def to_json(self, **kw):
+        res = self.to_dict()
+        res["Operation"] = self.__class__.__name__
+        return json.dumps(res, cls=JSONSerializer, **kw)
+
+    @classmethod
+    def register(cls, _class):
+        cls.classes[_class.__name__] = _class
+        return _class
+
+    @classmethod
+    def from_json(cls, encoded):
+        import process.ops as pops
+        val = json.loads(encoded)
+        _class = val.pop("Operation")
+        Op = cls.classes[_class]
+        return Op(**val)
+
+
+@Operation.register
 class CreateUser(Operation):
     def __init__(self, audit_author, audit_notes, **kw):
         super(CreateUser, self).__init__(audit_author, audit_notes)
         self.fpr = kw.pop("fpr", None)
+        for field in ("last_login", "date_joined", "status_changed", "created"):
+            if field in kw: kw[field] = ensure_datetime(kw[field])
+        if "expires" in kw:
+            kw["expires"] = ensure_date(kw["expires"])
         self.kwargs = kw
 
     def __str__(self):
@@ -35,11 +110,18 @@ class CreateUser(Operation):
                 audit_notes=self.audit_notes,
             )
 
+    def to_dict(self):
+        res = super(CreateUser, self).to_dict()
+        if self.fpr: res["fpr"] = self.fpr
+        res.update(**self.kwargs)
+        return res
 
+
+@Operation.register
 class ChangeStatus(Operation):
     def __init__(self, audit_author, audit_notes, person, status, status_changed=None):
         super(ChangeStatus, self).__init__(audit_author, audit_notes)
-        self.person = person
+        self.person = ensure_person(person)
         self.status = status
         self.status_changed = status_changed if status_changed else now()
 
@@ -53,11 +135,19 @@ class ChangeStatus(Operation):
             audit_author=self.audit_author,
             audit_notes=self.audit_notes)
 
+    def to_dict(self):
+        res = super(ChangeStatus, self).to_dict()
+        res["person"] = self.person
+        res["status"] = self.status
+        res["status_changed"] = self.status_changed
+        return res
 
+
+@Operation.register
 class ChangeFingerprint(Operation):
     def __init__(self, audit_author, audit_notes, person, fpr):
         super(ChangeFingerprint, self).__init__(audit_author, audit_notes)
-        self.person = person
+        self.person = ensure_person(person)
         self.fpr = fpr
 
     def __str__(self):
@@ -69,11 +159,18 @@ class ChangeFingerprint(Operation):
             audit_author=self.audit_author,
             audit_notes=self.audit_notes)
 
+    def to_dict(self):
+        res = super(ChangeFingerprint, self).to_dict()
+        res["person"] = self.person
+        res["fpr"] = self.fpr
+        return res
 
+
+@Operation.register
 class CloseOldProcess(Operation):
     def __init__(self, audit_author, audit_notes, process, logtext, logdate=None):
         super(CloseOldProcess, self).__init__(audit_author, audit_notes)
-        self.process = process
+        self.process = ensure_old_process(process)
         self.logtext = logtext
         self.logdate = logdate if logdate else now()
 
@@ -83,3 +180,10 @@ class CloseOldProcess(Operation):
         self.process.progress = const.PROGRESS_DONE
         self.process.is_active = False
         self.process.save()
+
+    def to_dict(self):
+        res = super(CloseOldProcess, self).to_dict()
+        res["process"] = self.process.pk
+        res["logtext"] = self.logtext
+        res["logdate"] = self.logdate
+        return res
