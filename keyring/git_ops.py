@@ -46,11 +46,15 @@ class Operation(object):
 
     @classmethod
     def from_log_entry(cls, log_entry):
-        action_name = log_entry.parsed["action"].lower()
-        Action = cls.actions.get(action_name, None)
-        if Action is None:
-            raise ParseError(log_entry, "Action {} not supported", action_name)
-        return Action.from_log_entry(log_entry)
+        details = log_entry.parsed.get("details", None)
+        if details is not None:
+            return ProcessOperation.from_log_entry(log_entry)
+        else:
+            action_name = log_entry.parsed["action"].lower()
+            Action = cls.actions.get(action_name, None)
+            if Action is None:
+                raise ParseError(log_entry, "Action {} not supported", action_name)
+            return Action.from_log_entry(log_entry)
 
     def __init__(self, log_entry):
         self.log_entry = log_entry
@@ -90,6 +94,56 @@ class Operation(object):
                 raise OperationError(self.log_entry, "commit matches multiple people: {}".format(", ".join(msg)))
 
         return person
+
+
+class ProcessOperation(Operation):
+    def __init__(self, log_entry):
+        super(ProcessOperation, self).__init__(log_entry)
+
+        for k in ("new-key", "key"):
+            self.fpr = log_entry.parsed.get(k, None)
+            if self.fpr is not None: break
+        else:
+            raise ParseError(log_entry, "commit message has no New-key or Key field")
+
+        self.details = log_entry.parsed.get("details", None)
+        try:
+            process_id = int(os.path.basename(self.details))
+        except:
+            raise ParseError(log_entry, "cannot extract process ID from {}".format(self.details))
+
+        try:
+            self.process = pmodels.Process.objects.select_related("person").get(pk=process_id)
+        except pmodels.Process.DoesNotExist:
+            raise ParseError(log_entry, "process {} not found in the site".format(self.details))
+
+    def __str__(self):
+        return "Close process {}".format(self.process.pk)
+
+    @classmethod
+    def from_log_entry(cls, log_entry):
+        return cls(log_entry)
+
+    def ops(self):
+        person = self.process.person
+
+        if person.fpr != self.fpr:
+            raise OperationError(self.log_entry, "{} in process {} has fingerprint {} but the commit has {}".format(
+                person.lookup_key, self.details, person.fpr, self.fpr))
+
+        if self.process.closed: return
+
+        if self.rt:
+            logtext = "Closed from keyring changelog {}, RT #{}".format(self.log_entry.shasum, self.rt)
+        else:
+            logtext = "Closed from keyring changelog {}, RT unknown".format(self.log_entry.shasum)
+        yield pops.CloseProcess(
+            process=self.process,
+            logtext=logtext,
+            logdate=self.log_entry.dt,
+            audit_author=self.author,
+            audit_notes=logtext,
+        )
 
 
 class RoleOperation(Operation):
