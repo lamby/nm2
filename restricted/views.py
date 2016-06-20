@@ -32,6 +32,9 @@ class AMMain(VisitorTemplateView):
         Return True if the process should be shown in ammain, False if it
         should not.
         """
+        if process.frozen_by_id is not None or process.approved_by_id is not None: return True
+
+        needs_am_report = False
         for req in process.requirements.all():
             if req.type == "intent":
                 if not req.approved_by_id: return False
@@ -42,6 +45,12 @@ class AMMain(VisitorTemplateView):
                 if not req.approved_by_id: return False
             elif req.type == "advocate":
                 if not req.approved_by_id: return False
+            elif req.type == "am_ok":
+                needs_am_report = req.approved_by_id
+
+        if needs_am_report and process.current_am_assignment:
+            return False
+
         return True
 
     def get_context_data(self, **kw):
