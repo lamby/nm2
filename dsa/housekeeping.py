@@ -25,6 +25,8 @@ from backend.housekeeping import MakeLink, Housekeeper
 from . import models as dmodels
 from backend import const
 import backend.models as bmodels
+import process.models as pmodels
+import process.ops as pops
 import logging
 
 log = logging.getLogger(__name__)
@@ -138,20 +140,34 @@ class NewGuestAccountsFromDSA(hk.Task):
                         new_status = const.STATUS_DC_GA
                     audit_notes = "entry found in LDAP, adding 'guest account' status"
 
-                    bmodels.Process.objects.create_instant_process(
-                        person, new_status, [
-                            # Add a log entry documenting what is happening
-                            bmodels.Log(
-                                changed_by=self.hk.housekeeper.user,
-                                progress=const.PROGRESS_DONE,
-                                logtext=audit_notes,
-                            ),
-                        ])
+                    try:
+                        process = pmodels.Process.objects.get(person=person, applying_for=new_status)
+                    except pmodels.Process.DoesNotExist:
+                        process = None
 
-                    person.uid = entry.uid
-                    person.status = new_status
+                    if process is None:
+                        bmodels.Process.objects.create_instant_process(
+                            person, new_status, [
+                                # Add a log entry documenting what is happening
+                                bmodels.Log(
+                                    changed_by=self.hk.housekeeper.user,
+                                    progress=const.PROGRESS_DONE,
+                                    logtext=audit_notes,
+                                ),
+                            ])
 
-                    person.save(audit_author=self.hk.housekeeper.user, audit_notes=audit_notes)
+                        person.uid = entry.uid
+                        person.status = new_status
+
+                        person.save(audit_author=self.hk.housekeeper.user, audit_notes=audit_notes)
+                    else:
+                        op = pops.CloseProcess(
+                            audit_author=self.hk.housekeeper.user, audit_notes=audit_notes,
+                            process=process,
+                            logtext=audit_notes,
+                        )
+                        op.execute()
+
                     log.info("%s: %s %s", self.IDENTIFIER, self.hk.link(person), audit_notes)
                 else:
                     # New uid on a status that is not supposed to have one:
