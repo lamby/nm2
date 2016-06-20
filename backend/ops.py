@@ -106,7 +106,7 @@ class CreateUser(Operation):
             audit_notes=self.audit_notes,
             **self.kwargs)
         if self.fpr:
-            fpr = p.fingerprints.create(
+            fpr = p.fprs.create(
                 fpr=self.fpr,
                 is_active=True,
                 audit_author=self.audit_author,
