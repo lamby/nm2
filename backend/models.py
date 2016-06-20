@@ -830,31 +830,35 @@ class AM(models.Model):
         the number of NMs, held NMs and free slots.
         """
         from django.db import connection
-
-        # Compute statistics indexed by AM id
-        cursor = connection.cursor()
-        cursor.execute("""
-        SELECT am.id,
-               sum(case when process.progress in (%s, %s) then 1 else 0 end) as active,
-               sum(case when process.progress=%s then 1 else 0 end) as held
-          FROM am
-          LEFT OUTER JOIN process ON process.manager_id=am.id
-         WHERE am.is_am AND am.slots > 0
-         GROUP BY am.id
-        """, (const.PROGRESS_AM_RCVD, const.PROGRESS_AM, const.PROGRESS_AM_HOLD,))
-        stats = dict()
-        for amid, active, held in cursor:
-            stats[amid] = (active, held)
+        import process.models as pmodels
 
         res = []
-        for a in cls.objects.filter(id__in=stats.keys()):
-            active, held = stats.get(a.id, (0, 0, 0))
-            a.stats_active = active
-            a.stats_held = held
-            a.stats_free = a.slots - active
-            if free_only and a.stats_free <= 0:
+        for am in AM.objects.all():
+            active = []
+            held = []
+
+            for p in Process.objects.filter(manager=am, is_active=True, progress__in=(const.PROGRESS_AM_RCVD, const.PROGRESS_AM, const.PROGRESS_AM_HOLD)):
+                if p.progress == const.PROGRESS_AM_HOLD:
+                    held.append(p)
+                else:
+                    active.append(p)
+
+            for p in pmodels.AMAssignment.objects.filter(am=am, unassigned_by__isnull=True, process__frozen_by__isnull=True, process__approved_by__isnull=True, process__closed__isnull=True):
+                if p.paused:
+                    held.append(p)
+                else:
+                    active.append(p)
+
+            am.proc_active = active
+            am.proc_held = held
+            am.stats_active = len(active)
+            am.stats_held = len(held)
+            am.stats_free = am.slots - am.stats_active
+
+            if free_only and am.stats_free <= 0:
                 continue
-            res.append(a)
+
+            res.append(am)
         res.sort(key=lambda x: (-x.stats_free, x.stats_active))
         return res
 
