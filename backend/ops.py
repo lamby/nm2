@@ -141,6 +141,7 @@ class ChangeStatus(Operation):
             approved_by=self.audit_author,
             approved_time=self.status_changed,
             closed=self.status_changed,
+            skip_requirements=True,
         )
         process.add_log(
             changed_by=self.audit_author,

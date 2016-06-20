@@ -168,7 +168,7 @@ class ProcessManager(models.Manager):
         return requirements
 
     @transaction.atomic
-    def create(self, person, applying_for, **kw):
+    def create(self, person, applying_for, skip_requirements=False, **kw):
         """
         Create a new process and all its requirements
         """
@@ -181,7 +181,10 @@ class ProcessManager(models.Manager):
             raise RuntimeError("there is already an active process for {} to become {}".format(person, applying_for))
 
         # Compute requirements
-        requirements = self.compute_requirements(person.status, applying_for)
+        if skip_requirements:
+            requirements = []
+        else:
+            requirements = self.compute_requirements(person.status, applying_for)
 
         # Create the new process
         res = self.model(person=person, applying_for=applying_for, **kw)
