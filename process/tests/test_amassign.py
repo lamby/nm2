@@ -46,6 +46,11 @@ class TestProcessAMAssign(ProcessFixtureMixin, TestCase):
             self.assertIsNone(assignment.unassigned_by)
             self.assertIsNone(assignment.unassigned_time)
 
+            from django.core import mail
+            self.assertEquals(len(mail.outbox), 1)
+            self.assertEquals(mail.outbox[0].cc, [self.processes.app.archive_email])
+            self.assertEquals(mail.outbox[0].subject, "New Member process, Debian Developer, uploading")
+
     def test_forbidden(self):
         with patch.object(pmodels.Requirement, "permissions_of", return_value=set()):
             client = self.make_test_client(self.visitor)

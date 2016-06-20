@@ -242,6 +242,9 @@ class AssignAM(RequirementMixin, TemplateView):
 
         self.requirement.add_log(self.visitor, "Assigned AM {}".format(am.person.lookup_key), is_public=True, action="assign_am")
 
+        from .email import notify_am_assigned
+        notify_am_assigned(current, request=self.request)
+
     def post(self, request, *args, **kw):
         am_key = request.POST.get("am", None)
         am = bmodels.AM.lookup_or_404(am_key)

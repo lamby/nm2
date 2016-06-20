@@ -143,8 +143,58 @@ def notify_new_statement(statement, request=None):
                 ", ".join(msg.bcc),
                 msg.subject)
     except:
-        # TODO: remove raise once it works
-        raise
+        log.debug("failed to sent mail for statement %s", statement)
+
+
+def notify_am_assigned(assignment, request=None):
+    """
+    Render a notification email template for an AM assignment, then send the
+    resulting email.
+    """
+    try:
+        process = assignment.process
+
+        if request is None:
+            url = "https://{}{}".format(
+                Site.objects.get_current().domain,
+                process.get_absolute_url())
+        else:
+            url = request.build_absolute_uri(process.get_absolute_url())
+
+        body = [
+            "Hello,",
+            "",
+            "{process.person.fullname} meet {am.person.fullname}, your new application manager.",
+            "{am.person.fullname} meet {process.person.fullname}, your new applicant.",
+            "",
+            "The next step is usually one of these:",
+            " - the application manager sends an email to the applicant starting a conversation;",
+            " - the application manager has no time and goes to {url}/am_ok to undo the assignment.",
+            "",
+            "The nm.debian.org page for this process is at {url}",
+            "",
+            "I hope you have a good time, and if you need anything please mail nm@debian.org."
+            "",
+            "{assignment.assigned_by.fullname} for Front Desk",
+        ]
+
+
+        body = "\n".join(body).format(process=process, am=assignment.am.person, assignment=assignment, url=url)
+
+        msg = build_django_message(
+            assignment.assigned_by,
+            to=[process.person, assignment.am.person],
+            cc=process.archive_email,
+            subject="New Member process, {}".format(const.ALL_STATUS_DESCS[process.applying_for]),
+            body=body)
+        msg.send()
+        log.debug("sent mail from %s to %s cc %s bcc %s subject %s",
+                msg.from_email,
+                ", ".join(msg.to),
+                ", ".join(msg.cc),
+                ", ".join(msg.bcc),
+                msg.subject)
+    except:
         log.debug("failed to sent mail for statement %s", statement)
 
 
