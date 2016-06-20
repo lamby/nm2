@@ -26,7 +26,8 @@ class Command(BaseCommand):
         parser.add_argument("-m", "--message", help="Message to use in audit notes")
         parser.add_argument("person", help="status to set")
         parser.add_argument("status", help="status to set")
-        parser.add_argument("--author", action="store", default=getpass.getuser(), help="Author")
+        parser.add_argument("--author", action="store", default=getpass.getuser(), help="author of the change")
+        parser.add_argument("--execute", action="store_true", help="execute the change")
 
     def handle(self, **opts):
         FORMAT = "%(asctime)-15s %(levelname)s %(message)s"
@@ -56,3 +57,7 @@ class Command(BaseCommand):
             status_changed=date,
         )
         print(op.to_json())
+
+        if opts["execute"]:
+            with transaction.atomic():
+                op.execute()
