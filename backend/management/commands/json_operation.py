@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 from django.core.management.base import BaseCommand, CommandError
+from django.db import transaction
 import sys
 import datetime
 import logging
@@ -27,5 +28,6 @@ class Command(BaseCommand):
         else:
             logging.basicConfig(level=logging.INFO, stream=sys.stderr, format=FORMAT)
 
-        op = Operation.from_json(sys.stdin.read())
-        op.execute()
+        with transaction.atomic():
+            op = Operation.from_json(sys.stdin.read())
+            op.execute()

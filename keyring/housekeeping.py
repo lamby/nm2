@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 import django_housekeeping as hk
 from django.conf import settings
 from django.utils.timezone import utc, now
+from django.db import transaction
 from backend.housekeeping import MakeLink
 import backend.models as bmodels
 from backend import const
@@ -326,7 +327,8 @@ class CheckKeyringLogs(hk.Task):
                 break
 
             for op in ops:
-                op.execute()
+                with transaction.atomic():
+                    op.execute()
 
             # Update our bookmark
             gk.git.update_ref("refs/heads/keyring_maint_import", entry.shasum)
