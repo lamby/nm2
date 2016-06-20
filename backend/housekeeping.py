@@ -223,7 +223,7 @@ class CheckStatusProgressMatch(hk.Task):
             elif existing.closed < p.closed:
                 process_byperson[p.person] = p
 
-        for p in pmodels.Process.objects.filter(closed__isnull=False, approved__isnull=False).select_related("person"):
+        for p in pmodels.Process.objects.filter(closed__isnull=False, approved_by__isnull=False).select_related("person"):
             existing = process_byperson.get(p.person, None)
             if existing is None:
                 process_byperson[p.person] = p
