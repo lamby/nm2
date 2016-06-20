@@ -329,5 +329,5 @@ class CheckKeyringLogs(hk.Task):
                 op.execute()
 
             # Update our bookmark
-            gk.git.update_ref("refs/heads/keyring_maint_import", state["commit"])
+            gk.git.update_ref("refs/heads/keyring_maint_import", entry.shasum)
             log.info("%s: Updating ref keyring_maint_import to commit %s", self.IDENTIFIER, state["commit"])
