@@ -224,17 +224,18 @@ class AddDM(Add):
         person = self._get_person()
 
         if self.process is not None:
-            if self.rt:
-                logtext = "Added to {} keyring, RT #{}".format(self.role, self.rt)
-            else:
-                logtext = "Added to {} keyring, RT unknown".format(self.role)
-            yield pops.CloseProcess(
-                process=self.process,
-                logtext=logtext,
-                logdate=self.log_entry.dt,
-                audit_author=self.author,
-                audit_notes=logtext,
-            )
+            if not self.process.closed:
+                if self.rt:
+                    logtext = "Added to {} keyring, RT #{}".format(self.role, self.rt)
+                else:
+                    logtext = "Added to {} keyring, RT unknown".format(self.role)
+                yield pops.CloseProcess(
+                    process=self.process,
+                    logtext=logtext,
+                    logdate=self.log_entry.dt,
+                    audit_author=self.author,
+                    audit_notes=logtext,
+                )
             return
 
         # If it is all new, create and we are done
