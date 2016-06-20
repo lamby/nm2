@@ -38,7 +38,11 @@ class Command(BaseCommand):
 
         status = opts["status"]
         author = bmodels.Person.lookup(opts["author"])
+        if author is None:
+            raise RuntimeError("Author {} not found".format(opts["author"]))
         person = bmodels.Person.lookup(opts["person"])
+        if person is None:
+            raise RuntimeError("Person {} not found".format(opts["person"]))
         message = opts["message"]
         if not message:
             message = "Set status to {}".format(status)
