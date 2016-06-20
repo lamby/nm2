@@ -483,10 +483,10 @@ class Replace(Operation):
         if old_person is not None and new_person is not None:
             if old_person != new_person:
                 raise OperationError(self.log_entry, "commit reports a key change from {} to {}, but the keys belong to two different people ({} and {})".format(
-                    old_key, new_key, old_person.lookup_key, new_person.lookup_key))
+                    self.old_key, self.new_key, old_person.lookup_key, new_person.lookup_key))
             else:
                 raise OperationError(self.log_entry, "commit reports a key change from {} to {}, but both fingerprints match person {}".format(
-                    old_key, new_key, new_person.lookup_key))
+                    self.old_key, self.new_key, new_person.lookup_key))
 
         # Now either old_person is set or new_person is set, or both are unset
         # and uid_person is set
