@@ -112,55 +112,64 @@ class CheckKeyringConsistency(hk.Task):
     DEPENDS = [Keyrings, MakeLink]
 
     def run_main(self, stage):
-        # Prefetch people and index them by fingerprint
-        people_by_fpr = dict()
-        for p in bmodels.Person.objects.all():
-            if p.fpr is None: continue
-            if p.fpr.startswith("FIXME"): continue
-            people_by_fpr[p.fpr] = p
+        # Index Fingerprint objects by fingerprint
+        fingerprints_by_fpr = {}
+        for f in bmodels.Fingerprint.objects.select_related("person").all():
+            if f.fpr.startswith("FIXME"): continue
+            fingerprints_by_fpr[f.fpr] = f
 
+        # Index keyring status by fingerprint
         keyring_by_status = {
             const.STATUS_DM: self.hk.keyrings.dm,
-            const.STATUS_DM_GA: self.hk.keyrings.dm,
             const.STATUS_DD_U: self.hk.keyrings.dd_u,
             const.STATUS_DD_NU: self.hk.keyrings.dd_nu,
             const.STATUS_EMERITUS_DD: self.hk.keyrings.emeritus_dd,
             const.STATUS_REMOVED_DD: self.hk.keyrings.removed_dd,
         }
+        keyring_by_fpr = {}
+        for status, keyring in keyring_by_status.items():
+            for fpr in keyring:
+                if fpr in keyring_by_fpr:
+                    log.warn("%s: fingerprint %s is both in keyring %s and in keyring %s",
+                             self.IDENTIFIER, fpr, status, keyring_by_fpr[fpr])
+                else:
+                    keyring_by_fpr[fpr] = status
 
         self.count = 0
 
-        # Check the fingerprints on our DB
-        for fpr, p in sorted(people_by_fpr.iteritems(), key=lambda x:x[1].uid):
-            keyring = keyring_by_status.get(p.status)
-            # Skip the statuses we currently can't check for
-            if keyring is None: continue
-            # Skip those that are ok
-            if fpr in keyring: continue
-            # Look for the key in other keyrings
-            found = False
-            for status, keyring in keyring_by_status.iteritems():
-                if fpr in keyring:
-                    log.warn("%s: %s has status %s in the database, but the key is in %s keyring",
-                             self.IDENTIFIER, self.hk.link(p), const.ALL_STATUS_DESCS[p.status], status)
-                    self.count += 1
-                    found = True
-                    break
-            if not found and p.status != const.STATUS_REMOVED_DD:
-                log.warn("%s: %s has status %s in the database, but the key is not in any keyring",
-                         self.IDENTIFIER, self.hk.link(p), const.ALL_STATUS_DESCS[p.status])
+        # Fingerprints that are not in any keyring
+        no_keyring = set(fingerprints_by_fpr.keys()) - set(keyring_by_fpr.keys())
+        for fpr in no_keyring:
+            f = fingerprints_by_fpr[fpr]
+            if not f.is_active: continue
+            if f.person.status == const.STATUS_REMOVED_DD: continue
+            log.warn("%s: %s has status %s in the database, but the key %s is not in any keyring",
+                        self.IDENTIFIER, self.hk.link(f.person), const.ALL_STATUS_DESCS[f.person.status], fpr)
+            self.count += 1
+
+        # Fingerprints that are in some keyring
+        both = set(fingerprints_by_fpr.keys()) & set(keyring_by_fpr.keys())
+        for fpr in both:
+            f = fingerprints_by_fpr[fpr]
+            if not f.is_active: continue
+            status = keyring_by_fpr[fpr]
+
+            # Normalise dm/dm_ga
+            pstatus = f.person.status
+            if pstatus == const.STATUS_DM_GA: pstatus = const.STATUS_DM
+
+            if pstatus != status:
+                log.warn("%s: %s has status %s in the database, but the key is in %s keyring",
+                            self.IDENTIFIER, self.hk.link(f.person), const.ALL_STATUS_DESCS[f.person.status], status)
                 self.count += 1
 
-        # Spot fingerprints not in our DB
-        for status, keyring in keyring_by_status.iteritems():
-            # TODO: not quite sure how to handle the removed_dd keyring, until I
-            #       know what exactly is in there
+        # Fingerprints that are not in the DB
+        no_db = set(keyring_by_fpr.keys()) - set(fingerprints_by_fpr.keys())
+        for fpr in no_db:
+            status = keyring_by_fpr[fpr]
             if status == const.STATUS_REMOVED_DD: continue
-            for fpr in keyring:
-                if fpr not in people_by_fpr:
-                    log.warn("%s: key %s is in %s keyring, but not in our db",
-                             self.IDENTIFIER, fpr, status)
-                    self.count += 1
+            log.warn("%s: key %s is in %s keyring, but not in our db", self.IDENTIFIER, fpr, const.ALL_STATUS_DESCS[status])
+            self.count += 1
 
     def log_stats(self):
         log.warn("%s: %d mismatches between keyring and nm.debian.org databases",
