@@ -136,7 +136,7 @@ the nm.debian.org housekeeping robot
     body = body.format(applying_for=const.ALL_STATUS_DESCS[process.applying_for], process=process, url=url)
 
     msg = build_django_message(
-        "Debian NM Front Desk <nm@debian.org>",
+        bmodels.Person.objects.get(username="__housekeeping__"),
         to=process.person,
         cc=process.archive_email,
         subject="New Member process, {}".format(const.ALL_STATUS_DESCS[process.applying_for]),
