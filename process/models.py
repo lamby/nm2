@@ -197,6 +197,14 @@ class ProcessManager(models.Manager):
 
         return res
 
+    def in_early_stage(self):
+        """
+        Return processes that are in an early stage, that is, that still have
+        an unapproved intent, sc_dmup or advocate requirement.
+        """
+        reqs = Requirement.objects.filter(type__in=("intent", "sc_dmup", "advocate"), approved_by__isnull=True)
+        return self.get_queryset().filter(closed__isnull=True, frozen_by__isnull=True, approved_by__isnull=True, requirements__in=reqs).distinct()
+
 
 class Process(models.Model):
     person = models.ForeignKey(bmodels.Person, related_name="+")
