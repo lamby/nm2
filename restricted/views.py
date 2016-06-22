@@ -33,6 +33,7 @@ class AMMain(VisitorTemplateView):
         should not.
         """
         if process.frozen_by_id is not None or process.approved_by_id is not None: return True
+        for_ga = process.applying_for in (const.STATUS_DC_GA, const.STATUS_DM_GA)
 
         needs_am_report = False
         for req in process.requirements.all():
@@ -40,7 +41,7 @@ class AMMain(VisitorTemplateView):
                 if not req.approved_by_id: return False
                 # Hide all processes with a statement of intent approved less
                 # than 4 days ago
-                if req.approved_time + datetime.timedelta(days=4) > now(): return False
+                if not for_ga and req.approved_time + datetime.timedelta(days=4) > now(): return False
             elif req.type == "sc_dmup":
                 if not req.approved_by_id: return False
             elif req.type == "advocate":
