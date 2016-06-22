@@ -591,16 +591,26 @@ class Statement(models.Model):
         """
         Return the statement without the OpenPGP wrapping
         """
-        # https://tools.ietf.org/html/rfc4880#section-7
-        if self.statement.strip().startswith("-----BEGIN PGP SIGNED MESSAGE-----"):
+        msg = self.rfc3156
+        if msg is None:
             return re.sub(r".*?-----BEGIN PGP SIGNED MESSAGE-----.*?\r\n\r\n(.+?)-----BEGIN PGP SIGNATURE-----.+", r"\1", self.statement, flags=re.DOTALL)
         else:
-            from keyring.openpgp import RFC3156
-            msg = RFC3156(self.statement)
             if not msg.parsed:
                 return self.statement
             else:
                 return msg.text.get_payload(decode=True)
+
+    @property
+    def rfc3156(self):
+        """
+        If the statement is an email, parse it as rfc3156, else return None
+        """
+        # https://tools.ietf.org/html/rfc4880#section-7
+        if self.statement.strip().startswith("-----BEGIN PGP SIGNED MESSAGE-----"):
+            return None
+
+        from keyring.openpgp import RFC3156
+        return RFC3156(self.statement)
 
 
 class Log(models.Model):

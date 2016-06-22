@@ -377,8 +377,10 @@ class StatementCreate(StatementMixin, FormView):
             self.requirement.add_log(self.requirement.approved_by, "New statement received, the requirement seems satisfied", True, action="req_approve")
 
         if self.requirement.type in ("intent", "advocate", "am_ok"):
-            from .email import notify_new_statement
-            notify_new_statement(statement, request=self.request)
+            msg = statement.rfc3156
+            if msg is None:
+                from .email import notify_new_statement
+                notify_new_statement(statement, request=self.request)
 
         return redirect(self.requirement.get_absolute_url())
 
