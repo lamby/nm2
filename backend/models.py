@@ -478,8 +478,8 @@ class Person(PermissionsMixin, models.Model):
     _new_status_table = {
         const.STATUS_DC: [const.STATUS_DC_GA, const.STATUS_DM, const.STATUS_DD_U, const.STATUS_DD_NU],
         const.STATUS_DC_GA: [const.STATUS_DM_GA, const.STATUS_DD_U, const.STATUS_DD_NU],
-        const.STATUS_DM: [const.STATUS_DM_GA, const.STATUS_DD_U],
-        const.STATUS_DM_GA: [const.STATUS_DD_U],
+        const.STATUS_DM: [const.STATUS_DM_GA, const.STATUS_DD_NU, const.STATUS_DD_U],
+        const.STATUS_DM_GA: [const.STATUS_DD_NU, const.STATUS_DD_U],
         const.STATUS_DD_NU: [const.STATUS_DD_U],
         const.STATUS_EMERITUS_DD: [const.STATUS_DD_U, const.STATUS_DD_NU],
         const.STATUS_REMOVED_DD: [const.STATUS_DD_U, const.STATUS_DD_NU],
@@ -494,19 +494,25 @@ class Person(PermissionsMixin, models.Model):
         if self.pending: return []
         statuses = list(self._new_status_table.get(self.status, []))
         # Remove statuses from active processes
+        applying_for = []
         if statuses:
             for proc in Process.objects.filter(person=self, is_active=True):
-                try:
-                    statuses.remove(proc.applying_for)
-                except ValueError:
-                    pass
+                applying_for.append(proc.applying_for)
+
         if statuses:
             import process.models as pmodels
             for proc in pmodels.Process.objects.filter(person=self, closed__isnull=True):
-                try:
-                    statuses.remove(proc.applying_for)
-                except ValueError:
-                    pass
+                applying_for.append(proc.applying_for)
+
+        if const.STATUS_DD_U in applying_for: applying_for.append(const.STATUS_DD_NU)
+        if const.STATUS_DD_NU in applying_for: applying_for.append(const.STATUS_DD_U)
+
+        for status in applying_for:
+            try:
+                statuses.remove(status)
+            except ValueError:
+                pass
+
         return statuses
 
     @property

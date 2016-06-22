@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import unicode_literals
 from backend import const
 from backend.email import template_to_email
+import backend.models as bmodels
 from django.core.mail import send_mail, EmailMessage
 from django.utils.timezone import now
 from django.contrib.sites.models import Site
@@ -136,7 +137,10 @@ the nm.debian.org housekeeping robot
     body = body.format(applying_for=const.ALL_STATUS_DESCS[process.applying_for], process=process, url=url)
 
     msg = build_django_message(
-        bmodels.Person.objects.get(username="__housekeeping__"),
+        email.utils.formataddr((
+            Header("nm.debian.org", "utf-8").encode(),
+            Header("nm@debian.org", "utf-8").encode()
+        )),
         to=process.person,
         cc=process.archive_email,
         subject="New Member process, {}".format(const.ALL_STATUS_DESCS[process.applying_for]),

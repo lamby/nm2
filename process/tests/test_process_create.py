@@ -42,10 +42,10 @@ class TestCreate(ProcessFixtureMixin, TestCase):
 
         ok("dm", "dm_ga")
         ok("dm", "dd_u")
-        no("dm", "dd_nu")
+        ok("dm", "dd_nu")
 
         ok("dm_ga", "dd_u")
-        no("dm_ga", "dd_nu")
+        ok("dm_ga", "dd_nu")
 
         ok("dd_nu", "dd_u")
 

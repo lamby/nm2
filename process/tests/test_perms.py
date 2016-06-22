@@ -191,7 +191,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
 
         # Apply
         self.persons.create("app", status=const.STATUS_DM)
-        expected.starts.set("dm_ga dd_u")
+        expected.starts.set("dm_ga dd_nu dd_u")
         self.assertPerms(expected)
         self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DM_GA)
         expected.patch_generic_process_started()
@@ -247,7 +247,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         # Finalize
         self._close_process()
         expected.patch_generic_process_closed()
-        expected.starts.patch("-dc_ga -dm +dm_ga -dd_nu")
+        expected.starts.patch("-dc_ga -dm +dm_ga")
         self.assertPerms(expected)
 
     def test_dc_ddnu(self):
@@ -265,7 +265,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         self.assertPerms(expected)
         self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DD_NU)
         expected.patch_generic_process_started()
-        expected.starts.patch("-dd_nu")
+        expected.starts.patch("-dd_u -dd_nu")
         expected.proc.patch("fd dam", "+edit_ldap")
         expected.proc.patch("app", "+edit_ldap")
         self.assertPerms(expected)
@@ -288,7 +288,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         # Finalize
         self._close_process()
         expected.patch_generic_process_closed()
-        expected.starts.patch("-dc_ga -dm -dd_nu")
+        expected.starts.patch("-dc_ga -dm -dd_nu +dd_u")
         expected.proc.patch("fd dam", "-edit_ldap")
         self.assertPerms(expected)
 
@@ -307,7 +307,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         self.assertPerms(expected)
         self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DD_NU)
         expected.patch_generic_process_started()
-        expected.starts.patch("-dd_nu")
+        expected.starts.patch("-dd_nu -dd_u")
         expected.proc.patch("app am activeam fd dam", "-edit_ldap")
         self.assertPerms(expected)
 
@@ -329,7 +329,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         # Finalize
         self._close_process()
         expected.patch_generic_process_closed()
-        expected.starts.patch("-dm_ga -dd_nu")
+        expected.starts.patch("-dm_ga -dd_nu +dd_u")
         self.assertPerms(expected)
 
     def test_dc_ddu(self):
@@ -347,7 +347,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         self.assertPerms(expected)
         self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DD_U)
         expected.patch_generic_process_started()
-        expected.starts.patch("-dd_u")
+        expected.starts.patch("-dd_u -dd_nu")
         expected.proc.patch("fd dam", "+edit_ldap")
         expected.proc.patch("app", "+edit_ldap")
         self.assertPerms(expected)
@@ -390,7 +390,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         self.assertPerms(expected)
         self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DD_U)
         expected.patch_generic_process_started()
-        expected.starts.patch("-dd_u")
+        expected.starts.patch("-dd_u -dd_nu")
         expected.proc.patch("app am activeam fd dam", "-edit_ldap")
         self.assertPerms(expected)
 
@@ -427,11 +427,11 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         self.persons.create("app", status=const.STATUS_DM)
         self.persons.create("am", status=const.STATUS_DD_NU)
         self.ams.create("am", person=self.persons.am)
-        expected.starts.set("dm_ga dd_u")
+        expected.starts.set("dm_ga dd_nu dd_u")
         self.assertPerms(expected)
         self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DD_U)
         expected.patch_generic_process_started()
-        expected.starts.patch("-dd_u")
+        expected.starts.patch("-dd_u -dd_nu")
         expected.proc.patch("fd dam", "+edit_ldap")
         expected.proc.patch("app", "+edit_ldap")
         self.assertPerms(expected)
@@ -454,7 +454,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         # Finalize
         self._close_process()
         expected.patch_generic_process_closed()
-        expected.starts.patch("-dm_ga -dd_u")
+        expected.starts.patch("-dm_ga -dd_nu -dd_u")
         expected.proc.patch("fd dam", "-edit_ldap")
         expected.proc.patch("app fd dam", "-edit_ldap -request_new_status")
         self.assertPerms(expected)
@@ -471,11 +471,11 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         self.persons.create("app", status=const.STATUS_DM_GA)
         self.persons.create("am", status=const.STATUS_DD_NU)
         self.ams.create("am", person=self.persons.am)
-        expected.starts.set("dd_u")
+        expected.starts.set("dd_nu dd_u")
         self.assertPerms(expected)
         self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DD_U)
         expected.patch_generic_process_started()
-        expected.starts.patch("-dd_u")
+        expected.starts.patch("-dd_u -dd_nu")
         expected.proc.patch("app am activeam fd dam", "-edit_ldap")
         expected.proc.patch("app fd dam", "-edit_ldap -request_new_status")
         self.assertPerms(expected)
