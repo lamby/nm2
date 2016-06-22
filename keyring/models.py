@@ -22,6 +22,7 @@ import datetime
 import shutil
 import tempfile
 from six.moves.urllib.parse import urlencode
+import six
 import json
 import requests
 from six.moves import shlex_quote
@@ -155,6 +156,56 @@ class Key(models.Model):
             return gpg.run_checked(cmd, input=data)
 
     def verify(self, data):
+        if data.strip().startswith("-----BEGIN PGP SIGNED MESSAGE-----"):
+            return self.verify_clearsigned(data)
+        else:
+            return self.verify_rfc3156(data)
+
+    def verify_detached(self, data, signature):
+        """
+        Verify data using a detached signature
+        """
+        # See https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=826405
+        with tempdir_gpg() as gpg:
+            gpg.run_checked(gpg.cmd("--import"), input=self.key)
+            data_file = os.path.join(gpg.homedir, "data.txt")
+            sig_file = os.path.join(gpg.homedir, "data.txt.asc")
+            status_log = os.path.join(gpg.homedir, "status.log")
+            logger_log = os.path.join(gpg.homedir, "logger.log")
+            with io.open(data_file, "wb") as fd:
+                fd.write(data)
+            with io.open(sig_file, "wb") as fd:
+                fd.write(signature)
+            with io.open(status_log, "wb") as fd_status:
+                with io.open(logger_log, "wb") as fd_logger:
+                    cmd = gpg.cmd("--status-fd", str(fd_status.fileno()), "--logger-fd", str(fd_logger.fileno()), "--verify", sig_file, data_file)
+                    stdout, stderr, result = gpg.run_cmd(cmd)
+
+            if result != 0:
+                errors = []
+                with io.open(status_log, "rt", encoding="utf-8", errors="replace") as fd:
+                    for line in fd:
+                        if not line.startswith("[GNUPG:]"): continue
+                        errors.append(line[8:])
+
+                if errors:
+                    errmsg = "; ".join(errors)
+                else:
+                    errmsg = stderr
+                    with io.open(logger_log, "rt", encoding="utf-8", errors="replace") as fd:
+                        errmsg += fd.read()
+
+                raise RuntimeError("gpg exited with status {}: {}".format(result, errmsg))
+
+            with io.open(status_log, "rt", encoding="utf-8", errors="replace") as fd:
+                status = fd.read()
+
+            if "VALIDSIG" not in status and "GOODSIG" not in status:
+                raise RuntimeError("VALIDSIG or GOODSIG not found in gpg output")
+
+            return data
+
+    def verify_clearsigned(self, data):
         """
         Verify a signed text with this key, returning the signed payload
         """
@@ -194,6 +245,51 @@ class Key(models.Model):
                 raise RuntimeError("VALIDSIG or GOODSIG not found in gpg output")
 
             return plaintext.decode("utf-8", errors="replace")
+
+    def _verify_rfc3156_email(self, message):
+        # RFC3156 extraction initially taken from http://domnit.org/scripts/clearmime
+        # and from http://anonscm.debian.org/cgit/nm/nm.git/tree/bin/dm_verify_application?id=a188cfe89f530c68a2002bb61016cc041848e5f5
+        if message.get_content_type() == 'multipart/signed':
+            if message.get_param('protocol') == 'application/pgp-signature':
+                hashname = message.get_param('micalg').upper()
+                if not hashname.startswith('PGP-'):
+                    raise RuntimeError("micalg header does not start with PGP-")
+                hashname = hashname[4:]
+                textmess, sigmess = message.get_payload()
+                if sigmess.get_content_type() != 'application/pgp-signature':
+                    raise RuntimeError("second payload is not an application/pgp-signature payload")
+                text = re.sub(r"\r?\n", "\r\n", textmess.as_string(False))
+                #text = textmess.as_string() - not byte-for-byte accurate
+                #text = messagetext.split('\n--%s\n' % message.get_boundary(), 2)[1]
+                sig = sigmess.get_payload()
+                if not isinstance(sig, six.binary_type):
+                    raise RuntimeError("signature payload is not a byte string")
+
+                self.verify_detached(text, sig)
+
+                return text
+        elif message.is_multipart():
+            for message in message.get_payload():
+                res = self._verify_rfc3156_email(message)
+                if res is not None: return res
+            return None
+        else:
+            return None
+
+    def verify_rfc3156(self, data):
+        """
+        Verify a RFC3156 signed emails.
+
+        Returns the verified signed payload, which is usually a MIME-encoded
+        message.
+        """
+        import email
+        # https://tools.ietf.org/html/rfc3156
+        message = email.message_from_string(data)
+        res = self._verify_rfc3156_email(message)
+        if res is None:
+            raise RuntimeError("OpenPGP MIME data not found")
+        return res
 
     def keycheck(self):
         if not self.check_sigs:

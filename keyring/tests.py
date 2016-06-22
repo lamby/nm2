@@ -204,3 +204,16 @@ Kbul7r6fmKMmeViXW8TS
         key = kmodels.Key.objects.get_or_download(fpr=test_fpr)
         decoded = key.verify(text)
         self.assertEquals(decoded, "þiş is a têst message úsed while debügging nm.debiån.ørg ♥\n")
+
+
+class TestVerifyMIME(TestCase):
+    def test_verify(self):
+        with open("test_data/announce.mbox", "rb") as fd:
+            text = fd.read()
+        test_fpr = "1793D6AB75663E6BF104953A634F4BD1E7AD5568"
+        kmodels.Key.objects.test_preload(test_fpr)
+        key = kmodels.Key.objects.get_or_download(fpr=test_fpr)
+        key.verify(text)
+
+        with self.assertRaises(RuntimeError):
+            key.verify(text.replace("NM process", "MN process"))
