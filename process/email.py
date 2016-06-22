@@ -28,6 +28,18 @@ def _to_header(value):
     else:
         return ", ".join(_to_header(x) for x in value)
 
+def _to_django_addr(value):
+    from backend.models import Person
+    if isinstance(value, six.string_types):
+        return value
+    elif isinstance(value, Person):
+        return email.utils.formataddr((
+            Header(value.fullname, "utf-8").encode(),
+            Header(value.email, "utf-8").encode()
+        ))
+    else:
+        raise TypeError("argument is not a string or Person")
+
 def _to_django_addrlist(value):
     from backend.models import Person
     if isinstance(value, six.string_types):
@@ -94,7 +106,7 @@ def build_django_message(from_email=None, to=None, cc=None, reply_to=None, subje
     if reply_to is not None: kw["reply_to"] = _to_django_addrlist(reply_to)
 
     msg = EmailMessage(
-        from_email=_to_header(from_email),
+        from_email=_to_django_addr(from_email),
         subject=subject,
         body=body,
         headers={
