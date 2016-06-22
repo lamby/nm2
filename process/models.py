@@ -595,12 +595,12 @@ class Statement(models.Model):
         if self.statement.strip().startswith("-----BEGIN PGP SIGNED MESSAGE-----"):
             return re.sub(r".*?-----BEGIN PGP SIGNED MESSAGE-----.*?\r\n\r\n(.+?)-----BEGIN PGP SIGNATURE-----.+", r"\1", self.statement, flags=re.DOTALL)
         else:
-            from keyring.models import Key
-            text, sig = Key.extract_rfc3156(self.statement)
-            if text is None:
+            from keyring.openpgp import RFC3156
+            msg = RFC3156(self.statement)
+            if not msg.parsed:
                 return self.statement
             else:
-                return text
+                return msg.text.get_payload()
 
 
 class Log(models.Model):

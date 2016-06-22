@@ -246,39 +246,6 @@ class Key(models.Model):
 
             return plaintext.decode("utf-8", errors="replace")
 
-
-    @classmethod
-    def _extract_rfc3156_email(cls, message):
-        # https://tools.ietf.org/html/rfc3156
-        # RFC3156 extraction initially taken from http://domnit.org/scripts/clearmime
-        # and from http://anonscm.debian.org/cgit/nm/nm.git/tree/bin/dm_verify_application?id=a188cfe89f530c68a2002bb61016cc041848e5f5
-        if message.get_content_type() == 'multipart/signed':
-            if message.get_param('protocol') == 'application/pgp-signature':
-                hashname = message.get_param('micalg').upper()
-                if not hashname.startswith('PGP-'):
-                    raise RuntimeError("micalg header does not start with PGP-")
-                textmess, sigmess = message.get_payload()
-                if sigmess.get_content_type() != 'application/pgp-signature':
-                    raise RuntimeError("second payload is not an application/pgp-signature payload")
-                text = re.sub(r"\r?\n", "\r\n", textmess.as_string(False))
-                sig = sigmess.get_payload()
-                if not isinstance(sig, six.binary_type):
-                    raise RuntimeError("signature payload is not a byte string")
-                return text, sig
-        elif message.is_multipart():
-            for message in message.get_payload():
-                text, sig = self._verify_rfc3156_email(message)
-                if text is not None: return text, sig
-            return None, None
-        else:
-            return None, None
-
-    @classmethod
-    def extract_rfc3156(cls, data):
-        import email
-        message = email.message_from_string(data)
-        return cls._extract_rfc3156_email(message)
-
     def verify_rfc3156(self, data):
         """
         Verify a RFC3156 signed emails.
@@ -286,10 +253,10 @@ class Key(models.Model):
         Returns the verified signed payload, which is usually a MIME-encoded
         message.
         """
-        text, sig = self.extract_rfc3156(data)
-        if text is None:
-            raise RuntimeError("OpenPGP MIME data not found")
-        self.verify_detached(text, sig)
+        from .openpgp import RFC3156
+        msg = RFC3156(data)
+        if not msg.parsed: raise RuntimeError("OpenPGP MIME data not found")
+        self.verify_detached(msg.text_data, msg.sig_data)
 
     def keycheck(self):
         if not self.check_sigs:
