@@ -592,7 +592,15 @@ class Statement(models.Model):
         Return the statement without the OpenPGP wrapping
         """
         # https://tools.ietf.org/html/rfc4880#section-7
-        return re.sub(r".*?-----BEGIN PGP SIGNED MESSAGE-----.*?\r\n\r\n(.+?)-----BEGIN PGP SIGNATURE-----.+", r"\1", self.statement, flags=re.DOTALL)
+        if self.statement.strip().startswith("-----BEGIN PGP SIGNED MESSAGE-----"):
+            return re.sub(r".*?-----BEGIN PGP SIGNED MESSAGE-----.*?\r\n\r\n(.+?)-----BEGIN PGP SIGNATURE-----.+", r"\1", self.statement, flags=re.DOTALL)
+        else:
+            from keyring.models import Key
+            text, sig = Key.extract_rfc3156(self.statement)
+            if text is None:
+                return self.statement
+            else:
+                return text
 
 
 class Log(models.Model):
