@@ -87,6 +87,17 @@
   {% endwith %}
 
   <tr>
+    <th>Debian account name</th>
+    <td>
+      {% if person.uid %}
+      {{person.uid}}
+      {% else %}
+      <a href="{% url 'restricted_person' key=person.lookup_key %}"><i>missing</i></a>
+      {% endif %}
+    </td>
+  </tr>
+
+  <tr>
     <th>Missing requirements</th>
     <td>
       {% if status.requirements_missing %}
