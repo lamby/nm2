@@ -537,10 +537,10 @@ class MakeRTTicket(VisitProcessMixin, TemplateView):
         ctx["request"] = "\n".join(wrapped)
 
         if only_guest_account:
-            ctx["mail_to"] = "DSA <admin@rt.debian.org>"
-            ctx["subject"] = "[Debian RT] Guest account to porter machines for {}".format(self.person.fullname)
+            ctx["mail_to"] = "Debian Sysadmin requests <admin@rt.debian.org>"
+            ctx["subject"] = "[Debian RT] Guest account on porter machines for {}".format(self.person.fullname)
         else:
-            ctx["mail_to"] = "Debian Keyring Maintainers <keyring@rt.debian.org>"
+            ctx["mail_to"] = "Debian Keyring requests <keyring@rt.debian.org>"
             ctx["subject"] = "[Debian RT] {} to become {}".format(self.person.fullname, const.ALL_STATUS_DESCS[self.process.applying_for])
 
         ctx["only_guest_account"] = only_guest_account
