@@ -91,7 +91,7 @@ class NewProcess(VisitorMixin, TemplateView):
                 if self.visitor.status not in (const.STATUS_DC, const.STATUS_DM):
                     comments.append("As a {}, you should already have access to porter machines.".format(const.ALL_STATUS_DESCS[self.visitor.status]))
                 else:
-                    allowed = const.STATUS_DC in whitelist or const.STATUS_DM in whitelist
+                    allowed = const.STATUS_DC_GA in whitelist or const.STATUS_DM_GA in whitelist
                     if not allowed:
                         comments.append("You cannot request a guest account. Did you already request it?")
             elif target == "return":
