@@ -600,7 +600,7 @@ class Statement(models.Model):
             if not msg.parsed:
                 return self.statement
             else:
-                return msg.text.get_payload()
+                return msg.text.get_payload(decode=True)
 
 
 class Log(models.Model):
