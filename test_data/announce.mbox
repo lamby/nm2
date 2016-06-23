@@ -1,0 +1,175 @@
+Date: Tue, 7 Jun 2016 10:43:10 +0200
+From: Enrico Zini <enrico@enricozini.org>
+To: debian-devel-announce@lists.debian.org
+Subject: Changes in the New Member process
+Message-ID: <20160607084310.GA23145@enricozini.org>
+MIME-Version: 1.0
+Content-Type: multipart/signed; micalg=pgp-sha256;
+	protocol="application/pgp-signature"; boundary="xHFwDpU9dbj6ez1V"
+Content-Disposition: inline
+User-Agent: Mutt/1.6.0 (2016-04-01)
+Status: RO
+Content-Length: 6329
+
+
+--xHFwDpU9dbj6ez1V
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
+
+Hello,
+
+Traditionally, the NM process was about having a number of people go
+through several steps to collect all the information that we require to
+trust people as new Debian members.
+
+I have been reimplementing the New Member Process workflow on
+nm.debian.org. The site is now self-service for most of the bureaucratic
+steps, allowing applicants, advocates, AMs and any DD to provide input
+and review it autonomously.
+
+The NM process is now more of a collaborative work of the Debian
+community, with Debian Account Managers (who have responsibility over
+membership decisions) and Front Desk members (helpers of DAM) mostly
+just taking care of the final review and decision.
+
+
+=C2=A0* Changes for applicants
+
+To become a Debian Developer (uploading or not), log into the site[1],
+find[2] or create[3] your profile, click on the "request new status"
+link and then follow the instructions.
+
+[1] https://wiki.debian.org/DebianSingleSignOn
+[2] https://nm.debian.org/public/findperson
+[3] https://nm.debian.org/public/newnm
+
+You will need to=C2=A0
+
+=C2=A0- provide a gpg-signed statement saying that you really want to become
+   a Debian Developer. The statement will automatically be posted to
+   debian-newmaint@lists.debian.org to introduce you as a prospective
+   new member.
+=C2=A0- provide a gpg-signed statement saying that you agree to uphold the
+   Social Contract, the Debian Free Software Guidelines and the Debian
+   Machine Usage Policy in your Debian work.
+=C2=A0- spend some time talking with an Application Manager who will ask you
+   a few questions and send you a few pointers to make sure you are on
+   the same page as the rest of the project.
+
+And that should be it. The site allows you to follow how things are
+going, and to make sure that your personal information like your name,
+gpg key, and short bio are correct.
+
+You can see the ongoing (new) processes at https://nm.debian.org/process
+
+
+=C2=A0* Changes for advocates
+
+As an advocate, you have a page where you can upload a gpg-signed
+statement of advocacy that will be automatically posted to
+debian-newmaint@lists.debian.org.
+
+Here[4] you can find some guidelines for writing good advocacy messages.
+If you write a poor advocacy message like "$NAME's a good friend of mine
+lol", any DD can use the site or the debian-newmaint list to ask you to
+do better than that.
+
+[4] https://lists.debian.org/debian-devel-announce/2010/05/msg00003.html
+
+
+=C2=A0* Changes for Application Managers
+
+Confirmation of the AM assignment is gone: if you rather not take the
+applicant, you can unassign yourself at any moment. You can also
+unassign yourself if you run out of time and you'd like another AM to
+take over the process from you.
+
+ID check is gone: the site takes care of it automatically, including
+running keycheck to check the number of DD signatures and the properties
+of the key.
+
+Philosophy & Procedures and Tasks & Skills are just one of the ways in
+which you can interact with your applicants. Remember that T&S can be
+skipped entirely if there is a decent technical track record of the
+applicant in Debian. nm.debian.org provides the minechangelogs tool and
+links to portfolio.debian.net, DDPO and contributors.debian.org.
+
+The result of your work is a gpg-signed statement saying whether you
+think that the applicant should be a Debian Developer right now, or not.
+
+Many parts of the mail templates=C2=A0 are now obsolete: there has been no
+review of them yet in light of these changes. The templates are in
+collab-maint, though [5], so both you and your applicants (or anyone
+else, really) can help with that.
+
+[5] https://anonscm.debian.org/cgit/collab-maint/nm-templates.git
+
+
+=C2=A0* Changes for everyone else
+
+Anyone can now add comments in any part of the current processes in the
+site, and they will get recorded in the log of the application.
+
+If you are a Debian Developer, you can review the statements that
+applicants and advocates have uploaded to the site, and mark the
+requirement as not fulfilled if you think that there is something wrong
+with it.
+
+Many pages in nm.debian.org now have a "Wiki Help" link at the top,
+which points to a wiki.debian.org page where anyone can write help and
+tips for other users of the site.
+
+
+=C2=A0* Migration from the old-style processes
+
+I have now disabled the advocacy links that started processes the old
+way; there is no migration procedure, so the existing processes continue
+as they are. When all the old-style processes will be done and closed,
+I'll refactor[6] the site codebase to only support viewing, so that the
+history of all the processes in Debian remains.
+
+[6] http://devopsreactions.tumblr.com/post/143934692418/old-code-refactoring
+
+
+=C2=A0* Up and coming
+
+This new implementation of the NM process is flexible enough that it can
+deal with all sort of other processes: asking for a guest account to
+porter machines, becoming Debian Maintainer, getting upload rights, and
+returning from emeritus, can now all be managed through the same
+interface. These processes will soon become almost fully automated. More
+road testing is still needed and will happen in the near future.
+
+
+For the Debian Account Manager / Front Desk team,
+
+Enrico Zini
+
+--=20
+GPG key: 4096R/634F4BD1E7AD5568 2009-05-08 Enrico Zini <enrico@enricozini.o=
+rg>
+
+--xHFwDpU9dbj6ez1V
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
+
+iQIcBAEBCAAGBQJXVokbAAoJEAPWVoyDcnWp7t8QAJmCTfrqyQR4X+H7XkpTkvKL
+NLXQ1jUY5zSfSZNb3XoabpA1W2UXcTe64xsPRAROGrpnJXeJFwFeeRuaEi0uPkiZ
+kkImy7RCDYb5HEKazbtjoX1ocrww+KhIn+/DsrgS0cNTfy3H7WTLyRwcI/NlICZs
++V7r6mMQ9ln+xur/vye1xG76LIxsQ7BTmGTs2T1nEvOQXjegqzJmfpvXGDUoNgrs
+5Qd6St1F/8g/PhCDlVuFg1tcudY9cup7Rx8IArLvCj308dcmhyjg5nymYDWQFM5H
+vJKau9yaLbb1Y8K69fdJCi9uxw2DCvRxu3Ng84iqq3xHUq5agnC+QgsPFdCUhTDX
+uONLVb5+COiZ7BeqivVysRdjYEVNdUINPf2RAhxibtI+YZf8jw74WETLNodorpTh
+6jKSCIJkHQxWd0iPYDeITNPjeIqi31dLLRbYcOco6x1Q/Kbi3xpqkdL5tSbd76XP
+jJhZHSruR0Nef8eMD/TI4iH/eCr8dAM7BgbumwEYxKJR1sE65/SSn07ot7K2FdaI
+DY8l6sDm5LtMDH6UgfEsoNY68hHySS/7ztyXuiZTh1T3M3aTp8muKN8yOxoFbGib
+k9vbl0O7DPTTwKw4S4kwaM/kp/djre9stexg2K1oe0dj6tA+Dz6O99czU1y6lDdI
+yqb9xaeB1AWvGIoOToBi
+=ZcPA
+-----END PGP SIGNATURE-----
+
+--xHFwDpU9dbj6ez1V--
+

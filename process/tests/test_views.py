@@ -13,6 +13,9 @@ import process.models as pmodels
 from mock import patch
 import tempfile
 import mailbox
+import os
+import shutil
+import json
 from .common import ProcessFixtureMixin
 from .common import (ProcessFixtureMixin,
                      test_fingerprint1, test_fpr1_signed_valid_text, test_fpr1_signed_valid_text_nonascii,
@@ -60,6 +63,34 @@ class TestDownloadStatements(ProcessFixtureMixin, TestCase):
             tf.flush()
             mbox = mailbox.mbox(tf.name)
             self.assertEquals(len(mbox), 3)
+
+
+class TestEmailLookup(ProcessFixtureMixin, TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super(TestEmailLookup, cls).setUpClass()
+        cls.persons.create("app", status=const.STATUS_DC)
+        cls.processes.create("app", person=cls.persons.app, applying_for=const.STATUS_DD_U, fd_comment="test")
+
+    def test_lookup(self):
+        client = self.make_test_client(self.persons.dd_nu)
+        mbox_file = "test_data/process-{}.mbox".format(self.processes.app.pk)
+        with self.settings(PROCESS_MAILBOX_DIR=os.path.abspath("test_data")):
+            shutil.copy("test_data/debian-newmaint.mbox", mbox_file)
+            try:
+                response = client.post(
+                    reverse("process_email_lookup", args=[self.processes.app.pk]),
+                    data={"url": "https://lists.debian.org/debian-newmaint/2016/06/msg00044.html"}
+                )
+                self.assertEquals(response.status_code, 200)
+                decoded = json.loads(response.content)
+                self.assertNotIn("error", decoded)
+                self.assertIn("msg", decoded)
+                with open("test_data/debian-newmaint.mbox", "rb") as fd:
+                    self.assertEqual(decoded["msg"].rstrip(), "".join(list(fd)[1:]).rstrip())
+            finally:
+                os.unlink(mbox_file)
+
 
 
 class TestRTTicket(ProcessFixtureMixin, TestCase):

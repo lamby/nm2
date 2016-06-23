@@ -7,7 +7,50 @@
 {% jsinclude "nm" %}
 <style type="text/css">
 .errorlist { color: red; }
+#newmaint-lookup {
+  display: none;
+  margin: 0.5em;
+}
 </style>
+<script type="text/javascript">
+(function($) {
+  var csrf_token;
+
+  function main()
+  {
+    csrf_token = $("input[name='csrfmiddlewaretoken']").val();
+    $("#newmaint-lookup").show();
+    $("#newmaint-lookup-errors").hide();
+    $("#newmaint-lookup-form").submit(function(evt) {
+      evt.preventDefault();
+      var url = $("#newmaint-url").val();
+      console.log(url);
+      $.ajax({
+        url: "{% url 'process_email_lookup' pk=process.pk %}",
+        method: "POST",
+        data: {
+          url: url,
+          csrfmiddlewaretoken: csrf_token,
+        },
+        success: function(data, textStatsu, jqXHR) {
+          if (data.error)
+          {
+            $("#newmaint-lookup-errors").text(data.error).show();
+          } else {
+            $("#newmaint-lookup-errors").hide();
+            $("#id_statement").val(data.msg);
+          }
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+          $("#newmaint-lookup-errors").text(jqXHR.responseText).show();
+        },
+      });
+      return false;
+    });
+  }
+  $(main);
+})(jQuery);
+</script>
 {% endblock %}
 
 {% block content %}
@@ -49,5 +92,14 @@ somewhere else.</p>
   {{ form.non_field_errors }}
   <input type="submit" value="Submit">
 </form>
+
+<div id="newmaint-lookup">
+<form id="newmaint-lookup-form">
+  Lookup from <a href="https://lists.debian.org/debian-newmaint/">debian-newmaint</a>:
+  <input id="newmaint-url" type="text" placeholder="https://lists.debian.org/debian-newmaint/…" size="80"></input>
+  <div id="newmaint-lookup-errors">
+  </div>
+</form>
+</div>
 
 {% endblock %}

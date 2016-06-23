@@ -1,0 +1,110 @@
+From bounce-debian-newmaint=enrico=debian.org@lists.debian.org Sun Jun 19 21:54:23 2016
+Return-Path: <bounce-debian-newmaint=enrico=debian.org@lists.debian.org>
+X-Original-To: enrico@enricozini.org
+Delivered-To: enrico@enricozini.org
+Received: from master.debian.org (master.debian.org [IPv6:2001:41b8:202:deb:216:36ff:fe40:4001])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by enricozini.org (Postfix) with ESMTPS id DF731C07E
+	for <enrico@enricozini.org>; Sun, 19 Jun 2016 21:54:23 +0200 (CEST)
+Received: from bendel.debian.org ([2001:41b8:202:deb:216:36ff:fe40:4002])
+	from C=NA,ST=NA,L=Ankh Morpork,O=Debian SMTP,OU=Debian SMTP CA,CN=clientcerts/bendel.debian.org,EMAIL=hostmaster@clientcerts/bendel.debian.org (verified)
+	by master.debian.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+	(Exim 4.84_2)
+	(envelope-from <bounce-debian-newmaint=enrico=debian.org@lists.debian.org>)
+	id 1bEinX-0000in-T6
+	for enrico@master.debian.org; Sun, 19 Jun 2016 19:54:23 +0000
+Received: from localhost (localhost [127.0.0.1])
+	by bendel.debian.org (Postfix) with QMQP
+	id 803D1E4; Sun, 19 Jun 2016 19:54:23 +0000 (UTC)
+X-Mailbox-Line: From debian-newmaint-request@lists.debian.org  Sun Jun 19 19:54:23 2016
+Old-Return-Path: <dogsleg@riseup.net>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on bendel.debian.org
+X-Spam-Level: 
+X-Spam-Status: No, score=-11.2 required=4.0 tests=DIGITS_LETTERS,FOURLA,
+	FVGT_m_MULTI_ODD,LDO_WHITELIST,PGPSIGNATURE,RCVD_IN_DNSWL_MED
+	autolearn=unavailable autolearn_force=no version=3.4.0
+X-Original-To: lists-debian-newmaint@bendel.debian.org
+Delivered-To: lists-debian-newmaint@bendel.debian.org
+Received: from localhost (localhost [127.0.0.1])
+	by bendel.debian.org (Postfix) with ESMTP id CD5A3D7
+	for <lists-debian-newmaint@bendel.debian.org>; Sun, 19 Jun 2016 19:37:59 +0000 (UTC)
+X-Virus-Scanned: at lists.debian.org with policy bank en-lt
+X-Amavis-Spam-Status: No, score=-13.18 tagged_above=-10000 required=5.3
+	tests=[BAYES_00=-2, DIGITS_LETTERS=1, FOURLA=0.1,
+	FVGT_m_MULTI_ODD=0.02, LDO_WHITELIST=-5, PGPSIGNATURE=-5,
+	RCVD_IN_DNSWL_MED=-2.3] autolearn=ham autolearn_force=no
+Received: from bendel.debian.org ([127.0.0.1])
+	by localhost (lists.debian.org [127.0.0.1]) (amavisd-new, port 2525)
+	with ESMTP id lTHEwxThyLMP
+	for <lists-debian-newmaint@bendel.debian.org>;
+	Sun, 19 Jun 2016 19:37:54 +0000 (UTC)
+Received: from nono.debian.org (nono.debian.org [IPv6:2607:f8f0:610:4000:216:36ff:fe40:3861])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(Client CN "nono.debian.org", Issuer "Debian SMTP CA" (not verified))
+	by bendel.debian.org (Postfix) with ESMTPS id CB93DB9
+	for <debian-newmaint@lists.debian.org>; Sun, 19 Jun 2016 19:37:54 +0000 (UTC)
+Received: from localhost ([::1] helo=nono.debian.org)
+	by nono.debian.org with esmtp (Exim 4.84_2)
+	(envelope-from <dogsleg@riseup.net>)
+	id 1bEiXW-0007MT-Te; Sun, 19 Jun 2016 19:37:50 +0000
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Subject: Lev Lamberov: Advocate
+From: Lev Lamberov <dogsleg@riseup.net>
+To: debian-newmaint@lists.debian.org
+Cc: Lev Lamberov <dogsleg@riseup.net>, nm@debian.org, archive-15@nm.debian.org
+Message-ID: <20160619193750.11171.44767@nono.debian.org>
+date: Sun, 19 Jun 2016 19:37:50 -0000
+X-Rc-Spam: 2008-11-04_01
+X-Rc-Virus: 2007-09-13_01
+X-Rc-Spam: 2008-11-04_01
+Resent-Message-ID: <AcrulkiXM7D.A.4hD.vhvZXB@bendel>
+Resent-From: debian-newmaint@lists.debian.org
+X-Mailing-List: <debian-newmaint@lists.debian.org> archive/latest/8522
+X-Loop: debian-newmaint@lists.debian.org
+List-Id: <debian-newmaint.lists.debian.org>
+List-URL: <https://lists.debian.org/debian-newmaint/>
+List-Post: <mailto:debian-newmaint@lists.debian.org>
+List-Help: <mailto:debian-newmaint-request@lists.debian.org?subject=help>
+List-Subscribe: <mailto:debian-newmaint-request@lists.debian.org?subject=subscribe>
+List-Unsubscribe: <mailto:debian-newmaint-request@lists.debian.org?subject=unsubscribe>
+Precedence: list
+Resent-Sender: debian-newmaint-request@lists.debian.org
+List-Archive: https://lists.debian.org/msgid-search/20160619193750.11171.44767@nono.debian.org
+Resent-Date: Sun, 19 Jun 2016 19:54:23 +0000 (UTC)
+Delivered-To: enrico@master.debian.org
+Status: RO
+Content-Length: 1286
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+Ah! So, DD's can even advocate themselves? That's interesting!
+
+OK, sure I advocate myself. I know Lev Lamberov since we both came to this crazy world. And know what I want to say? Well, Lev is the only person I can fully trust. He is very responsible and deserves a status of uploading DD.
+
+Ouch! Well, of course that's just for testing purposes, you know... :-D
+-----BEGIN PGP SIGNATURE-----
+
+iQIcBAEBCgAGBQJXZvR9AAoJEF7nbuICFtKljPgP/RWB7PdFTyI6cSM/AR7ebJgA
+xRN9+yZte0OT5ohCHh2Gc68NalfZq/gU54yRrCIrJ/ROMD/dVvJoIqytEDr9+73J
+wHal1pFsg3pB3LY3N73d1aI6s0Yf+j1XCNWWM/dGc3Z06Yd8gCyCVsP966DpgmSf
+VIP5oJDuuKJ0y7VVYW8lTxzkpYcytM0z8sANYE3zaDUom7Tlyz1Qy8gdlOpVnOXs
+hz583g7VAlX105qNnnlYnrW57IJEXYVKNZ4m/1PoZ+/ysMXdzuDg/ISJaC7pK9NC
+BntF68Xw1u8NhHgsEeb0rEVNmYben8bWywtkg9K1/TqLkliv1+Ltc77PNLQMRFz3
+kitVqQlP4Is3w0JEmDnwVMAFKaBoSRN4yRyQ+4DWADkfJ6+lY9+DT4QANdtKgg6r
+Hvqku5KxaqclePKNxLpkwwRxdzAZn1vkGocssmYPWLMZRnT6oEmPrtkHOaKxfl1M
+sbnjPSeejFTfgZvnJ7p1nV7aZVCmC69tgTO70XDRZj+t9v+DHh8S3FrYR28LOCv/
+qUOtOgo6pSgukaplUSXGra+96pDrW8zObcj8AjFo1YV1TvMTgDAGyaRY1QbWstpa
+VTFmAoEqj5taog3y6GYY79GuEVb54y7dtqfVl/NZw6Oi5HskUrK6h8A1TwWPPacx
+ZkJi4U2OWys8SVFOPkkI
+=rre6
+-----END PGP SIGNATURE-----
+
+Lev Lamberov (via nm.debian.org)
+-- 
+https://nm.debian.org/process/15
+
+
