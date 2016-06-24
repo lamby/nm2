@@ -523,7 +523,7 @@ class Person(VisitPersonTemplateView):
                 if is_admin:
                     changes = sorted((k, v[0], v[1]) for k, v in json.loads(e.changes).items())
                 else:
-                    changes = sorted((k, v[0], v[1]) for k, v in json.loads(e.changes).items() if k != "fd_comment")
+                    changes = sorted((k, v[0], v[1]) for k, v in json.loads(e.changes).items() if k not in ("fd_comment", "pending"))
                 audit_log.append({
                     "logdate": e.logdate,
                     "author": e.author,
