@@ -55,7 +55,7 @@ class TestVisitPersonNoProcess(OldProcessFixtureMixin, TestCase):
         cls._add_method(cls._test_perms, "pending", perms=ExpectedPerms({
             "fd dam": "update_keycheck edit_bio edit_ldap view_person_audit_log fd_comments",
             "activeam": "update_keycheck edit_bio edit_ldap view_person_audit_log",
-            "pending": "view_person_audit_log update_keycheck edit_bio",
+            "pending": "update_keycheck edit_bio",
             "dd_nu dd_u": "view_person_audit_log update_keycheck",
         }))
 
