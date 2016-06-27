@@ -123,6 +123,8 @@ but a DAM has not fully processed them yet (sorted by FD approval):</p>
 <p>Hello <b>{{visitor.uid}}</b>, here is a list of New Member applicants that
 you are the AM for:</p>
 
+{% include "process/process_list.html" with procs=am_processes %}
+
 <h3>Applicants to Accept</h3>
 
 <p>These applicants have been assigned to you by the Front Desk but you have

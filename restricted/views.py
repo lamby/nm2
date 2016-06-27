@@ -142,6 +142,11 @@ class AMMain(VisitorTemplateView):
                 p.annotate_with_duration_stats()
                 ctx.setdefault(tgt, []).append(p)
 
+        processes = []
+        for a in pmodels.AMAssignment.objects.filter(am=self.visitor.am, unassigned_by__isnull=True, process__closed__isnull=True).select_related("process"):
+            processes.append(a.process)
+        ctx["am_processes"] = processes
+
         return ctx
 
 class AMProfile(VisitPersonTemplateView):
