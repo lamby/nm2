@@ -29,7 +29,7 @@ def _clean_dacs_username(username):
         return username
 
 class DACSRemoteUserMiddleware(django.contrib.auth.middleware.RemoteUserMiddleware):
-    header = 'REMOTE_USER'
+    header = "REMOTE_USER"
     cert_header = "SSL_CLIENT_S_DN_CN"
 
     def process_request(self, request):
@@ -98,6 +98,7 @@ class DACSRemoteUserMiddleware(django.contrib.auth.middleware.RemoteUserMiddlewa
             # FIXME: do we need to file a django bug for this case as well?
             if request.user.is_authenticated():
                 auth.logout(request)
+
 
 class DACSUserBackend(django.contrib.auth.backends.RemoteUserBackend):
     """
