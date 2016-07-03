@@ -163,6 +163,7 @@ class PersonExpires(hk.Task):
         """
         Generate a sequence of Person objects that have expired
         """
+        import process.models as pmodels
         today = datetime.date.today()
         for p in bmodels.Person.objects.filter(expires__lt=today):
             if p.status != const.STATUS_DC:
@@ -170,7 +171,7 @@ class PersonExpires(hk.Task):
                          self.IDENTIFIER, self.hk.link(p), p.status)
                 p.expires = None
                 p.save(audit_author=self.hk.housekeeper.user, audit_notes="user became {}: removing expiration date".format(const.ALL_STATUS_DESCS[p.status]))
-            elif p.processes.exists():
+            elif p.processes.exists() or pmodels.Process.objects.filter(person=p).exists():
                 log.info("%s: removing expiration date for %s who now has process history",
                          self.IDENTIFIER, self.hk.link(p))
                 p.expires = None
