@@ -93,6 +93,7 @@ class TestPersons(NamedObjects):
     def __init__(self, **defaults):
         defaults.setdefault("cn", lambda name, **kw: name.capitalize())
         defaults.setdefault("email", "{_name}@example.org")
+        defaults.setdefault("email_ldap", "{_name}@example.org")
         super(TestPersons, self).__init__(Person, **defaults)
 
     def create(self, _name, alioth=False, **kw):

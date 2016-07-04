@@ -275,17 +275,17 @@ class PersonTestCase(OldProcessFixtureMixin, TestCase):
 
         new_status = const.STATUS_DC if visited.status != const.STATUS_DC else const.STATUS_DM
         response = client.post(reverse("restricted_person", kwargs={"key": visited.lookup_key}), data={
-            "cn": "Z", "fd_comment": "Z", "bio": "Z", "email": "foo@example.org", "status": new_status
+            "cn": "Z", "fd_comment": "Z", "bio": "Z", "email_ldap": "foo@example.org", "status": new_status
         })
         visited.refresh_from_db()
         self.assertRedirectMatches(response, visited.get_absolute_url())
 
         if "edit_ldap" in visit_perms:
             self.assertEquals(visited.cn, "Z")
-            self.assertEquals(visited.email, "foo@example.org")
+            self.assertEquals(visited.email_ldap, "foo@example.org")
         else:
             self.assertEquals(visited.cn, orig_cn)
-            self.assertEquals(visited.email, orig_email)
+            self.assertEquals(visited.email_ldap, orig_email)
         if "edit_bio" in visit_perms:
             self.assertEquals(visited.bio, "Z")
         else:
