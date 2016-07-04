@@ -6,7 +6,10 @@ from __future__ import unicode_literals
 import backend.models as bmodels
 from backend import const
 from django.views.generic import TemplateView, View
+from django.views.generic.edit import UpdateView
 from backend.mixins import VisitorMixin, VisitPersonMixin
+import markdown
+import json
 
 
 class Person(VisitPersonMixin, TemplateView):
@@ -72,3 +75,45 @@ class Person(VisitPersonMixin, TemplateView):
         else:
             ctx["bio_html"] = ""
         return ctx
+
+
+class EditLDAP(VisitPersonMixin, UpdateView):
+    """
+    Edit a person's information
+    """
+    require_visit_perms = "edit_ldap"
+    model = bmodels.Person
+    fields = ("cn", "mn", "sn", "email_ldap", "uid")
+    template_name = "person/edit_ldap.html"
+
+    def get_object(self):
+        return self.person
+
+    def form_valid(self, form):
+        """
+        If the form is valid, save the associated model.
+        """
+        self.object = form.save(commit=False)
+        self.object.save(audit_author=self.visitor, audit_notes="edited LDAP information")
+        return super(EditLDAP, self).form_valid(form)
+
+
+class EditBio(VisitPersonMixin, UpdateView):
+    """
+    Edit a person's information
+    """
+    require_visit_perms = "edit_bio"
+    model = bmodels.Person
+    fields = ("bio",)
+    template_name = "person/edit_bio.html"
+
+    def get_object(self):
+        return self.person
+
+    def form_valid(self, form):
+        """
+        If the form is valid, save the associated model.
+        """
+        self.object = form.save(commit=False)
+        self.object.save(audit_author=self.visitor, audit_notes="edited bio information")
+        return super(EditBio, self).form_valid(form)

@@ -1,4 +1,4 @@
-{% extends "public/base.html" %}
+{% extends "person/base.html" %}
 {% load nm %}
 {% load js %}
 
@@ -62,8 +62,12 @@ $(function() {
     {% endwith %}
 </table>
 
-{% if "edit_bio" in visit_perms or "edit_ldap" in visit_perms %}
-<a href="{% url 'restricted_person' key=person.lookup_key %}">edit</a>
+{% if "edit_ldap" in visit_perms %}
+<a href="{% url 'person_edit_ldap' key=person.lookup_key %}">edit LDAP information</a>
+{% endif %}
+
+{% if "edit_bio" in visit_perms %}
+<a href="{% url 'person_edit_bio' key=person.lookup_key %}">edit bio</a>
 {% endif %}
 
 {% if person.is_am %}

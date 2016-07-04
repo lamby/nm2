@@ -89,10 +89,20 @@
   <tr>
     <th>Debian account name</th>
     <td>
-      {% if person.uid %}
-      {{person.uid}}
+      {% if "edit_ldap" in visit_perms %}
+        <a href="{% url 'person_edit_ldap' key=person.lookup_key %}">
+          {% if person.uid %}
+          {{person.uid}}
+          {% else %}
+          <i>✘ missing</i>
+          {% endif %}
+        </a>
       {% else %}
-      <a href="{% url 'restricted_person' key=person.lookup_key %}"><i>✘ missing</i></a>
+          {% if person.uid %}
+          {{person.uid}}
+          {% else %}
+          <i>✘ missing</i>
+          {% endif %}
       {% endif %}
     </td>
   </tr>
@@ -158,12 +168,6 @@
 
   {% endif %}
 </table>
-
-{% comment %}
-{% if "edit_bio" in visit_perms or "edit_ldap" in visit_perms %}
-<a href="{% url 'restricted_person' key=person.lookup_key %}">Edit personal information</a>
-{% endif %}
-{% endcomment %}
 
 <h2>Requirements</h2>
 

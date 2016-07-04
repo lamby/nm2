@@ -198,52 +198,6 @@ class AMProfile(VisitPersonTemplateView):
         return self.render_to_response(context)
 
 
-class Person(VisitPersonTemplateView):
-    """
-    Edit a person's information
-    """
-    template_name = "restricted/person.html"
-
-    def check_permissions(self):
-        super(Person, self).check_permissions()
-        if "edit_bio" not in self.visit_perms and "edit_ldap" not in self.visit_perms:
-            raise PermissionDenied
-
-    def get_person_form(self):
-        includes = []
-        if "edit_ldap" in self.visit_perms:
-            includes.extend(("cn", "mn", "sn", "email_ldap", "uid"))
-        if self.visitor.is_admin:
-            includes.extend(("status", "fd_comment", "expires", "pending"))
-        if "edit_bio" in self.visit_perms:
-            includes.append("bio")
-        class PersonForm(forms.ModelForm):
-            class Meta:
-                model = bmodels.Person
-                fields = includes
-        return PersonForm
-
-    def get_context_data(self, **kw):
-        ctx = super(Person, self).get_context_data(**kw)
-        if "form" not in ctx:
-            ctx["form"] = self.get_person_form()(instance=self.person)
-        return ctx
-
-    def post(self, request, *args, **kw):
-        form = self.get_person_form()(request.POST, instance=self.person)
-        if form.is_valid():
-            p = form.save(commit=False)
-            p.save(audit_author=self.visitor, audit_notes="edited Person information")
-
-            # TODO: message that it has been saved
-
-            # Redirect to the person view
-            return redirect(self.person.get_absolute_url())
-
-        context = self.get_context_data(form=form, **kw)
-        return self.render_to_response(context)
-
-
 class DBExport(VisitorMixin, View):
     require_visitor = "dd"
 

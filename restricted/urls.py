@@ -13,8 +13,6 @@ urlpatterns = [
     url(r'^ammain$', views.AMMain.as_view(), name="restricted_ammain"),
     # AM preferences editor
     url(r'^amprofile(?:/(?P<key>[^/]+))?$', views.AMProfile.as_view(), name="restricted_amprofile"),
-    # Edit personal info
-    url(r'^person/(?P<key>[^/]+)$', views.Person.as_view(), name="restricted_person"),
     # Show changelogs (minechangelogs)
     url(r'^minechangelogs/(?P<key>[^/]+)?$', views.minechangelogs, name="restricted_minechangelogs"),
     # Impersonate a user

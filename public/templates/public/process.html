@@ -186,9 +186,6 @@ See: <a href="http://lists.debian.org/debian-project/2010/09/msg00026.html">hand
     {% endif %}
     {% endif %}
 </table>
-{% if "edit_bio" in visit_perms or "edit_ldap" in visit_perms %}
-<a href="{% url 'restricted_person' key=person.lookup_key %}">Edit personal information</a>
-{% endif %}
 
 {% if form %}
 
