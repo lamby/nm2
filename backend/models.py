@@ -262,6 +262,7 @@ class Person(PermissionsMixin, models.Model):
     mn = models.CharField("middle name", max_length=250, null=False, blank=True, default="")
     sn = models.CharField("last name", max_length=250, null=False, blank=True, default="")
     email = models.EmailField("email address", null=False, unique=True)
+    email_ldap = models.EmailField("LDAP forwarding email address", null=False, blank=True)
     bio = models.TextField("short biography", blank=True, null=False, default="",
                         help_text="Please enter here a short biographical information")
     # This is null for people who still have not picked one

@@ -212,7 +212,7 @@ class Person(VisitPersonTemplateView):
     def get_person_form(self):
         includes = []
         if "edit_ldap" in self.visit_perms:
-            includes.extend(("cn", "mn", "sn", "email", "uid"))
+            includes.extend(("cn", "mn", "sn", "email_ldap", "uid"))
         if self.visitor.is_admin:
             includes.extend(("status", "fd_comment", "expires", "pending"))
         if "edit_bio" in self.visit_perms:
