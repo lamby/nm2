@@ -101,13 +101,13 @@ class PersonVisitorPermissions(VisitorPermissions):
             self._compute_dd_perms()
 
     def _compute_admin_perms(self):
-        self.update(("edit_bio", "update_keycheck", "view_person_audit_log"))
+        self.update(("edit_email", "edit_bio", "update_keycheck", "view_person_audit_log"))
         if self.person_possible_new_statuses: self.add("request_new_status")
         if not self.person_has_ldap_record: self.add("edit_ldap")
         self.add("fd_comments")
 
     def _compute_own_perms(self):
-        self.add("update_keycheck")
+        self.update(("edit_email", "update_keycheck"))
         if not self.person_has_frozen_processes:
             if not self.person_has_ldap_record and not self.person.pending:
                 self.add("edit_ldap")

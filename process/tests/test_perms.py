@@ -26,7 +26,7 @@ class ProcExpected(object):
     def patch_generic_process_started(self):
         self.proc.set("app dd_nu dd_u activeam fd dam", "update_keycheck view_person_audit_log")
         self.proc.patch("activeam fd dam app", "+edit_bio +edit_ldap +view_mbox +view_private_log")
-        self.proc.patch("fd dam app", "+request_new_status")
+        self.proc.patch("fd dam app", "+request_new_status +edit_email")
         self.proc.patch("fd dam", "+proc_freeze +fd_comments +am_assign")
         self.proc.patch("dc dc_ga dm dm_ga dd_nu dd_u dd_e dd_r activeam fd dam app", "+add_log")
         self.intent.patch("fd dam app", "+edit_statements")
