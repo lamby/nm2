@@ -31,6 +31,9 @@ $(function() {
 <table class="personinfo">
     <tr><th>Account name</th><td>{{person.uid|default:"None chosen yet"}}</td></tr>
     <tr><th>OpenPGP fingerprint</th><td>{{person.fpr|fingerprint}}{% if "edit_ldap" in visit_perms %} (<a href="{% url 'fprs_person_list' key=person.lookup_key %}">manage</a>){% endif %}</td></tr>
+    {% if "edit_email" in visit_perms %}
+    <tr><th>Contact email</th><td>{{person.email}} <a href="{% url 'person_edit_email' key=person.lookup_key %}">[edit]</a></td></tr>
+    {% endif %}
     <tr><th>Status</th><td>{{person.status|desc_status}} {% if person.status == STATUS_DC %}on nm.debian.org since{% else %}since{% endif %} {{person.status_changed|date:"Y-m-d"}}
     {% if person.changed_before_data_import %}
     (changed before data import)
@@ -66,10 +69,6 @@ $(function() {
 <a href="{% url 'person_edit_ldap' key=person.lookup_key %}">edit LDAP information</a>
 {% endif %}
 
-{% if "edit_bio" in visit_perms %}
-<a href="{% url 'person_edit_bio' key=person.lookup_key %}">edit bio</a>
-{% endif %}
-
 {% if person.is_am %}
 {% if visitor.is_am or visitor.is_admin %}
 <a href="{% url 'restricted_amprofile' key=person.lookup_key %}">edit AM</a>
@@ -90,6 +89,10 @@ $(function() {
   (missing)
 {% endif %}
 </div>
+
+{% if "edit_bio" in visit_perms %}
+<a href="{% url 'person_edit_bio' key=person.lookup_key %}">[edit]</a>
+{% endif %}
 
 <h2>Personal history</h2>
 

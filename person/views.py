@@ -117,3 +117,24 @@ class EditBio(VisitPersonMixin, UpdateView):
         self.object = form.save(commit=False)
         self.object.save(audit_author=self.visitor, audit_notes="edited bio information")
         return super(EditBio, self).form_valid(form)
+
+
+class EditEmail(VisitPersonMixin, UpdateView):
+    """
+    Edit a person's information
+    """
+    require_visit_perms = "edit_email"
+    model = bmodels.Person
+    fields = ("email",)
+    template_name = "person/edit_email.html"
+
+    def get_object(self):
+        return self.person
+
+    def form_valid(self, form):
+        """
+        If the form is valid, save the associated model.
+        """
+        self.object = form.save(commit=False)
+        self.object.save(audit_author=self.visitor, audit_notes="edited email")
+        return super(EditEmail, self).form_valid(form)

@@ -1,0 +1,21 @@
+{% extends "person/base.html" %}
+{% load nm %}
+
+{% block content %}
+
+<h1>Edit short bio for {{person.fullname}}</h1>
+
+<form action="" method="POST">{% csrf_token %}
+<table class="personinfo">
+    {% for field in form %}
+    <tr>
+        <th>{{field.label_tag}}</th>
+        <td>{{field}} {{field.errors}}</td>
+    </tr>
+    {% endfor %}
+</table>
+<button type="submit">Submit</button>
+</form>
+
+{% endblock %}
+
