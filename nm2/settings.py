@@ -144,6 +144,7 @@ INSTALLED_APPS = [
     'nmlayout',
     'backend',
     'apikeys',
+    'person',
     'public',
     'restricted',
     'process',
