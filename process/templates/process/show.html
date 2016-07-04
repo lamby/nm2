@@ -107,6 +107,16 @@
     </td>
   </tr>
 
+  {% if "edit_ldap" in visit_perms %}
+  <tr>
+    <th>LDAP information</th>
+    <td>
+      <tt>cn={{person.cn}}, mn={{person.mn}}, sn={{person.sn}}, email={{person.email_ldap}}, uid={{person.uid}}</tt>
+      <a href="{% url 'person_edit_ldap' key=person.lookup_key %}">[edit]</a>
+    </td>
+  </tr>
+  {% endif %}
+
   <tr>
     <th>Missing requirements</th>
     <td>
