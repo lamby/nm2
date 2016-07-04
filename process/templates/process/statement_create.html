@@ -82,6 +82,17 @@ somewhere else.</p>
 
 <p>The signature will be verified using the key {{fpr|fingerprint}}</p>
 
+{% if requirement.type != "sc_dmup" %}
+<p>The statement will be sent to <a href="https://lists.debian.org/debian-newmaint">debian-newmaint</a>
+as <tt>{{visitor.fullname}}
+  {% if "edit_email" in visit_perms %}
+  <a href="{% url 'person_edit_email' key=visitor.lookup_key %}">&lt;{{visitor.email}}&gt;</a></tt>.
+  {% else %}
+  &lt;{{visitor.email}}&gt;</tt>.
+  {% endif %}
+</p>
+{% endif %}
+
 <form action="" method="post">{% csrf_token %}
   {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
   {% for field in form.visible_fields %}
