@@ -64,6 +64,7 @@ class ProgressFinalisationsOnAccountsCreated(hk.Task):
                 log.info("%s: %s finalised: %s changes status %s->%s",
                          self.IDENTIFIER, self.hk.link(proc), proc.person.uid, old_status, proc.person.status)
 
+
 class NewGuestAccountsFromDSA(hk.Task):
     """
     Create new Person entries for guest accounts created by DSA
@@ -103,6 +104,7 @@ class NewGuestAccountsFromDSA(hk.Task):
                     mn=entry.single("mn") or "",
                     sn=entry.single("sn") or "",
                     email=email,
+                    email_ldap=email,
                     uid=entry.uid,
                     fpr=fpr,
                     status=const.STATUS_DC_GA,
@@ -203,6 +205,7 @@ class CheckLDAPConsistency(hk.Task):
                         "mn": entry.single("mn") or "",
                         "sn": entry.single("sn") or "",
                         "email": entry.single("emailForward"),
+                        "email_ldap": entry.single("emailForward"),
                         "uid": entry.uid,
                         "fpr": "FIXME-REMOVED-" + entry.uid,
                         "username": "{}@invalid.example.org".format(entry.uid),
@@ -227,10 +230,10 @@ class CheckLDAPConsistency(hk.Task):
                 email = entry.single("emailForward")
                 if email != person.email:
                     if email is not None:
-                        log.info("%s: %s changing email from %s to %s (source: LDAP)",
+                        log.info("%s: %s changing email_ldap from %s to %s (source: LDAP)",
                                 self.IDENTIFIER, self.hk.link(person), person.email, email)
-                        person.email = email
-                        person.save(audit_author=self.hk.housekeeper.user, audit_notes="updated email from LDAP")
+                        person.email_ldap = email
+                        person.save(audit_author=self.hk.housekeeper.user, audit_notes="updated email_ldap from LDAP")
                     # It gives lots of errors when run outside of the debian.org
                     # network, since emailForward is not exported there, and it has
                     # no use case I can think of so far
