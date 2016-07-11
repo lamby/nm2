@@ -185,7 +185,6 @@
   <thead>
     <tr>
       <th>Requirement</th>
-      <th>Has statements</th>
       <th>Approved by</th>
       <th>Approved date</th>
       <th>Notes</th>
@@ -196,7 +195,6 @@
     <tr>
       {% with req.compute_status as rstatus %}
       <td><a href="{{req.get_absolute_url}}">{{req}}</a></td>
-      <td>{{rstatus.satisfied|yesno}}</td>
       <td>
         {% if req.approved_by %}
           {{req.approved_by.a_link}}
