@@ -48,6 +48,7 @@ def person_to_json(p, **kw):
     res = model_to_dict(p, **kw)
     res["fullname"] = p.fullname
     res["url"] = p.get_absolute_url()
+    res["fpr"] = p.fpr
     return res
 
 class People(APIVisitorMixin, View):
@@ -65,26 +66,21 @@ class People(APIVisitorMixin, View):
             # Build query
             people = bmodels.Person.objects.all()
 
-            val = request.GET.get("cn", "")
-            if val: people = people.filter(cn__icontains=val)
+            for arg in "cn", "mn", "sn", "email", "uid":
+                val = request.GET.get(arg, None)
+                if val is None: continue
+                if val.startswith("/") and val.endswith("/"):
+                    args = { arg + "__regex": val.strip("/") }
+                else:
+                    args = { arg + "__iexact": val }
+                people = people.filter(**args)
 
-            val = request.GET.get("mn", "")
-            if val: people = people.filter(mn__icontains=val)
+            val = request.GET.get("fpr", None)
+            if val is not None:
+                people = people.filter(fprs__fpr__endswith=val)
 
-            val = request.GET.get("sn", "")
-            if val: people = people.filter(sn__icontains=val)
-
-            val = request.GET.get("email", "")
-            if val: people = people.filter(email__icontains=val)
-
-            val = request.GET.get("uid", "")
-            if val: people = people.filter(uid__icontains=val)
-
-            val = request.GET.get("fpr", "")
-            if val: people = people.filter(fprs__fpr__icontains=val)
-
-            val = request.GET.get("status", "")
-            if val: people = people.filter(status=val)
+            val = request.GET.get("status", None)
+            if val is not None: people = people.filter(status=val)
 
             if self.visitor and self.visitor.is_admin:
                 val = request.GET.get("fd_comment", "")
@@ -95,6 +91,8 @@ class People(APIVisitorMixin, View):
 
             return json_response(dict(r=res))
         except Exception as e:
+            #import traceback
+            #traceback.print_exc()
             return json_response(dict(e=str(e)), status_code=500)
 
 

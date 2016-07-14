@@ -44,15 +44,19 @@ curl -H "Api-Key: YourAPIKeyValue" {% url 'api_status' %}
     </tbody>
 </table>
 
-<p>All matches are case insensitive substring searches, except for 'status'
-which matches exactly.</p>
+<p>All matches are case insensitive full string matches, except for 'status'
+which matches exactly, and 'fpr' which matches case insensitively at the end of
+the fingerprint.</p>
+
+<p>For cn, mn, sn, email and uid, you can use <tt>/value/</tt> to match with a
+case insensitive regular expression.</p>
 
 <p>Results will only contain an 'email' field if the request is made by
 authenticated people.</p>
 
 <p>Example:</p>
 <pre>
-$ curl https://nm.debian.org/api/people?cn=nric
+$ curl https://nm.debian.org/api/people?cn=/nric/
 {
  "r": [
   {
