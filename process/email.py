@@ -254,6 +254,46 @@ I hope you have a good time, and if you need anything please mail nm@debian.org.
             msg.subject)
 
 
+def notify_new_dd(process, request=None):
+    """
+    Render a notification email template for an AM assignment, then send the
+    resulting email.
+    """
+    if request is None:
+        url = "https://{}{}".format(
+            Site.objects.get_current().domain,
+            process.get_absolute_url())
+    else:
+        url = request.build_absolute_uri(process.get_absolute_url())
+
+    body = """Hello,
+
+{process.person.fullname} has just become a {status}.
+
+The nm.debian.org page for this process is at {url}
+
+Debian New Member Front Desk
+"""
+
+    body = body.format(process=process, status=const.ALL_STATUS_DESCS[process.applying_for], url=url)
+
+    msg = build_django_message(
+        email.utils.formataddr((
+            Header("nm.debian.org", "utf-8").encode(),
+            Header("nm@debian.org", "utf-8").encode()
+        )),
+        to=["leader@debian.org"],
+        subject="New {}: {}".format(const.ALL_STATUS_DESCS[process.applying_for], process.person.fullname),
+        body=body)
+    msg.send()
+    log.debug("sent mail from %s to %s cc %s bcc %s subject %s",
+            msg.from_email,
+            ", ".join(msg.to),
+            ", ".join(msg.cc),
+            ", ".join(msg.bcc),
+            msg.subject)
+
+
 def ping_process(pinger, process, message=None, request=None):
     """
     Render a notification email template for pinging a stuck process, then send

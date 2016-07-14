@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 from django.utils.timezone import now
 from backend import const
 from backend.ops import Operation
+from .email import notify_new_dd
 from . import models as pmodels
 import logging
 
@@ -33,6 +34,10 @@ class CloseProcess(Operation):
         self.process.person.status = self.process.applying_for
         self.process.person.status_changed = self.logdate
         self.process.person.save(audit_author=self.audit_author, audit_notes=self.logtext)
+        # Mail leader@debian.org as requested by mehdi via IRC on 2016-07-14
+        if self.process.applying_for in (const.STATUS_DD_NU, const.STATUS_DD_U):
+            notify_new_dd(self.process)
+
 
     def to_dict(self):
         res = super(CloseProcess, self).to_dict()
