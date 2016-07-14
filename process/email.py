@@ -256,8 +256,8 @@ I hope you have a good time, and if you need anything please mail nm@debian.org.
 
 def notify_new_dd(process, request=None):
     """
-    Render a notification email template for an AM assignment, then send the
-    resulting email.
+    Render a notification email template to let leader@debian.org know of new
+    DDs, then send the resulting email.
     """
     if request is None:
         url = "https://{}{}".format(
