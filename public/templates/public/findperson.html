@@ -42,9 +42,17 @@ $(function() {
 
         // Check if the form has been filled
         var has_data = false;
+        var data = {};
+        var re_fields = { "cn": true, "mn": true, "sn": true, "email": true, "uid": true }
         $.each(form.serializeArray(), function(idx, val) {
             if (val.name == "csrfmiddlewaretoken") return;
-            if (val.value != "") has_data = true;
+            if (val.value == "") return;
+            has_data = true;
+            console.log("NAME", val.name, re_fields[val.name])
+            if (re_fields[val.name])
+              data[val.name] = "/" + val.value.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1") + "/";
+            else
+              data[val.name] = val.value;
         });
 
         // If not, just leave stuff hidden and do nothing
@@ -54,7 +62,7 @@ $(function() {
             return;
         }
 
-        $.getJSON("{% url 'api_people' %}?" + query, function(data, textStatus, jqXHR) {
+        $.getJSON("{% url 'api_people' %}", data, function(data, textStatus, jqXHR) {
             tbody.empty();
             $.each(data.r, function(idx, val) {
                 var st = ALL_STATUS[val.status];
