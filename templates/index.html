@@ -3,37 +3,51 @@
 
 {% block content %}
 
-<div id="intro">
-    <p>{% trans "This is the New Member Process website." %}</p>
-</div>
+<h1>{% trans "Debian New Members" %}</h1>
 
-General site features, available to all:
+<p>
+ {% blocktrans %}Welcome to the New Members administration website.{% endblocktrans %}
+ {% blocktrans %}This is the place to apply for Debian membership, manage an existing application and find out information about members who have completed the process.{% endblocktrans %}
+</p>
 
-<ul>
-    <li><a href="{% url 'people' %}">List of all known people</a></li>
-    <li><a href="{% url 'managers' %}">List of Application Managers</a></li>
-    <li><a href="{% url 'processes' %}">List of open or recent processes</a></li>
-    <li><a href="{% url 'public_stats' %}">Site statistics</a></li>
-    <li><a href="{% url 'public_newnm' %}">Join the NM process</a>
-</ul>
+<p>
+ {% blocktrans %}This is <b>not</b> the place to start if you wish to make a contribution to Debian. Try the <a href="https://www.debian.org/devel/join/">developer's corner</a> instead.{% endblocktrans %}
 
-Site features available to anyone with a web password:
+<h2>{% trans "Quick Start" %}</h2>
+<p>
+  {% url 'wizard_home' as wizurl %}
+  {% blocktrans %}For quick access to common tasks, try the <a href="{{ wizurl }}">site wizard</a>.{% endblocktrans %}
+</p>
 
-<ul>
-    <li><a href="{% url 'restricted_minechangelogs' %}">minechangelogs front-end</a></li>
-</ul>
-
-If you are an Application Manager, you can look at:
+{% trans "General site features, available to all:" %}
 
 <ul>
-    <li><a href="{% url 'restricted_ammain' %}">AM main page</a></li>
-    <li><a href="{% url 'restricted_amprofile' %}">AM personal settings</a></li>
-    <li><a href="{% url 'restricted_db_export' %}">Database export you can use to setup a development site</a></li>
+    <li><a href="{% url 'people' %}">{% trans "List of all known people" %}</a></li>
+    <li><a href="{% url 'managers' %}">{% trans "List of Application Managers" %}</a></li>
+    <li><a href="{% url 'processes' %}">{% trans "List of open or recent processes" %}</a></li>
+    <li><a href="{% url 'public_stats' %}">{% trans "Site statistics" %}</a></li>
+    <li><a href="{% url 'public_newnm' %}">{% trans "Join the NM process" %}</a>
 </ul>
 
-<p>The <a href="https://wiki.debian.org/Teams/FrontDesk">Debian Front Desk</a> is the team responsible for the running of the NM process: you can contact them at <a href="mailto:nm@debian.org">nm@debian.org</a></p>
+{% trans "Site features available to anyone with a web password:" %}
 
-If you would like to help with site development, have a look at
-<a href="https://wiki.debian.org/Teams/FrontDesk/NmSiteDevel">the TODO list</a> and the list of <a href="https://bugs.debian.org/cgi-bin/pkgreport.cgi?pkg=nm.debian.org;dist=unstable">bugs for the nm.d.o website</a>
+<ul>
+    <li><a href="{% url 'restricted_minechangelogs' %}">minechangelogs {% trans "front-end" %}</a></li>
+</ul>
+
+{% trans "If you are an Application Manager, you can look at:" %}
+
+<ul>
+    <li><a href="{% url 'restricted_ammain' %}">{% trans "AM main page" %}</a></li>
+    <li><a href="{% url 'restricted_amprofile' %}">{% trans "AM personal settings" %}</a></li>
+    <li><a href="{% url 'restricted_db_export' %}">{% trans "Database export you can use to setup a development site" %}</a></li>
+</ul>
+
+<h2>{% trans "Contact" %}</h2>
+
+<p>{% blocktrans %}The <a href="https://wiki.debian.org/Teams/FrontDesk">Debian Front Desk</a> is the team responsible for the running of the NM process: you can contact them at <a href="mailto:nm@debian.org">nm@debian.org</a>{% endblocktrans %}</p>
+
+{% blocktrans %}If you would like to help with site development, have a look at
+<a href="https://wiki.debian.org/Teams/FrontDesk/NmSiteDevel">the TODO list</a> and the list of <a href="https://bugs.debian.org/cgi-bin/pkgreport.cgi?pkg=nm.debian.org;dist=unstable">bugs for the nm.d.o website</a>{% endblocktrans %}
 
 {% endblock %}
