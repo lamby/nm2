@@ -13,7 +13,19 @@
 
 {% include "process/requirement_status_widget.html" %}
 
-<p>TODO: explain rationale of keycheck, link to relevent bits</p>
+<!-- explanation of requirement: -->
+<p>Every Debian member needs a GPG key of sufficient strength. In addition, all keys should be certified
+   so we can link them to a real-world identity.</p>
+<p>The normal requirements are:</p>
+<ul>
+  <li>the key should be type RSA and version 4 or greater</li>
+  <li>the key should have the sign, certify and encrypt capabilities (subkeys are encouraged)</li>
+  <li>the primary cryptographic material should be at least 4096 bits</li>
+  <li>the UIDs should be signed by at least two existing Debian members (1 for DM applications)</li>
+  <li>pseudonyms or anonymity are acceptable in certain circumstances</li>
+</ul>
+<p>If the key does not meet these requirements, and you would struggle to create one which does, contact Front Desk.</p>
+<p><b>This check will be approved manually by Front Desk as the application progresses.</b></p>
 
 <h2>Keycheck results</h2>
 
