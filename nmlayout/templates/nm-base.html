@@ -77,22 +77,23 @@ $(main);
   {% if visitor.is_admin and person.can_become_am %}<a href="{% url 'admin:backend_am_add' %}?person={{person.id}}">make am</a>{% endif %}
   {% if visitor != person and visitor.is_admin %}<a href="{% url 'impersonate' key=person.lookup_key %}?url={{request.build_absolute_uri}}">impersonate</a>{% endif %}
 {% endif %}
+
 {% if user.is_anonymous %}
  {% if request.sso_username %}
-  <a href="{% url 'dm_claim' %}">{{request.sso_username}} not known to this site yet</a>
+  {{request.sso_username}} (not known to this site yet) <a href="{% url 'dm_claim' %}">claim account</a>
  {% else %}
   <a href="https://sso.debian.org/sso/login?url={{request.build_absolute_uri}}&site=NM">login</a>
  {% endif %}
 {% else %}
  {% if visitor.is_am %}
-  <a href="{% url 'restricted_ammain' %}">{{visitor.lookup_key}}</a>
- {% else %}
-  <a href="{{visitor.get_absolute_url}}">{{visitor.lookup_key}}</a>
+  <a href="{% url 'restricted_ammain' %}">am dashboard</a>
  {% endif %}
+ <a href="{{visitor.get_absolute_url}}">{{visitor.lookup_key}}</a>
 {% endif %}
 {% if request.sso_username %}
  {% if not request.debsso_uses_certs %}<a href="https://sso.debian.org/sso/logout?url={{request.build_absolute_uri}}">logout</a>{% endif %}
 {% endif %}
+
 {% comment %}
     <a href="{% url 'search_packages' %}">Search</a>
     <a href="{% url 'report_todo' %}">TODO list</a>
