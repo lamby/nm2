@@ -1,4 +1,4 @@
-# coding: utf8
+# coding: utf-8
 # nm.debian.org website API
 #
 # Copyright (C) 2012--2014  Enrico Zini <enrico@debian.org>
