@@ -268,7 +268,7 @@ def notify_new_dd(process, request=None):
 
     body = """Hello,
 
-{process.person.fullname} has just become a {status}.
+{process.person.fullname} <{process.person.uid}> has just become a {status}.
 
 The nm.debian.org page for this process is at {url}
 
@@ -283,7 +283,7 @@ Debian New Member Front Desk
             Header("nm@debian.org", "utf-8").encode()
         )),
         to=["leader@debian.org"],
-        subject="New {}: {}".format(const.ALL_STATUS_DESCS[process.applying_for], process.person.fullname),
+        subject="New {}: {} <{}>".format(const.ALL_STATUS_DESCS[process.applying_for], process.person.fullname, process.person.uid),
         body=body)
     msg.send()
     log.debug("sent mail from %s to %s cc %s bcc %s subject %s",
