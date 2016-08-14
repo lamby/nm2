@@ -16,8 +16,8 @@
 <p>If you are already in the site, for example as a Debian Maintainer, you can
    try to correct the situation using the <a href="{% url 'dm_claim' %}">claim
    interface</a>.</p>
-<p>If you are not yet in the site, you can create an entry for yourself at
-   {% url 'public_newnm' %}.</p>
+<p>If you are not yet in the site, <a href="{% url 'public_newnm' %}">visit
+   this page</a> to can create an entry for yourself.</p>
 {% else %}
   {% for c in comments %}<p>{{c}}</p>{% endfor %}
 
