@@ -1,6 +1,6 @@
 <div class="tip">
   <p>
-  {% if request.user.is_authenticated %}
+  {% if request.sso_username %}
     {% if visitor %}
       You are currently logged in with <a href="https://wiki.debian.org/DebianSingleSignOn">SSO username</a> <b>{{request.user.username}}</b>,
       and recognized as {{visitor.a_link}}.
