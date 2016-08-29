@@ -60,10 +60,15 @@ class AMMain(VisitorTemplateView):
 
         import process.models as pmodels
         processes = []
+        approved_processes = []
         for p in pmodels.Process.objects.filter(closed__isnull=True).order_by("applying_for"):
             if not self._show_process(p): continue
-            processes.append(p)
+            if p.approved:
+                approved_processes.append(p)
+            else:
+                processes.append(p)
         ctx["current_processes"] = processes
+        ctx["approved_processes"] = approved_processes
 
         ctx["am_available"] = bmodels.AM.list_available(free_only=True)
 

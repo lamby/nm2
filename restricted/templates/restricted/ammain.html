@@ -58,6 +58,12 @@ $(function() {
 
 {% include "process/process_list.html" with procs=current_processes %}
 
+{% if approved_processes %}
+<h3>Processes approved but not yet closed</h3>
+
+{% include "process/process_list.html" with procs=approved_processes %}
+{% endif %}
+
 <h3>Application manager availability</h3>
 
 {% if am_available %}
