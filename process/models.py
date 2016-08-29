@@ -228,6 +228,14 @@ class Process(models.Model):
         return reverse("admin:process_process_change", args=[self.pk])
 
     @property
+    def approved(self):
+        return self.approved_by is not None
+
+    @property
+    def frozen(self):
+        return self.frozen_by is not None
+
+    @property
     def a_link(self):
         from django.utils.safestring import mark_safe
         from django.utils.html import conditional_escape
