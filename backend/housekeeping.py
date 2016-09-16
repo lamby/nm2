@@ -52,7 +52,7 @@ class Housekeeper(hk.Task):
             self.user = bmodels.Person.objects.create_user(
                 username="__housekeeping__",
                 is_staff=False,
-                cn="Housekeeping",
+                cn="nm.debian.org Housekeeping",
                 sn="Robot",
                 email="nm@debian.org",
                 bio="I am the robot that runs the automated tasks in the site",

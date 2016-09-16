@@ -334,7 +334,7 @@ If you need help with anything, please mail nm@debian.org.
         pinger,
         to=to,
         cc=[process.archive_email, "nm@debian.org"],
-        subject="Process stuck?",
+        subject="NM process stuck?",
         body="".join(body))
     msg.send()
     log.debug("sent mail from %s to %s cc %s bcc %s subject %s",
