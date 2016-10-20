@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import unicode_literals
 from django.utils.timezone import now, utc
 from backend import const
+from process.email import notify_new_dd
 from . import models as bmodels
 import datetime
 import logging
@@ -201,6 +202,12 @@ class CloseOldProcess(Operation):
         self.process.progress = const.PROGRESS_DONE
         self.process.is_active = False
         self.process.save()
+        self.process.person.status = self.process.applying_for
+        self.process.person.status_changed = self.logdate
+        self.process.person.save(audit_author=self.audit_author, audit_notes=self.logtext)
+        # Mail leader@debian.org as requested by mehdi via IRC on 2016-07-14
+        if self.process.applying_for in (const.STATUS_DD_NU, const.STATUS_DD_U):
+            notify_new_dd(self.process)
 
     def to_dict(self):
         res = super(CloseOldProcess, self).to_dict()
