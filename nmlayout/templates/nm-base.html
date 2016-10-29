@@ -82,20 +82,13 @@ $(main);
  {% if request.sso_username %}
   {{request.sso_username}} (not known to this site yet) <a href="{% url 'dm_claim' %}">claim account</a>
  {% else %}
-  {% if we_cannot_have_nice_things %}
-  <a href="https://sso.debian.org/sso/login?url={{request.build_absolute_uri}}&site=NM">login</a>
-  {% else %}
   <a href="https://wiki.debian.org/DebianSingleSignOn#Debian_SSO_documentation">login</a>
-  {% endif %}
  {% endif %}
 {% else %}
  {% if visitor.is_am %}
   <a href="{% url 'restricted_ammain' %}">am dashboard</a>
  {% endif %}
  <a href="{{visitor.get_absolute_url}}">{{visitor.lookup_key}}</a>
-{% endif %}
-{% if request.sso_username %}
- {% if not request.debsso_uses_certs %}<a href="https://sso.debian.org/sso/logout?url={{request.build_absolute_uri}}">logout</a>{% endif %}
 {% endif %}
 
 {% comment %}
