@@ -5,7 +5,6 @@ from __future__ import division
 from __future__ import unicode_literals
 from django.conf.urls import patterns, include, url
 from django.views.generic import TemplateView
-from django_dacs import views as django_dacs_views
 from backend.mixins import VisitorTemplateView
 
 # Uncomment the next two lines to enable the admin:
@@ -34,6 +33,4 @@ urlpatterns = [
 
     # Uncomment the next line to enable the admin:
     url(r'^admin/', include(admin.site.urls)),
-
-    url(r'^logout/', django_dacs_views.logout),
 ]

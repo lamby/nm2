@@ -45,7 +45,7 @@ def tempdir_gpg():
         gpg = GPG(homedir=homedir, use_default_keyring=True)
         yield gpg
     finally:
-        shutil.rmtree(homedir)
+        shutil.rmtree(homedir, ignore_errors=True)
 
 
 class KeyManager(models.Manager):

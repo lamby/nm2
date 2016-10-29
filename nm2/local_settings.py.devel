@@ -9,14 +9,9 @@ TEMPLATE_DEBUG = True
 TESTING = 'test' in sys.argv
 
 if not TESTING:
-    # FIXME What is correct format for TEST_USERNAME? Current format ("username")
-    #   causes IndexError at backend/auth.py NMUserBackend:clean_username
-    #   (expects DACS_TEST_USERNAME to be in format
-    #   "something:something:something:username"
-    #DACS_TEST_USERNAME = "NM::DEBIAN:enrico-guest@users.alioth.debian.org"
-    #DACS_TEST_USERNAME = "NM::DEBIAN:enrico"
-    CERT_TEST_USERNAME = "enrico@debian.org"
-    #pass
+    # Override user authentication when running locally
+    TEST_USER = "enrico@debian.org"
+    #TEST_USER = "enrico-guest@users.alioth.debian.org"
 
 # Avoid sending emails
 EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'

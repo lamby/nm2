@@ -23,9 +23,9 @@ from __future__ import unicode_literals
 from django import http
 from django.shortcuts import redirect
 import backend.models as bmodels
-from django_dacs.auth import DACSUserBackend
+from django.contrib.auth.backends import RemoteUserBackend
 
-class NMUserBackend(DACSUserBackend):
+class NMUserBackend(RemoteUserBackend):
     """
     RemoteUserBackend customised to create User objects from Person
     """

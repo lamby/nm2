@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 from . import models as bmodels
 from . import const
 from django.core.urlresolvers import reverse
-from django.test import Client
+from django.test import Client, override_settings
 from django.utils.timezone import now
 import datetime
 import re
@@ -22,11 +22,9 @@ class NMFactoryMixin(object):
 
     def make_user(self, tag, status, alioth=False, **kw):
         if alioth:
-            remote_user = "NM::DEBIAN:{}-guest@users.alioth.debian.org".format(tag)
             uid = tag + "-guest"
             username = uid + "@users.alioth.debian.org"
         else:
-            remote_user = "NM::DEBIAN:{}".format(tag)
             uid = tag
             username = uid + "@debian.org"
 
@@ -38,7 +36,6 @@ class NMFactoryMixin(object):
                                     status=status,
                                     audit_skip=True,
                                     **kw)
-        res.remote_user = remote_user
         self.users[tag] = res
         return res
 
@@ -223,9 +220,13 @@ class NMTestUtilsMixin(object):
 
         meth = getattr(test_client, when.method)
         kw = { "data": when.data }
-        if when.user is not None: kw["REMOTE_USER"] = when.user.remote_user
         if when.data_content_type: kw["content_type"] = when.data_content_type
-        response = meth(when.url, **kw)
+        if when.user:
+            with override_settings(TEST_USER=when.user.username):
+                response = meth(when.url, **kw)
+        else:
+            with override_settings(TEST_USER=None):
+                response = meth(when.url, **kw)
 
         try:
             then(self, response, when, test_client)
