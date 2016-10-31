@@ -147,7 +147,11 @@ class AddProcessLog(VisitProcessMixin, View):
             self.process.save()
 
         if logtext:
-            target.add_log(self.visitor, logtext, action=action if action else "", is_public=is_public)
+            entry = target.add_log(self.visitor, logtext, action=action if action else "", is_public=is_public)
+            if not action:
+                from .email import notify_new_log_entry
+                notify_new_log_entry(entry, request)
+
         return redirect(target.get_absolute_url())
 
 

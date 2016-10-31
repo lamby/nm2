@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 from django.test import TestCase
 from django.core.urlresolvers import reverse
 from django.utils.timezone import now, utc
+from django.core import mail
 from backend import const
 from mock import patch
 from .common import ProcessFixtureMixin, get_all_process_types
@@ -85,6 +86,7 @@ class TestLog(ProcessFixtureMixin, TestCase):
         with patch.object(pmodels.Process, "permissions_of", return_value=set()):
             response = client.post(self.url, data={"logtext": logtext, "add_action": "log_private"})
             self.assertFailed(response, logtext)
+            self.assertEqual(len(mail.outbox), 0)
 
         with patch.object(pmodels.Process, "permissions_of", return_value=set(["add_log"])):
             response = client.post(self.url, data={"logtext": logtext, "add_action": "log_private"})
@@ -96,6 +98,7 @@ class TestLog(ProcessFixtureMixin, TestCase):
             self.assertProcUnchanged()
             self.assertIntentUnchanged()
             self.assertAmOkUnchanged()
+            self.assertEqual(len(mail.outbox), 1)
 
     def test_process_log_public(self):
         client = self.make_test_client(self.visitor)
@@ -104,6 +107,7 @@ class TestLog(ProcessFixtureMixin, TestCase):
         with patch.object(pmodels.Process, "permissions_of", return_value=set()):
             response = client.post(self.url, data={"logtext": logtext, "add_action": "log_public"})
             self.assertFailed(response, logtext)
+            self.assertEqual(len(mail.outbox), 0)
 
         with patch.object(pmodels.Process, "permissions_of", return_value=set(["add_log"])):
             response = client.post(self.url, data={"logtext": logtext, "add_action": "log_public"})
@@ -115,6 +119,7 @@ class TestLog(ProcessFixtureMixin, TestCase):
             self.assertProcUnchanged()
             self.assertIntentUnchanged()
             self.assertAmOkUnchanged()
+            self.assertEqual(len(mail.outbox), 1)
 
     def test_process_proc_freeze(self):
         with patch("process.views.now") as mock_now:
@@ -125,6 +130,7 @@ class TestLog(ProcessFixtureMixin, TestCase):
             with patch.object(pmodels.Process, "permissions_of", return_value=set()):
                 response = client.post(self.url, data={"logtext": logtext, "add_action": "proc_freeze"})
                 self.assertFailed(response, logtext)
+                self.assertEqual(len(mail.outbox), 0)
 
             with patch.object(pmodels.Process, "permissions_of", return_value=set(["proc_freeze"])):
                 response = client.post(self.url, data={"logtext": logtext, "add_action": "proc_freeze"})
@@ -141,6 +147,7 @@ class TestLog(ProcessFixtureMixin, TestCase):
                 self.assertEqual(self.processes.app.closed, self.orig_ts)
                 self.assertIntentUnchanged()
                 self.assertAmOkUnchanged()
+                self.assertEqual(len(mail.outbox), 0)
 
     def test_process_proc_unfreeze(self):
         with patch("process.views.now") as mock_now:
@@ -151,6 +158,7 @@ class TestLog(ProcessFixtureMixin, TestCase):
             with patch.object(pmodels.Process, "permissions_of", return_value=set()):
                 response = client.post(self.url, data={"logtext": logtext, "add_action": "proc_unfreeze"})
                 self.assertFailed(response, logtext)
+                self.assertEqual(len(mail.outbox), 0)
 
             with patch.object(pmodels.Process, "permissions_of", return_value=set(["proc_unfreeze"])):
                 response = client.post(self.url, data={"logtext": logtext, "add_action": "proc_unfreeze"})
@@ -167,6 +175,7 @@ class TestLog(ProcessFixtureMixin, TestCase):
                 self.assertEqual(self.processes.app.closed, self.orig_ts)
                 self.assertIntentUnchanged()
                 self.assertAmOkUnchanged()
+                self.assertEqual(len(mail.outbox), 0)
 
     def test_process_proc_approve(self):
         with patch("process.views.now") as mock_now:
@@ -177,6 +186,7 @@ class TestLog(ProcessFixtureMixin, TestCase):
             with patch.object(pmodels.Process, "permissions_of", return_value=set()):
                 response = client.post(self.url, data={"logtext": logtext, "add_action": "proc_approve"})
                 self.assertFailed(response, logtext)
+                self.assertEqual(len(mail.outbox), 0)
 
             with patch.object(pmodels.Process, "permissions_of", return_value=set(["proc_approve"])):
                 response = client.post(self.url, data={"logtext": logtext, "add_action": "proc_approve"})
@@ -193,6 +203,7 @@ class TestLog(ProcessFixtureMixin, TestCase):
                 self.assertEqual(self.processes.app.closed, self.orig_ts)
                 self.assertIntentUnchanged()
                 self.assertAmOkUnchanged()
+                self.assertEqual(len(mail.outbox), 0)
 
     def test_process_proc_unapprove(self):
         with patch("process.views.now") as mock_now:
@@ -203,6 +214,7 @@ class TestLog(ProcessFixtureMixin, TestCase):
             with patch.object(pmodels.Process, "permissions_of", return_value=set()):
                 response = client.post(self.url, data={"logtext": logtext, "add_action": "proc_unapprove"})
                 self.assertFailed(response, logtext)
+                self.assertEqual(len(mail.outbox), 0)
 
             with patch.object(pmodels.Process, "permissions_of", return_value=set(["proc_unapprove"])):
                 response = client.post(self.url, data={"logtext": logtext, "add_action": "proc_unapprove"})
@@ -219,6 +231,7 @@ class TestLog(ProcessFixtureMixin, TestCase):
                 self.assertEqual(self.processes.app.closed, self.orig_ts)
                 self.assertIntentUnchanged()
                 self.assertAmOkUnchanged()
+                self.assertEqual(len(mail.outbox), 0)
 
     def test_process_req_approve(self):
         with patch("process.views.now") as mock_now:
@@ -229,6 +242,7 @@ class TestLog(ProcessFixtureMixin, TestCase):
             with patch.object(pmodels.Requirement, "permissions_of", return_value=set()):
                 response = client.post(self.url, data={"logtext": logtext, "add_action": "req_approve", "req_type": "intent"})
                 self.assertFailed(response, logtext)
+                self.assertEqual(len(mail.outbox), 0)
 
             with patch.object(pmodels.Requirement, "permissions_of", return_value=set(["req_approve"])):
                 response = client.post(self.url, data={"logtext": logtext, "add_action": "req_approve", "req_type": "intent"})
@@ -243,6 +257,7 @@ class TestLog(ProcessFixtureMixin, TestCase):
                 self.assertEqual(self.req_intent.approved_by, self.visitor)
                 self.assertEqual(self.req_intent.approved_time, mock_ts)
                 self.assertAmOkUnchanged()
+                self.assertEqual(len(mail.outbox), 0)
 
     def test_process_req_unapprove(self):
         with patch("process.views.now") as mock_now:
@@ -253,6 +268,7 @@ class TestLog(ProcessFixtureMixin, TestCase):
             with patch.object(pmodels.Requirement, "permissions_of", return_value=set()):
                 response = client.post(self.url, data={"logtext": logtext, "add_action": "req_unapprove", "req_type": "intent"})
                 self.assertFailed(response, logtext)
+                self.assertEqual(len(mail.outbox), 0)
 
             with patch.object(pmodels.Requirement, "permissions_of", return_value=set(["req_unapprove"])):
                 response = client.post(self.url, data={"logtext": logtext, "add_action": "req_unapprove", "req_type": "intent"})
@@ -267,3 +283,4 @@ class TestLog(ProcessFixtureMixin, TestCase):
                 self.assertIsNone(self.req_intent.approved_by)
                 self.assertIsNone(self.req_intent.approved_time)
                 self.assertAmOkUnchanged()
+                self.assertEqual(len(mail.outbox), 0)

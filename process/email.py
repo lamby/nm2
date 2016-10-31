@@ -205,6 +205,50 @@ def notify_new_statement(statement, request=None):
             msg.subject)
 
 
+def notify_new_log_entry(entry, request=None):
+    """
+    Render a notification email template for a newly uploaded process log
+    entry, then send the resulting email.
+    """
+    process = entry.process
+
+    if request is None:
+        url = "https://{}{}".format(
+            Site.objects.get_current().domain,
+            process.get_absolute_url())
+    else:
+        url = request.build_absolute_uri(process.get_absolute_url())
+
+    body = """{entry.logtext}
+
+{entry.changed_by.fullname} (via nm.debian.org)
+"""
+    body += "-- \n"
+    body += "{url}\n"
+    body = body.format(entry=entry, url=url)
+
+    if entry.is_public:
+        cc = [process.person, process.archive_email]
+        subject = "{}: new public log entry".format(process.person.fullname)
+    else:
+        cc = []
+        subject = "{}: new private log entry".format(process.person.fullname)
+
+    msg = build_django_message(
+        entry.changed_by,
+        to="nm@debian.org",
+        cc=cc,
+        subject=subject,
+        body=body)
+    msg.send()
+    log.debug("sent mail from %s to %s cc %s bcc %s subject %s",
+            msg.from_email,
+            ", ".join(msg.to),
+            ", ".join(msg.cc),
+            ", ".join(msg.bcc),
+            msg.subject)
+
+
 def notify_am_assigned(assignment, request=None):
     """
     Render a notification email template for an AM assignment, then send the
