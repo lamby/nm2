@@ -66,10 +66,8 @@ class ProcessVisitorPermissions(bmodels.PersonVisitorPermissions):
                     self.update(("proc_unfreeze", "proc_approve"))
         elif self.visitor == self.person:
             self.add("view_mbox")
-            self.add("view_private_log")
         elif self.visitor.is_active_am:
             self.add("view_mbox")
-            self.add("view_private_log")
         # TODO: advocates of this process can see the mailbox(?)
         #elif self.process.advocates.filter(pk=self.visitor.pk).exists():
         #    self.add("view_mbox")

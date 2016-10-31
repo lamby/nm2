@@ -25,9 +25,9 @@ class ProcExpected(object):
 
     def patch_generic_process_started(self):
         self.proc.set("app dd_nu dd_u activeam fd dam", "update_keycheck view_person_audit_log")
-        self.proc.patch("activeam fd dam app", "+edit_bio +edit_ldap +view_mbox +view_private_log")
+        self.proc.patch("activeam fd dam app", "+edit_bio +edit_ldap +view_mbox")
         self.proc.patch("fd dam app", "+request_new_status +edit_email")
-        self.proc.patch("fd dam", "+proc_freeze +fd_comments +am_assign")
+        self.proc.patch("fd dam", "+proc_freeze +fd_comments +am_assign +view_private_log")
         self.proc.patch("dc dc_ga dm dm_ga dd_nu dd_u dd_e dd_r activeam fd dam app", "+add_log")
         self.intent.patch("fd dam app", "+edit_statements")
         self.intent.patch("activeam fd dam dd_nu dd_u", "+req_approve")
@@ -38,7 +38,7 @@ class ProcExpected(object):
         if self.keycheck is not None:
             pass
         if self.am_ok is not None:
-            self.proc.patch("am", "+update_keycheck +view_person_audit_log +edit_bio +edit_ldap +view_mbox +view_private_log +add_log")
+            self.proc.patch("am", "+update_keycheck +view_person_audit_log +edit_bio +edit_ldap +view_mbox +add_log")
             self.intent.patch("am", "+req_approve")
             self.sc_dmup.patch("am", "+req_approve")
             if self.advocate:
@@ -47,7 +47,7 @@ class ProcExpected(object):
 
     def patch_generic_process_am_assigned(self):
         self.proc.patch("fd dam", "-am_assign +am_unassign")
-        self.proc.patch("am", "+fd_comments +am_unassign")
+        self.proc.patch("am", "+fd_comments +am_unassign +view_private_log")
         self.am_ok.patch("am", "+edit_statements")
         self.am_ok.patch("activeam", "+req_approve")
 
