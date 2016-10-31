@@ -18,6 +18,8 @@ class TestProcessShow(ProcessFixtureMixin, TestCase):
     @classmethod
     def setUpClass(cls):
         super(TestProcessShow, cls).setUpClass()
+        cls.visitor = cls.persons.dc
+
         cls.persons.create("app", status=const.STATUS_DC)
         cls.processes.create("app", person=cls.persons.app, applying_for=const.STATUS_DD_U, fd_comment="test")
         cls.persons.create("am", status=const.STATUS_DD_NU)
@@ -26,8 +28,7 @@ class TestProcessShow(ProcessFixtureMixin, TestCase):
 
         cls.processes.app.add_log(cls.persons.fd, "xxxx_public_xxxx", is_public=True)
         cls.processes.app.add_log(cls.persons.fd, "xxxx_private_xxxx", is_public=False)
-
-        cls.visitor = cls.persons.dc
+        cls.processes.app.add_log(cls.visitor, "xxxx_ownprivate_xxxx", is_public=False)
 
         cls.page_elements = PageElements()
         cls.page_elements.add_id("view_fd_comment")
@@ -41,11 +42,12 @@ class TestProcessShow(ProcessFixtureMixin, TestCase):
         cls.page_elements.add_id("proc_unapprove")
         cls.page_elements.add_string("view_public_log", "xxxx_public_xxxx")
         cls.page_elements.add_string("view_private_log", "xxxx_private_xxxx")
+        cls.page_elements.add_string("view_ownprivate_log", "xxxx_ownprivate_xxxx")
 
     def assertPageElements(self, response):
         # Check page elements based on visit_perms
         visit_perms = self.processes.app.permissions_of(self.visitor)
-        wanted = ["view_public_log"]
+        wanted = ["view_public_log", "view_ownprivate_log"]
         if "fd_comments" in visit_perms:
             wanted.append("view_fd_comment")
         if "add_log" in visit_perms:
