@@ -324,6 +324,7 @@ class CheckDjangoPermissions(hk.Task):
             log.warning("%s: bmodels.Person.id %d (%s) has powers in bmodels.AM that bmodels.Person does not know about",
                         self.IDENTIFIER, id, p.lookup_key)
 
+
 class DDUsernames(hk.Task):
     """
     Make sure that people with a DD status have a DD SSO username
@@ -332,20 +333,25 @@ class DDUsernames(hk.Task):
 
     @transaction.atomic
     def run_main(self, stage):
-        dd_statuses = (const.STATUS_DD_U, const.STATUS_DD_NU,
-                       const.STATUS_EMERITUS_DD, const.STATUS_EMERITUS_DM,
-                       const.STATUS_REMOVED_DD, const.STATUS_REMOVED_DM)
-        for p in bmodels.Person.objects.filter(status__in=dd_statuses):
+        dd_statuses = (const.STATUS_DD_U, const.STATUS_DD_NU)
+        post_dd_statuses = (const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD)
+        for p in bmodels.Person.objects.filter(status__in=dd_statuses + post_dd_statuses):
             if p.uid is None:
                 log.warning("%s: %s has status %s but uid is empty",
                             self.IDENTIFIER, self.hk.link(p), p.status)
                 continue
-            if p.username.endswith("@debian.org"): continue
-            new_username = p.uid + "@debian.org"
-            log.info("%s: %s has status %s but an alioth username: setting username to %s",
-                        self.IDENTIFIER, self.hk.link(p), p.status, new_username)
-            p.username = new_username
-            p.save(audit_author=self.hk.housekeeper.user, audit_notes="updated SSO username to @debian.org version")
+            if p.status in dd_statuses:
+                canonical_username = "{}@debian.org".format(p.uid)
+            elif p.status in post_dd_statuses:
+                canonical_username = "{}@users.alioth.debian.org".format(p.uid)
+
+            if p.username == canonical_username: continue
+            log.info("%s: %s has status %s and username %s: setting username to %s",
+                        self.IDENTIFIER, self.hk.link(p), p.status, p.username, canonical_username)
+            if not self.hk.dry_run:
+                p.username = canonical_username
+                p.save(audit_author=self.hk.housekeeper.user, audit_notes="updated SSO username to canonical version for the person's status")
+
 
 class CheckOneActiveKeyPerPerson(hk.Task):
     """
