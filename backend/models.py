@@ -84,7 +84,7 @@ class PersonVisitorPermissions(VisitorPermissions):
             const.PROGRESS_CANCELLED,
         ))
         import process.models as pmodels
-        if pmodels.Process.objects.filter(person=self.person, frozen_by__isnull=False).exists():
+        if pmodels.Process.objects.filter(person=self.person, frozen_by__isnull=False, closed__isnull=True).exists():
             self.person_has_frozen_processes = True
         elif Process.objects.filter(person=self.person, is_active=True, progress__in=old_frozen_progesses).exists():
             self.person_has_frozen_processes = True
