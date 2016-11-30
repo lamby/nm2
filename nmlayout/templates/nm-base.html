@@ -97,6 +97,10 @@ $(main);
     <a href="{% url 'editor_index' %}">Editor</a>
     <a href="{% url 'statistics' %}">Statistics</a>
 {% endcomment %}
+{% if impersonator %}
+<br>
+Perms:{% for perm in visit_perms %} {{perm}}{% endfor %}
+{% endif %}
 {% endblock %}
 
 {% block content %}
