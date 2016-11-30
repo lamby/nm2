@@ -75,6 +75,7 @@ class ProcExpected(object):
         self.proc.patch("fd dam", "-proc_unfreeze -proc_approve +proc_unapprove")
 
     def patch_generic_process_closed(self):
+        self.proc.patch("activeam app", "+edit_bio")
         self.proc.patch("fd dam", "-proc_unapprove")
         self.proc.patch("dc dc_ga dm dm_ga dd_nu dd_u dd_e dd_r activeam fd dam app", "-add_log")
         self.intent.patch("fd dam", "-edit_statements -req_approve")
@@ -84,7 +85,7 @@ class ProcExpected(object):
         if self.keycheck is not None:
             pass
         if self.am_ok is not None:
-            self.proc.patch("am", "-add_log")
+            self.proc.patch("am", "-add_log +edit_bio")
             self.am_ok.patch("fd dam", "-edit_statements -req_approve")
 
 
@@ -247,6 +248,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         # Finalize
         self._close_process()
         expected.patch_generic_process_closed()
+        expected.proc.patch("app activeam", "+edit_ldap")
         expected.starts.patch("-dc_ga -dm +dm_ga")
         self.assertPerms(expected)
 
