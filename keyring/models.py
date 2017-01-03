@@ -547,7 +547,7 @@ class KeycheckKeyResult(object):
         if keysize >= 4096:
             pass
         elif keysize >= 2048:
-            self.errors.add("key_size_2048")
+            self.errors.add("key_size_" + str(keysize))
         else:
             self.errors.add("key_size_small")
 
