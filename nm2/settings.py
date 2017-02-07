@@ -94,7 +94,7 @@ TEMPLATE_LOADERS = (
 #     'django.template.loaders.eggs.Loader',
 )
 
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE_CLASSES = [
     'nm2.auth.AuthMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.locale.LocaleMiddleware',
@@ -103,7 +103,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.auth.middleware.RemoteUserMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-)
+]
 
 AUTHENTICATION_BACKENDS = (
     # Uncomment to authenticate via REMOTE_USER supplied by Apache
@@ -254,6 +254,9 @@ DM_IMPORT_DATE = datetime.datetime(2012, 3, 14)
 
 # The password for this account is available from: master.debian.org:/home/debian/misc/rt-password
 RT_LOGIN_INFO = {'user': "debian", 'pass': "the_guest_password"}
+
+# Directory where email configuration is stored
+MAIL_CONFDIR = "/srv/nm.debian.org/mail"
 
 # Try importing local settings from local_settings.py, if we can't, it's just fine, use defaults from this file
 try:
