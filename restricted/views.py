@@ -154,19 +154,38 @@ class AMMain(VisitorTemplateView):
 
         return ctx
 
-class AMProfile(VisitPersonTemplateView):
-    require_visitor = "am"
+class AMProfile(VisitPersonMixin, FormView):
+    # Require DD instead of AM to give access to inactive AMs
+    require_visitor = "dd"
     template_name = "restricted/amprofile.html"
 
-    def make_am_form(self):
-        includes = ["slots", "is_am"]
-        visitor_am = self.visitor.am
+    def load_objects(self):
+        super(AMProfile, self).load_objects()
+        try:
+            self.am = bmodels.AM.objects.get(person=self.person)
+        except bmodels.AM.DoesNotExist:
+            self.am = None
 
-        if visitor_am.is_fd:
+        try:
+            self.visitor_am = bmodels.AM.objects.get(person=self.visitor)
+        except bmodels.AM.DoesNotExist:
+            self.visitor_am = None
+
+    def check_permissions(self):
+        super(AMProfile, self).check_permissions()
+        if self.am is None: raise PermissionDenied
+        if self.visitor_am is None: raise PermissionDenied
+        if self.person.pk != self.visitor.pk and not self.visitor.is_admin:
+            raise PermissionDenied
+
+    def get_form_class(self):
+        includes = ["slots", "is_am"]
+
+        if self.visitor_am.is_fd:
             includes.append("is_fd")
-        if visitor_am.is_dam:
+        if self.visitor_am.is_dam:
             includes.append("is_dam")
-        if visitor_am.is_admin:
+        if self.visitor_am.is_admin:
             includes.append("fd_comment")
 
         class AMForm(forms.ModelForm):
@@ -175,32 +194,21 @@ class AMProfile(VisitPersonTemplateView):
                 fields = includes
         return AMForm
 
+    def get_form_kwargs(self):
+        res = super(AMProfile, self).get_form_kwargs()
+        res["instance"] = self.am
+        return res
+
     def get_context_data(self, **kw):
-        ctx = super(AMProfile, self).get_context_data(**kw)
         from django.db.models import Min
-        AMForm = self.make_am_form()
-        am = self.person.am
-        form = AMForm(instance=am)
-        processes = bmodels.Process.objects.filter(manager=am).annotate(started=Min("log__logdate")).order_by("-started")
-        ctx.update(
-            am=am,
-            processes=processes,
-            form=form,
-        )
+        ctx = super(AMProfile, self).get_context_data(**kw)
+        ctx["am"] = self.am
+        ctx["processes"] = bmodels.Process.objects.filter(manager=self.am).annotate(started=Min("log__logdate")).order_by("-started")
         return ctx
 
-    def post(self, request, *args, **kw):
-        if self.person.pk != self.visitor.pk and not self.visitor.is_admin:
-            raise PermissionDenied
-
-        AMForm = self.make_am_form()
-        form = AMForm(request.POST, instance=self.person.am)
-        if form.is_valid():
-            form.save()
-            # TODO: message that it has been saved
-
-        context = self.get_context_data(**kw)
-        return self.render_to_response(context)
+    def form_valid(self, form):
+        form.save()
+        return self.render_to_response(self.get_context_data(form=form))
 
 
 class DBExport(VisitorMixin, View):

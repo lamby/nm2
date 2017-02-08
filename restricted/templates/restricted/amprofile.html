@@ -20,7 +20,7 @@
     <tr><th>OpenPGP fingerprint</th><td>{{person.fpr|fingerprint}}</td></tr>
     <tr><th>Current status</th><td>{{person.status}}</td></tr>
     {% if visitor.is_admin %}
-    <tr><th>Person FD comments</th><td>{{person.fd_comment}}</td></tr>
+    <tr><th>Person FD comments</th><td id="fd_comments">{{person.fd_comment}}</td></tr>
     {% endif %}
 </table>
 
