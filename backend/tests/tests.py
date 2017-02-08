@@ -20,6 +20,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 import django
+from django.utils.timezone import utc
 from django.test import TransactionTestCase
 import backend.models as bmodels
 import backend.const as bconst
@@ -93,28 +94,28 @@ class LogTest(TransactionTestCase):
         log_dm1 = bmodels.Log(changed_by=self.p.am,
                            process=self.p.process_dm,
                            progress=bconst.PROGRESS_APP_NEW,
-                           logdate=datetime.datetime(2013, 1, 1, 0, 0, 0),
+                           logdate=datetime.datetime(2013, 1, 1, 0, 0, 0, tzinfo=utc),
                            logtext="process started")
         log_dm1.save()
 
         log_dd1 = bmodels.Log(changed_by=self.p.am,
                            process=self.p.process_dd,
                            progress=bconst.PROGRESS_APP_NEW,
-                           logdate=datetime.datetime(2013, 1, 1, 12, 0, 0),
+                           logdate=datetime.datetime(2013, 1, 1, 12, 0, 0, tzinfo=utc),
                            logtext="process started")
         log_dd1.save()
 
         log_dm2 = bmodels.Log(changed_by=self.p.am,
                            process=self.p.process_dm,
                            progress=bconst.PROGRESS_DONE,
-                           logdate=datetime.datetime(2013, 1, 2, 0, 0, 0),
+                           logdate=datetime.datetime(2013, 1, 2, 0, 0, 0, tzinfo=utc),
                            logtext="all ok")
         log_dm2.save()
 
         log_dd2 = bmodels.Log(changed_by=self.p.am,
                            process=self.p.process_dd,
                            progress=bconst.PROGRESS_ADV_RCVD,
-                           logdate=datetime.datetime(2013, 1, 2, 12, 0, 0),
+                           logdate=datetime.datetime(2013, 1, 2, 12, 0, 0, tzinfo=utc),
                            logtext="all ok")
         log_dd2.save()
 
@@ -124,7 +125,7 @@ class LogTest(TransactionTestCase):
         log_dd3 = bmodels.Log(changed_by=self.p.am,
                            process=self.p.process_dd,
                            progress=bconst.PROGRESS_APP_OK,
-                           logdate=datetime.datetime(2013, 1, 3, 0, 0, 0),
+                           logdate=datetime.datetime(2013, 1, 3, 0, 0, 0, tzinfo=utc),
                            logtext="advocacies are ok")
         log_dd3.save()
 
