@@ -95,7 +95,7 @@ class PersonVisitorPermissions(VisitorPermissions):
             self._compute_admin_perms()
         elif self.visitor == self.person:
             self._compute_own_perms()
-        elif self.visitor.is_active_am:
+        elif self.visitor.is_am:
             self._compute_active_am_perms()
         elif self.visitor.is_dd:
             self._compute_dd_perms()
@@ -142,7 +142,7 @@ class ProcessVisitorPermissions(PersonVisitorPermissions):
             self.add("view_mbox")
         elif self.visitor == self.person:
             self.add("view_mbox")
-        elif self.visitor.is_active_am:
+        elif self.visitor.is_am:
             self.add("view_mbox")
         elif self.process.advocates.filter(pk=self.visitor.pk).exists():
             self.add("view_mbox")
@@ -354,8 +354,11 @@ class Person(PermissionsMixin, models.Model):
             res.add("dd")
             am = self.am_or_none
             if am:
-                res.add("am")
-                if am.is_admin: res.add("admin")
+                if am.is_am:
+                    res.add("am")
+                if am.is_admin:
+                    res.add("am")
+                    res.add("admin")
             else:
                 res.add("am_candidate")
 
@@ -368,13 +371,6 @@ class Person(PermissionsMixin, models.Model):
     @property
     def is_am(self):
         return "am" in self.perms
-
-    @property
-    def is_active_am(self):
-        try:
-            return self.am.is_am
-        except AM.DoesNotExist:
-            return False
 
     @property
     def is_admin(self):

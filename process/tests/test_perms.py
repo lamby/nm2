@@ -154,7 +154,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
 
         # Apply
         self.persons.create("app", status=const.STATUS_DC)
-        expected.starts.set("dc_ga dm dd_u dd_nu oldam")
+        expected.starts.set("dc_ga dm dd_u dd_nu")
         self.assertPerms(expected)
         self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DC_GA)
         expected.patch_generic_process_started()
@@ -192,7 +192,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
 
         # Apply
         self.persons.create("app", status=const.STATUS_DM)
-        expected.starts.set("dm_ga dd_nu dd_u oldam")
+        expected.starts.set("dm_ga dd_nu dd_u")
         self.assertPerms(expected)
         self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DM_GA)
         expected.patch_generic_process_started()
@@ -227,7 +227,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
 
         # Apply
         self.persons.create("app", status=const.STATUS_DC)
-        expected.starts.set("dc_ga dm dd_u dd_nu oldam")
+        expected.starts.set("dc_ga dm dd_u dd_nu")
         self.assertPerms(expected)
         self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DM)
         expected.patch_generic_process_started()
@@ -263,11 +263,11 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         self.persons.create("app", status=const.STATUS_DC)
         self.persons.create("am", status=const.STATUS_DD_NU)
         self.ams.create("am", person=self.persons.am)
-        expected.starts.set("dc_ga dm dd_u dd_nu oldam")
+        expected.starts.set("dc_ga dm dd_u dd_nu")
         self.assertPerms(expected)
         self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DD_NU)
         expected.patch_generic_process_started()
-        expected.starts.patch("-dd_u -dd_nu -oldam")
+        expected.starts.patch("-dd_u -dd_nu")
         expected.proc.patch("fd dam", "+edit_ldap")
         expected.proc.patch("app", "+edit_ldap")
         self.assertPerms(expected)

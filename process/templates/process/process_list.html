@@ -1,4 +1,5 @@
 {% load nm %}
+{% load process %}
 {% if procs %}
 <table class="proctable tablesorter {{class}}">
 <thead>
@@ -21,7 +22,7 @@
 <tbody>
     {% for process in procs %}
     <tr>
-        {% with process.compute_status as status %}
+        {% with process|process_status:view as status %}
         <td class="word"><small>{{status.log_first.logdate|date:"Y-m-d"}}</small></td>
         <td class="word"><small>{{status.log_last.logdate|date:"Y-m-d"}}</small></td>
         <td class="word" val="{{ process.applying_for|seq_status }}">{{process.applying_for|sdesc_status}}</td>

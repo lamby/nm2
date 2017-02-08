@@ -129,49 +129,59 @@ $(function() {
         <th>Uid</th>
         <th>For</th>
         <th>Manager</th>
+        {% comment %}
         <th>Progr</th>
+        {% endcomment %}
         <th>Adv</th>
         <th>Started</th>
         <th>Last log</th>
+        {% comment %}
         <th>Total days</th>
         <th>AM days</th>
         <th>AM hold days</th>
         <th>Last AM days</th>
         <th>Last AM hold days</th>
         <th>Mbox age</th>
+        {% endcomment %}
         {% if visitor.is_am %}
-        <th>Activity</th>
-        <th>Last log entry</th>
+        <th id="head_activity">Activity</th>
+        <th id="head_lastlog">Last log entry</th>
         {% endif %}
     </tr>
     </thead>
     <tbody>
-        {% for p in active_processes %}
+        {% for p, status in active_processes %}
         <tr>
             <td><a href="{{ p.get_absolute_url }}">{{p.person.fullname}}</a></td>
             <td><a href="{{ p.get_absolute_url }}">{{p.person.uid}}</a></td>
             <td val="{{ p.applying_for|seq_status }}">{{p.applying_for|sdesc_status}}</td>
             <td>
-                {% if p.manager %}
-                <a href="{{ p.manager.get_absolute_url }}">{{p.manager.person.uid}}</a>
+              {% with a=p.current_am_assignment %}
+                {% if a %}
+                <a href="{{ a.am.person.get_absolute_url }}">{{a.am.person.uid}}</a>
                 {% endif %}
+              {% endwith %}
             </td>
+            {% comment %}
             <td val="{{ p.progress|seq_progress }}"><a href="{{ p.get_absolute_url }}">{{p.progress|sdesc_progress}}</a></td>
+            {% endcomment %}
             <td>
-                {% for a in p.advocates.all %}
+                {% for a in status.advocates.all %}
                 <a href="{{ a.get_absolute_url }}">{{a.uid}}</a>{% if not forloop.last %},{% endif %}
                 {% endfor %}
             </td>
-            <td>{{p.log_first.logdate|date:"Y-m-d"}}</td>
-            <td>{{p.log_last.logdate|date:"Y-m-d"}}</td>
+            <td>{{status.log_first.logdate|date:"Y-m-d"}}</td>
+            <td>{{status.log_last.logdate|date:"Y-m-d"}}</td>
+            {% comment %}
             <td>{{p.total_duration}}</td>
             <td>{{p.total_am_time}}</td>
             <td>{{p.total_amhold_time}}</td>
             <td>{{p.last_am_time}}</td>
             <td>{{p.last_amhold_time}}</td>
             <td>{{p.mbox_age|default_if_none:"-"}}</td>
+            {% endcomment %}
             {% if visitor.is_am %}
-            <td>
+            <td class="col_activity">
               {% if p.mbox_stats %}
               <a href="{% url 'display_mail_archive' key=p.lookup_key %}">
                 <span class="mbox_sparkline" values="{{p.mbox_stats|join:","}}"></span>
@@ -180,11 +190,11 @@ $(function() {
               ---
               {% endif %}
             </td>
-            <td>
-                {% if p.log_last.logtext %}
-                {{ p.log_last.logtext }}
+            <td class="col_lastlog">
+                {% if status.log_last.logtext %}
+                {{ status.log_last.logtext }}
                 {% else %}
-                [{{p.log_last.progress|sdesc_progress}}]
+                [{{status.log_last.requirement|default:"-"}} {{status.log_last.action|default:"-"}}]
                 {% endif %}
             </td>
             {% endif %}

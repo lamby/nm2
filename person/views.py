@@ -30,15 +30,18 @@ class Person(VisitPersonMixin, TemplateView):
         for req in pmodels.Requirement.objects.filter(type="advocate", statements__uploaded_by=self.person).distinct().select_related("process"):
             adv_processes2.append(req.process)
 
-        if self.person.is_am:
-            am = self.person.am
+        try:
+            am = bmodels.AM.objects.get(person=self.person)
+        except bmodels.AM.DoesNotExist:
+            am = None
+
+        if am is not None:
             am_processes = am.processed \
                     .annotate(started=Min("log__logdate"), ended=Max("log__logdate")) \
                     .order_by("is_active", "ended")
 
             am_processes2 = pmodels.Process.objects.filter(ams__am=am).distinct()
         else:
-            am = None
             am_processes = []
             am_processes2 = []
 

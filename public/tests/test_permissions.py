@@ -9,6 +9,35 @@ from __future__ import unicode_literals
 from django.test import TestCase
 from backend import const
 from backend.test_common import *
+from backend.unittest import PersonFixtureMixin, PageElements
+
+class TestStatsPermissions(PersonFixtureMixin, TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super(TestStatsPermissions, cls).setUpClass()
+        cls.elements = PageElements()
+        cls.elements.add_id("head_activity")
+        cls.elements.add_id("head_lastlog")
+        cls.elements.add_class("col_activity")
+        cls.elements.add_class("col_lastlog")
+        cls.processes.create("app", person=cls.persons.dm, applying_for=const.STATUS_DM_GA)
+
+    @classmethod
+    def __add_extra_tests__(cls):
+        # Everyone can see stats
+        for visitor in ("pending", "dc", "dc_ga", "dm", "dm_ga", "dd_nu", "dd_u", "dd_e", "dd_r", "oldam"):
+            cls._add_method(cls._test_get_success, visitor, elements=())
+
+        # But only AMs can see process-specific information
+        for visitor in ("activeam", "fd", "dam"):
+            cls._add_method(cls._test_get_success, visitor, elements=("head_activity", "head_lastlog", "col_activity", "col_lastlog"))
+
+    def _test_get_success(self, visitor, elements):
+        client = self.make_test_client(visitor)
+        response = client.get(reverse("public_stats"))
+        self.assertEquals(response.status_code, 200)
+        self.assertContainsElements(response, self.elements, *elements)
+
 
 class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
     def test_newnm(self):
@@ -20,28 +49,6 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
         self.assertVisit(WhenView(), ThenSuccess())
         for u in self.users.itervalues():
             self.assertVisit(WhenView(user=u), ThenSuccess())
-
-    def test_stats(self):
-        """
-        stats works for all users
-        """
-        class WhenView(NMTestUtilsWhen):
-            url = reverse("public_stats")
-        class ThenSeesDetails(ThenSuccess):
-            def __call__(self, fixture, response, when, test_client):
-                super(ThenSeesDetails, self).__call__(fixture, response, when, test_client)
-                if b"<th>Last log entry</th>" not in response.content:
-                    fixture.fail("details not visible by {} when {}".format(when.user, when))
-        class ThenDoesNotSeeDetails(ThenSuccess):
-            def __call__(self, fixture, response, when, test_client):
-                super(ThenDoesNotSeeDetails, self).__call__(fixture, response, when, test_client)
-                if b"<th>Last log entry</th>" in response.content:
-                    fixture.fail("details are visible by {} when {}".format(when.user, when))
-        self.assertVisit(WhenView(), ThenDoesNotSeeDetails())
-        for u in self.users.viewkeys() - frozenset(("fd", "dam")):
-            self.assertVisit(WhenView(user=self.users[u]), ThenDoesNotSeeDetails())
-        for u in ("fd", "dam"):
-            self.assertVisit(WhenView(user=self.users[u]), ThenSeesDetails())
 
     def test_stats_latest(self):
         """

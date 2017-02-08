@@ -66,7 +66,7 @@ class ProcessVisitorPermissions(bmodels.PersonVisitorPermissions):
                     self.update(("proc_unfreeze", "proc_approve"))
         elif self.visitor == self.person:
             self.add("view_mbox")
-        elif self.visitor.is_active_am:
+        elif self.visitor.is_am:
             self.add("view_mbox")
         # TODO: advocates of this process can see the mailbox(?)
         #elif self.process.advocates.filter(pk=self.visitor.pk).exists():
@@ -120,7 +120,7 @@ class RequirementVisitorPermissions(ProcessVisitorPermissions):
                 if self.current_am_assignment:
                     if self.is_current_am:
                         self.add("edit_statements")
-                    elif self.visitor.is_active_am:
+                    elif self.visitor.is_am:
                         self.add("req_unapprove" if self.requirement.approved_by else "req_approve")
 
 
@@ -255,46 +255,6 @@ class Process(models.Model):
             return self.ams.select_related("am", "am__person").get(unassigned_by__isnull=True)
         except AMAssignment.DoesNotExist:
             return None
-
-    def compute_status(self):
-        """
-        Return a dict with the process status:
-        {
-            "requirements_ok": [list of Requirement],
-            "requirements_missing": [list of Requirement],
-            "log_first": Log,
-            "log_last": Log,
-        }
-        """
-        rok = []
-        rnok = []
-        requirements = {}
-        for r in self.requirements.all():
-            if r.approved_by:
-                rok.append(r)
-            else:
-                rnok.append(r)
-            requirements[r.type] = r
-
-        # Compute the list of advocates
-        adv = requirements.get("advocate", None)
-        advocates = set()
-        if adv is not None:
-            for s in adv.statements.all():
-                advocates.add(s.uploaded_by)
-
-        log = list(self.log.order_by("logdate").select_related("changed_by", "requirement"))
-
-        return {
-            "requirements": requirements,
-            "requirements_sorted": sorted(requirements.values(), key=lambda x: REQUIREMENT_TYPES_DICT[x.type].sort_order),
-            "requirements_ok": sorted(rok, key=lambda x: REQUIREMENT_TYPES_DICT[x.type].sort_order),
-            "requirements_missing": sorted(rnok, key=lambda x: REQUIREMENT_TYPES_DICT[x.type].sort_order),
-            "log_first": log[0] if log else None,
-            "log_last": log[-1] if log else None,
-            "log": log,
-            "advocates": sorted(advocates),
-        }
 
     def permissions_of(self, visitor):
         """

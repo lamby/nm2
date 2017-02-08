@@ -108,10 +108,64 @@ class BackupDB(hk.Task):
                 gzfd.close()
 
 
+class ComputeActiveAM(hk.Task):
+    """
+    Compute AM Committee membership
+    """
+    DEPENDS = [MakeLink]
+
+    def _old_processes_make_active(self, processes):
+        threshold = now() - datetime.timedelta(days=365)
+        for p in processes:
+            if p.is_active:
+                return True
+            if p.closed > threshold:
+                return True
+        return False
+
+    def _processes_make_active(self, am_assignments):
+        threshold = now() - datetime.timedelta(days=365)
+        for a in am_assignments:
+            if not a.process.is_closed:
+                return True
+            if a.process.closed > threshold:
+                return True
+        return False
+
+    @transaction.atomic
+    def run_main(self, stage):
+        import process.models as pmodels
+
+        new_inactive = 0
+
+        for am in bmodels.AM.objects.filter(is_am=True).select_related("person"):
+            if not am.person.is_dd:
+                log.info("%s: %s is not a DD anymore, removing active AM flag", self.IDENTIFIER, self.hk.link(am.person))
+                am.is_am = False
+                am.save()
+                new_inactive += 1
+                continue
+
+            if am.slots == 0:
+                if self._old_processes_make_active(bmodels.Process.objects.filter(manager=am)):
+                    continue
+                if self._processes_make_active(pmodels.AMAssignment.objects.filter(am=am).select_related("process")):
+                    continue
+                log.info("%s: %s has been inactive too long, removing active AM flag", self.IDENTIFIER, self.hk.link(am.person))
+                am.is_am = False
+                am.save()
+                new_inactive += 1
+                continue
+
+        log.info("%s: %d AMs marked inactive", self.IDENTIFIER, new_inactive)
+
+
 class ComputeAMCTTE(hk.Task):
     """
     Compute AM Committee membership
     """
+    DEPENDS = [ComputeActiveAM]
+
     @transaction.atomic
     def run_main(self, stage):
         # Set all to False
@@ -371,6 +425,8 @@ class ProcmailIncludes(hk.Task):
     """
     Generate the procmail include files for am and ctte aliases
     """
+    DEPENDS = [ComputeActiveAM]
+
     def run_main(self, stage):
         root = getattr(settings, "MAIL_CONFDIR", None)
         if root is None:

@@ -215,10 +215,12 @@ class BaseFixtureMixin(TestBase):
 
     @classmethod
     def setUpClass(cls):
+        import process.models as pmodels
         super(BaseFixtureMixin, cls).setUpClass()
         cls.persons = TestPersons(**cls.get_persons_defaults())
-        cls.ams = NamedObjects(AM)
         cls.fingerprints = NamedObjects(Fingerprint)
+        cls.ams = NamedObjects(AM)
+        cls.processes = NamedObjects(pmodels.Process)
         cls.keys = TestKeys()
 
         # Preload keys
@@ -229,6 +231,7 @@ class BaseFixtureMixin(TestBase):
     @classmethod
     def tearDownClass(cls):
         cls.keys.delete_all()
+        cls.processes.delete_all()
         cls.ams.delete_all()
         cls.fingerprints.delete_all()
         cls.persons.delete_all()
@@ -237,8 +240,9 @@ class BaseFixtureMixin(TestBase):
     def setUp(self):
         super(BaseFixtureMixin, self).setUp()
         self.persons.refresh();
-        self.ams.refresh();
         self.fingerprints.refresh();
+        self.ams.refresh();
+        self.processes.refresh()
         self.keys.refresh();
 
 
@@ -494,12 +498,3 @@ class OldProcessFixtureMixin(PersonFixtureMixin):
     def setUpClass(cls):
         super(OldProcessFixtureMixin, cls).setUpClass()
         cls.processes = TestOldProcesses(**cls.get_processes_defaults())
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.processes.delete_all()
-        super(OldProcessFixtureMixin, cls).tearDownClass()
-
-    def setUp(self):
-        super(OldProcessFixtureMixin, self).setUp()
-        self.processes.refresh();

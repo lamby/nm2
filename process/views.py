@@ -81,6 +81,11 @@ class Show(VisitProcessMixin, TemplateView):
     """
     template_name = "process/show.html"
 
+    def get_context_data(self, **kw):
+        ctx = super(Show, self).get_context_data(**kw)
+        ctx["status"] = self.compute_process_status()
+        return ctx
+
 
 class AddProcessLog(VisitProcessMixin, View):
     """

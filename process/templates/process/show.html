@@ -14,8 +14,6 @@
 
 <h1>{{person}} / {{process.applying_for|desc_status}}</h1>
 
-{% with status=process.compute_status %}
-
 <table class="personinfo">
   <tr>
     <th>Applicant</th>
@@ -227,5 +225,4 @@
 
 {% include "process/log_widget.html"  with entries=status.log %}
 
-{% endwith %}
 {% endblock %}

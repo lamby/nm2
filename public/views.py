@@ -571,24 +571,30 @@ class Stats(VisitorTemplateView):
 
         # List of active processes with statistics
         active_processes = []
-        for p in bmodels.Process.objects.filter(is_active=True):
-            p.annotate_with_duration_stats()
-            mbox_mtime = p.mailbox_mtime
-            if mbox_mtime is None:
-                p.mbox_age = None
-            else:
-                p.mbox_age = (dtnow - mbox_mtime).days
-            active_processes.append(p)
-            if self.visitor and self.visitor.is_admin:
-                pathname = p.mailbox_file
-                if pathname:
-                    p.mbox_stats = []
-                    for idx, (addr, length) in enumerate(mailbox_get_gaps(pathname)):
-                        neg = 1 if idx % 2 == 0 else -1
-                        p.mbox_stats.append(neg * min(round(length/86400), 30))
-                else:
-                    p.mbox_stats = None
-        active_processes.sort(key=lambda x:(x.log_first.logdate if x.log_first else None))
+        #for p in bmodels.Process.objects.filter(is_active=True):
+        #    p.annotate_with_duration_stats()
+        #    mbox_mtime = p.mailbox_mtime
+        #    if mbox_mtime is None:
+        #        p.mbox_age = None
+        #    else:
+        #        p.mbox_age = (dtnow - mbox_mtime).days
+        #    active_processes.append(p)
+        #    if self.visitor and self.visitor.is_admin:
+        #        pathname = p.mailbox_file
+        #        if pathname:
+        #            p.mbox_stats = []
+        #            for idx, (addr, length) in enumerate(mailbox_get_gaps(pathname)):
+        #                neg = 1 if idx % 2 == 0 else -1
+        #                p.mbox_stats.append(neg * min(round(length/86400), 30))
+        #        else:
+        #            p.mbox_stats = None
+
+        import process.models as pmodels
+        from process.mixins import compute_process_status
+        for p in pmodels.Process.objects.filter(closed__isnull=True):
+            active_processes.append((p, compute_process_status(p, self.visitor)))
+
+        active_processes.sort(key=lambda x:(x[1]["log_first"].logdate if x[1]["log_first"] else None))
         ctx["active_processes"] = active_processes
 
         return ctx
