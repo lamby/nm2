@@ -56,61 +56,61 @@ class TestVisitPersonNoProcess(OldProcessFixtureMixin, TestCase):
             "fd dam": "update_keycheck edit_email edit_bio edit_ldap view_person_audit_log fd_comments",
             "activeam": "update_keycheck edit_bio edit_ldap view_person_audit_log",
             "pending": "update_keycheck edit_email edit_bio",
-            "dd_nu dd_u": "view_person_audit_log update_keycheck",
+            "dd_nu dd_u oldam": "view_person_audit_log update_keycheck",
         }))
 
         cls._add_method(cls._test_perms, "dc", perms=ExpectedPerms({
             "fd dam": "update_keycheck edit_email edit_bio edit_ldap view_person_audit_log request_new_status fd_comments",
             "dc": "update_keycheck edit_email edit_bio edit_ldap view_person_audit_log request_new_status",
             "activeam": "update_keycheck edit_bio edit_ldap view_person_audit_log",
-            "dd_nu dd_u": "view_person_audit_log update_keycheck",
+            "dd_nu dd_u oldam": "view_person_audit_log update_keycheck",
         }))
 
         cls._add_method(cls._test_perms, "dc_ga", perms=ExpectedPerms({
             "fd dam": "update_keycheck edit_email edit_bio view_person_audit_log request_new_status fd_comments",
             "dc_ga": "update_keycheck edit_email edit_bio view_person_audit_log request_new_status",
             "activeam": "update_keycheck edit_bio view_person_audit_log",
-            "dd_nu dd_u": "view_person_audit_log update_keycheck",
+            "dd_nu dd_u oldam": "view_person_audit_log update_keycheck",
         }))
 
         cls._add_method(cls._test_perms, "dm", perms=ExpectedPerms({
             "fd dam": "update_keycheck edit_email edit_bio edit_ldap view_person_audit_log request_new_status fd_comments",
             "dm": "update_keycheck edit_email edit_bio edit_ldap view_person_audit_log request_new_status",
             "activeam": "update_keycheck edit_bio edit_ldap view_person_audit_log",
-            "dd_nu dd_u": "view_person_audit_log update_keycheck",
+            "dd_nu dd_u oldam": "view_person_audit_log update_keycheck",
         }))
 
         cls._add_method(cls._test_perms, "dm_ga", perms=ExpectedPerms({
             "fd dam": "update_keycheck edit_email edit_bio view_person_audit_log request_new_status fd_comments",
             "dm_ga": "update_keycheck edit_email edit_bio view_person_audit_log request_new_status",
             "activeam": "update_keycheck edit_bio view_person_audit_log",
-            "dd_nu dd_u": "view_person_audit_log update_keycheck",
+            "dd_nu dd_u oldam": "view_person_audit_log update_keycheck",
         }))
 
         cls._add_method(cls._test_perms, "dd_nu", perms=ExpectedPerms({
             "fd dam": "update_keycheck edit_email edit_bio view_person_audit_log request_new_status fd_comments",
             "dd_nu": "update_keycheck edit_email edit_bio view_person_audit_log request_new_status",
             "activeam": "update_keycheck edit_bio view_person_audit_log",
-            "dd_u": "view_person_audit_log update_keycheck",
+            "dd_u oldam": "view_person_audit_log update_keycheck",
         }))
 
         cls._add_method(cls._test_perms, "dd_u", perms=ExpectedPerms({
             "fd dam": "update_keycheck edit_email edit_bio view_person_audit_log fd_comments",
             "dd_u": "update_keycheck edit_email edit_bio view_person_audit_log",
             "activeam dd_u": "update_keycheck edit_bio view_person_audit_log",
-            "dd_nu": "view_person_audit_log update_keycheck",
+            "dd_nu oldam": "view_person_audit_log update_keycheck",
         }))
 
         cls._add_method(cls._test_perms, "fd", perms=ExpectedPerms({
             "fd dam": "update_keycheck edit_email edit_bio view_person_audit_log request_new_status fd_comments",
             "activeam": "update_keycheck edit_bio view_person_audit_log",
-            "dd_nu dd_u": "view_person_audit_log update_keycheck",
+            "dd_nu dd_u oldam": "view_person_audit_log update_keycheck",
         }))
 
         cls._add_method(cls._test_perms, "dam", perms=ExpectedPerms({
             "fd dam": "update_keycheck edit_email edit_bio view_person_audit_log fd_comments",
             "activeam": "view_person_audit_log update_keycheck edit_bio",
-            "dd_nu dd_u": "view_person_audit_log update_keycheck",
+            "dd_nu dd_u oldam": "view_person_audit_log update_keycheck",
         }))
 
     def assertPermsEqual(self, action, perms_type, wanted, got):
@@ -146,7 +146,7 @@ class ProcExpected(object):
         self.proc = ExpectedSets(testcase, "{visitor} visiting app's process", "{problem} permissions {mismatch}")
 
     def patch_generic_process_started(self):
-        self.proc.patch("dd_nu dd_u activeam fd dam app adv", "+view_person_audit_log +update_keycheck")
+        self.proc.patch("dd_nu dd_u oldam activeam fd dam app adv", "+view_person_audit_log +update_keycheck")
         self.proc.patch("fd dam app", "+view_mbox +request_new_status +edit_bio +edit_email")
         self.proc.patch("fd dam", "+fd_comments")
         self.proc.patch("activeam", "+view_mbox +edit_bio")

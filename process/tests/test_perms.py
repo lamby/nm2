@@ -24,17 +24,17 @@ class ProcExpected(object):
         self.am_ok = ExpectedSets(testcase, "{visitor} visiting app's am_ok requirement", "{problem} permissions {mismatch}")
 
     def patch_generic_process_started(self):
-        self.proc.set("app dd_nu dd_u activeam fd dam", "update_keycheck view_person_audit_log")
+        self.proc.set("app dd_nu dd_u oldam activeam fd dam", "update_keycheck view_person_audit_log")
         self.proc.patch("activeam fd dam app", "+edit_bio +edit_ldap +view_mbox")
         self.proc.patch("fd dam app", "+request_new_status +edit_email")
         self.proc.patch("fd dam", "+proc_freeze +fd_comments +am_assign +view_private_log")
-        self.proc.patch("dc dc_ga dm dm_ga dd_nu dd_u dd_e dd_r activeam fd dam app", "+add_log")
+        self.proc.patch("dc dc_ga dm dm_ga dd_nu dd_u oldam dd_e dd_r activeam fd dam app", "+add_log")
         self.intent.patch("fd dam app", "+edit_statements")
-        self.intent.patch("activeam fd dam dd_nu dd_u", "+req_approve")
+        self.intent.patch("activeam fd dam dd_nu dd_u oldam", "+req_approve")
         self.sc_dmup.patch("fd dam app", "+edit_statements")
-        self.sc_dmup.patch("activeam fd dam dd_nu dd_u", "+req_approve")
+        self.sc_dmup.patch("activeam fd dam dd_nu dd_u oldam", "+req_approve")
         if self.advocate is not None:
-            self.advocate.patch("activeam fd dam dd_nu dd_u", "+edit_statements +req_approve")
+            self.advocate.patch("activeam fd dam dd_nu dd_u oldam", "+edit_statements +req_approve")
         if self.keycheck is not None:
             pass
         if self.am_ok is not None:
@@ -55,12 +55,12 @@ class ProcExpected(object):
         self.proc.patch("fd dam", "-proc_freeze +proc_unfreeze +proc_approve -am_assign -am_unassign")
         self.proc.patch("activeam app", "-edit_bio -edit_ldap")
         self.intent.patch("app", "-edit_statements")
-        self.intent.patch("activeam dd_nu dd_u", "-req_approve")
+        self.intent.patch("activeam dd_nu dd_u oldam", "-req_approve")
         self.sc_dmup.patch("app", "-edit_statements")
-        self.sc_dmup.patch("activeam dd_nu dd_u", "-req_approve")
+        self.sc_dmup.patch("activeam dd_nu dd_u oldam", "-req_approve")
         if self.advocate is not None:
-            self.advocate.patch("activeam dd_nu dd_u dm dm_ga", "-edit_statements")
-            self.advocate.patch("activeam dd_nu dd_u", "-req_approve")
+            self.advocate.patch("activeam dd_nu dd_u oldam dm dm_ga", "-edit_statements")
+            self.advocate.patch("activeam dd_nu dd_u oldam", "-req_approve")
         if self.keycheck is not None:
             pass
         if self.am_ok is not None:
@@ -77,7 +77,7 @@ class ProcExpected(object):
     def patch_generic_process_closed(self):
         self.proc.patch("activeam app", "+edit_bio")
         self.proc.patch("fd dam", "-proc_unapprove")
-        self.proc.patch("dc dc_ga dm dm_ga dd_nu dd_u dd_e dd_r activeam fd dam app", "-add_log")
+        self.proc.patch("dc dc_ga dm dm_ga dd_nu dd_u oldam dd_e dd_r activeam fd dam app", "-add_log")
         self.intent.patch("fd dam", "-edit_statements -req_approve")
         self.sc_dmup.patch("fd dam", "-edit_statements -req_approve")
         if self.advocate is not None:
