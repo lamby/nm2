@@ -126,7 +126,7 @@ class ComputeActiveAM(hk.Task):
     def _processes_make_active(self, am_assignments):
         threshold = now() - datetime.timedelta(days=365)
         for a in am_assignments:
-            if not a.process.is_closed:
+            if not a.process.closed:
                 return True
             if a.process.closed > threshold:
                 return True
