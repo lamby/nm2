@@ -462,6 +462,7 @@ class KeyData(object):
         """
         keys = {}
         pub = None
+        sub = None
         cur_key = None
         cur_uid = None
         for lineno, line in enumerate(lines, start=1):
@@ -469,13 +470,18 @@ class KeyData(object):
                 # Keep track of this pub record, to correlate with the following
                 # fpr record
                 pub = line.split(":")
+                sub = None
                 cur_key = None
                 cur_uid = None
             elif line.startswith("fpr:"):
                 # Correlate fpr with the previous pub record, and start gathering
                 # information for a new key
                 if pub is None:
-                    raise Exception("gpg:{}: found fpr line with no previous pub line".format(lineno))
+                    if sub is not None:
+                        # Skip fingerprints for subkeys
+                        continue
+                    else:
+                        raise Exception("gpg:{}: found fpr line with no previous pub line".format(lineno))
                 fpr = line.split(":")[9]
                 cur_key = keys.get(fpr, None)
                 if cur_key is None:
@@ -493,7 +499,8 @@ class KeyData(object):
             elif line.startswith("sub:"):
                 if cur_key is None:
                     raise Exception("gpg:{}: found sub line with no previous pub+fpr lines".format(lineno))
-                cur_key.add_sub(line.split(":"))
+                sub = line.split(":")
+                cur_key.add_sub(sub)
 
         return keys
 
