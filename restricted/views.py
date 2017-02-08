@@ -159,7 +159,7 @@ class AMProfile(VisitPersonTemplateView):
     template_name = "restricted/amprofile.html"
 
     def make_am_form(self):
-        includes = ["slots"]
+        includes = ["slots", "is_am"]
         visitor_am = self.visitor.am
 
         if visitor_am.is_fd:
