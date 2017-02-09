@@ -37,7 +37,7 @@ def compute_process_status(process, visitor, visit_perms=None):
             advocates.add(s.uploaded_by)
 
     log = process.log.order_by("logdate").select_related("changed_by", "requirement")
-    if not visitor.is_admin and (not visit_perms or "view_private_log" not in visit_perms):
+    if not (visitor is not None and visitor.is_admin) and (not visit_perms or "view_private_log" not in visit_perms):
         from django.db.models import Q
         log = log.filter(Q(is_public=True) | Q(changed_by=visitor))
     log = list(log)
