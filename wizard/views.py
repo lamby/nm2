@@ -73,8 +73,10 @@ class NewProcess(VisitorMixin, TemplateView):
             target_desc = "Request guest account"
         elif target == "return":
             target_desc = "Return from Emeritus"
-        else:
+        elif target in const.ALL_STATUS_DESCS:
             target_desc = "Become {}".format(const.ALL_STATUS_DESCS[target])
+        else:
+            target_desc = "Invalid"
 
         if self.visitor:
             whitelist = self.visitor.possible_new_statuses
@@ -99,6 +101,8 @@ class NewProcess(VisitorMixin, TemplateView):
                     comments.append("You seem to be {}, not an Emeritus DD.".format(const.ALL_STATUS_DESCS[self.visitor.status]))
                 else:
                     allowed = True
+            elif target not in const.ALL_STATUS_DESCS:
+                comments.append("{} is not a valid status.".format(target))
             else:
                 if target == self.visitor.status:
                     comments.append("You are already {}: problem solved!".format(
