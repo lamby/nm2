@@ -11,4 +11,5 @@ register = template.Library()
 @register.filter
 def process_status(process, view):
     from process.mixins import compute_process_status
-    return compute_process_status(process, view.visitor, view.visit_perms)
+    perms = getattr(view, "visit_perms", None)
+    return compute_process_status(process, view.visitor, perms)
