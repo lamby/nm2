@@ -462,7 +462,60 @@ class RemoveDD(Remove):
     def __str__(self):
         return "Remove DD"
 
+
+class RemoveDM(Remove):
+    def __init__(self, log_entry):
+        super(RemoveDM, self).__init__(log_entry)
+        self.uid = log_entry.parsed.get("username", None)
+        self.fpr = log_entry.parsed.get("key", None)
+        if self.fpr is None:
+            raise ParseError(log_entry, "commit without Key field")
+
+    def ops(self):
+        persons = {}
+
+        if self.uid:
+            try:
+                persons["uid"] = bmodels.Person.objects.get(uid=self.uid)
+            except bmodels.Person.DoesNotExist:
+                pass
+
+        try:
+            persons["fpr"] = bmodels.Person.objects.get(fprs__fpr=self.fpr)
+        except bmodels.Person.DoesNotExist:
+            pass
+
+        person = self._get_consistent_person(persons)
+        if not person:
+            raise OperationError(self.log_entry, "commit references a person that is not known to the site")
+
+        if person.status in (const.STATUS_DM, const.STATUS_DM_GA):
+            if self.rt:
+                audit_notes = "Moved to contributor status, RT #{}".format(self.rt)
+            else:
+                audit_notes = "Moved to contributor status, RT unknown"
+
+            if person.status == STATUS_DM:
+                new_status = const.STATUS_DC
+            else:
+                new_status = const.STATUS_DC_GA
+
+            yield bops.ChangeStatus(
+                person=person,
+                status=new_status,
+                status_changed=self.log_entry.dt,
+                audit_author=self.author,
+                audit_notes=audit_notes)
+
+            return
+
+        return
+
+    def __str__(self):
+        return "Remove DM"
+
 Remove.by_role["DD"] = RemoveDD
+Remove.by_role["DM"] = RemoveDM
 
 
 @Operation.action
