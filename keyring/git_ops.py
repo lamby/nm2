@@ -495,7 +495,7 @@ class RemoveDM(Remove):
             else:
                 audit_notes = "Moved to contributor status, RT unknown"
 
-            if person.status == STATUS_DM:
+            if person.status == const.STATUS_DM:
                 new_status = const.STATUS_DC
             else:
                 new_status = const.STATUS_DC_GA
