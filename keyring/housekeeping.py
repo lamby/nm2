@@ -43,15 +43,13 @@ class Keyrings(hk.Task):
         log.info("%s: Imported %d entries from dd_nu keyring", self.IDENTIFIER, len(self.dd_nu))
         self.emeritus_dd = frozenset(kmodels.list_emeritus_dd())
         log.info("%s: Imported %d entries from emeritus_dd keyring", self.IDENTIFIER, len(self.emeritus_dd))
-        self.removed_dd = frozenset(kmodels.list_removed_dd())
-        log.info("%s: Imported %d entries from removed_dd keyring", self.IDENTIFIER, len(self.removed_dd))
 
         # Keep an index mapping key IDs to fingerprints and keyring type
         self.by_fpr = {}
         self.by_keyid = {}
         duplicate_fprs = []
         duplicate_keyids = []
-        for t in ("dm", "dd_u", "dd_nu", "emeritus_dd", "removed_dd"):
+        for t in ("dm", "dd_u", "dd_nu", "emeritus_dd"):
             for fpr in getattr(self, t):
                 record = (fpr, t)
 
@@ -124,7 +122,6 @@ class CheckKeyringConsistency(hk.Task):
             const.STATUS_DD_U: self.hk.keyrings.dd_u,
             const.STATUS_DD_NU: self.hk.keyrings.dd_nu,
             const.STATUS_EMERITUS_DD: self.hk.keyrings.emeritus_dd,
-            const.STATUS_REMOVED_DD: self.hk.keyrings.removed_dd,
         }
         keyring_by_fpr = {}
         for status, keyring in keyring_by_status.items():
@@ -193,7 +190,7 @@ class CheckKeyringConsistency(hk.Task):
 
     #    cur_fpr = None
     #    cur_info = None
-    #    for keyring in "debian-keyring.gpg", "debian-maintainers.gpg", "debian-nonupload.gpg", "emeritus-keyring.gpg", "removed-keys.gpg":
+    #    for keyring in "debian-keyring.gpg", "debian-maintainers.gpg", "debian-nonupload.gpg", "emeritus-keyring.gpg":
     #        count = 0
     #        for fpr, u in kmodels.uid_info(keyring):
     #            if fpr != cur_fpr:

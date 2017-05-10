@@ -427,9 +427,6 @@ def list_dd_nu():
 def list_emeritus_dd():
     return _list_keyring("emeritus-keyring.gpg")
 
-def list_removed_dd():
-    return _list_keyring("removed-keys.pgp")
-
 
 class KeyData(object):
     """

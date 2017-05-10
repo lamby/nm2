@@ -43,8 +43,6 @@ class Importer(object):
         self.dd_nu = frozenset(kmodels.list_dd_nu())
         log.info("Importing emeritus_dd keyring...")
         self.emeritus_dd = frozenset(kmodels.list_emeritus_dd())
-        log.info("Importing removed_dd keyring...")
-        self.removed_dd = frozenset(kmodels.list_removed_dd())
 
     def import_person(self, person):
         p = bmodels.Person(
@@ -350,8 +348,6 @@ class Importer(object):
                 person.status = const.STATUS_DD_NU
             if person.fpr in self.emeritus_dd:
                 person.status = const.STATUS_EMERITUS_DD
-            if person.fpr in self.removed_dd:
-                person.status = const.STATUS_REMOVED_DD
 
             if old_status != person.status:
                 log.info("%s: status changed from %s to %s", person.uid, old_status, person.status)
