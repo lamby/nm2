@@ -42,6 +42,8 @@ def compute_process_status(process, visitor, visit_perms=None):
         log = log.filter(Q(is_public=True) | Q(changed_by=visitor))
     log = list(log)
 
+    am_assignment = process.current_am_assignment
+
     if process.frozen_by:
         if process.approved_by:
             summary = "Approved"
@@ -51,6 +53,11 @@ def compute_process_status(process, visitor, visit_perms=None):
         summary = "Approved"
     elif not rnok:
         summary = "Waiting for review"
+    elif am_assignment is not None:
+        if am_assignment.paused:
+            summary = "AM Hold"
+        else:
+            summary = "AM"
     else:
         summary = "Collecting requirements"
 

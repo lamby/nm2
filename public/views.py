@@ -590,6 +590,18 @@ class Stats(VisitorTemplateView):
             by_status[stat["summary"]] += 1
         ctx["by_status"] = sorted(by_status.items())
 
+        # Count of applicants by progress (for rrdstats.sh, merge old and new processes)
+        by_progress = Counter()
+        for row in bmodels.Process.objects.filter(is_active=True).values("progress").annotate(Count("progress")):
+            by_progress[row["progress"]] = row["progress__count"]
+        by_progress["dam_ok"] += by_status["Approved"]
+        by_progress["am"] += by_status["AM"]
+        by_progress["am_hold"] += by_status["AM Hold"]
+        by_progress["am_ok"] += by_status["Waiting for review"]
+        by_progress["fd_ok"] += by_status["Frozen for review"]
+        by_progress["app_new"] += by_status["Collecting requirements"]
+        stats["by_progress"] = by_progress
+
         return ctx
 
     def get(self, request, *args, **kwargs):
