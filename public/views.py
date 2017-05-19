@@ -545,12 +545,6 @@ class Stats(VisitorTemplateView):
             by_status[row["status"]] = row["status__count"]
         stats["by_status"] = by_status
 
-        # Count of applicants by progress
-        by_progress = dict()
-        for row in bmodels.Process.objects.filter(is_active=True).values("progress").annotate(Count("progress")):
-            by_progress[row["progress"]] = row["progress__count"]
-        stats["by_progress"] = by_progress
-
         # Cook up more useful bits for the templates
 
         ctx["stats"] = stats
@@ -560,12 +554,6 @@ class Stats(VisitorTemplateView):
             status_table.append((status, by_status.get(status, 0)))
         ctx["status_table"] = status_table
         ctx["status_table_json"] = json.dumps([(s.sdesc, by_status.get(s.tag, 0)) for s in const.ALL_STATUS])
-
-        progress_table = []
-        for progress in (s.tag for s in const.ALL_PROGRESS):
-            progress_table.append((progress, by_progress.get(progress, 0)))
-        ctx["progress_table"] = progress_table
-        ctx["progress_table_json"] = json.dumps([(p.sdesc, by_progress.get(p.tag, 0)) for p in const.ALL_PROGRESS])
 
         # List of active processes with statistics
         active_processes = []
