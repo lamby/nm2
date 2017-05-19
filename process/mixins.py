@@ -42,6 +42,18 @@ def compute_process_status(process, visitor, visit_perms=None):
         log = log.filter(Q(is_public=True) | Q(changed_by=visitor))
     log = list(log)
 
+    if process.frozen_by:
+        if process.approved_by:
+            summary = "Approved"
+        else:
+            summary = "Frozen for review"
+    elif process.approved_by:
+        summary = "Approved"
+    elif not rnok:
+        summary = "Waiting for review"
+    else:
+        summary = "Collecting requirements"
+
     return {
         "requirements": requirements,
         "requirements_sorted": sorted(requirements.values(), key=lambda x: REQUIREMENT_TYPES_DICT[x.type].sort_order),
@@ -51,6 +63,7 @@ def compute_process_status(process, visitor, visit_perms=None):
         "log_last": log[-1] if log else None,
         "log": log,
         "advocates": sorted(advocates),
+        "summary": summary,
     }
 
 

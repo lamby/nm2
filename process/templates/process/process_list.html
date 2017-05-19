@@ -28,23 +28,7 @@
         <td class="word" val="{{ process.applying_for|seq_status }}">{{process.applying_for|sdesc_status}}</td>
         <td><a href="{{ process.get_absolute_url }}">{{process.person.fullname}}</a></td>
         <td><a href="{{ process.get_absolute_url }}">{{process.person.uid}}</a></td>
-        <td>
-        {% if process.frozen_by %}
-          {% if process.approved_by %}
-            Approved
-          {% else %}
-            Frozen for review
-          {% endif %}
-        {% else %}
-          {% if process.approved_by %}
-            Approved
-          {% elif not status.requirements_missing %}
-            Waiting for review
-          {% else %}
-            Collecting requirements
-          {% endif %}
-        {% endif %}
-        </td>
+        <td>{{status.summary}}</td>
         <td>
           {% with process.current_am_assignment as assignment %}
           {% if assignment %}{{assignment.am.person.a_link}}{% endif %}
