@@ -442,7 +442,6 @@ SIMPLIFY_STATUS = {
     const.STATUS_DD_NU: "dd",
     const.STATUS_EMERITUS_DD: "emeritus",
     const.STATUS_REMOVED_DD: "removed",
-    const.STATUS_REMOVED_DM: "removed",
 }
 
 class People(VisitorTemplateView):

@@ -20,7 +20,6 @@ ALL_STATUS = (
     Status("STATUS_DD_NU",         "dd_nu",   "DD, non-upl.",    "Debian Developer, non-uploading"),
     Status("STATUS_EMERITUS_DD",   "dd_e",    "DD, emeritus",    "Debian Developer, emeritus"),
     Status("STATUS_REMOVED_DD",    "dd_r",    "DD, removed",     "Debian Developer, removed"),
-    Status("STATUS_REMOVED_DM",    "dm_r",    "DM, removed",     "Debian Maintainer, removed"),
     Status("STATUS_REMOVED_DC_GA", "dc_ga_r", "DC+closed acct.", "Debian Contributor, with closed guest account"),
 )
 ALL_STATUS_DESCS = dict((x.tag, x.ldesc) for x in ALL_STATUS)

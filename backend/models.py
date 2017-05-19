@@ -54,7 +54,7 @@ class PersonVisitorPermissions(VisitorPermissions):
     pre_dd_statuses = frozenset((const.STATUS_DC, const.STATUS_DC_GA,
                                     const.STATUS_DM, const.STATUS_DM_GA,
                                     const.STATUS_EMERITUS_DD,
-                                    const.STATUS_REMOVED_DD, const.STATUS_REMOVED_DM))
+                                    const.STATUS_REMOVED_DD))
     dm_or_dd = frozenset((const.STATUS_DM, const.STATUS_DM_GA, const.STATUS_DD_U, const.STATUS_DD_NU))
     dd = frozenset((const.STATUS_DD_U, const.STATUS_DD_NU))
 

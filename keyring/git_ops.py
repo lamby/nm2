@@ -287,8 +287,8 @@ class AddDM(Add):
             return
 
         if person.status in (
-                const.STATUS_DD_U, const.STATUS_DD_NU, const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD,
-                const.STATUS_REMOVED_DM):
+                const.STATUS_DD_U, const.STATUS_DD_NU,
+                const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD):
             raise OperationError(self.log_entry, "commit is for a new DM, but it corresponds to {} who has status {}".format(person.lookup_key, person.status))
 
         if person.status == const.STATUS_DC_GA:
