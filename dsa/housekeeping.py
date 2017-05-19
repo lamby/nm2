@@ -213,11 +213,11 @@ class CheckLDAPConsistency(hk.Task):
                     }
                     if entry.is_dd:
                         args["status"] = const.STATUS_REMOVED_DD
-                        args["audit_notes"] = "created to mirror a removed guest account from LDAP"
+                        args["audit_notes"] = "created to mirror a removed DD account from LDAP"
                         if not args["email"]: args["email"] = "{}@debian.org".format(entry.uid)
                     else:
                         args["status"] = const.STATUS_REMOVED_DC_GA
-                        args["audit_notes"] = "created to mirror a removed DD account from LDAP"
+                        args["audit_notes"] = "created to mirror a removed guest account from LDAP"
                         if not args["email"]: args["email"] = "{}@example.org".format(entry.uid)
                     person = bmodels.Person.objects.create_user(**args)
                     log.warn("%s: %s: %s", self.IDENTIFIER, self.hk.link(person), args["audit_notes"])
