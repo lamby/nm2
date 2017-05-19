@@ -20,7 +20,7 @@ def is_valid_username(username):
     if username.endswith("@debian.org"): return True
     return False
 
-FORMER_ACTIVE = (const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD, const.STATUS_REMOVED_DC_GA)
+FORMER_ACTIVE = (const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD)
 
 class ClaimForm(forms.Form):
     fpr = forms.CharField(label="Fingerprint", min_length=40, widget=forms.TextInput(attrs={"size": 60}))
