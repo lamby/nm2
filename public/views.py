@@ -441,7 +441,6 @@ SIMPLIFY_STATUS = {
     const.STATUS_DD_U: "dd",
     const.STATUS_DD_NU: "dd",
     const.STATUS_EMERITUS_DD: "emeritus",
-    const.STATUS_EMERITUS_DM: "emeritus",
     const.STATUS_REMOVED_DD: "removed",
     const.STATUS_REMOVED_DM: "removed",
 }

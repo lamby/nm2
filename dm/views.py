@@ -20,7 +20,7 @@ def is_valid_username(username):
     if username.endswith("@debian.org"): return True
     return False
 
-FORMER_ACTIVE = (const.STATUS_EMERITUS_DD, const.STATUS_EMERITUS_DM,
+FORMER_ACTIVE = (const.STATUS_EMERITUS_DD,
                  const.STATUS_REMOVED_DD, const.STATUS_REMOVED_DM,
                  const.STATUS_REMOVED_DC_GA)
 
