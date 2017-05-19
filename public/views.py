@@ -34,6 +34,7 @@ import backend.email as bemail
 from backend import const
 from backend.mixins import VisitorMixin, VisitorTemplateView, VisitPersonTemplateView, VisitProcessMixin, VisitProcessTemplateView
 from .email_stats import mailbox_get_gaps
+from collections import Counter
 import markdown
 import datetime
 import os
@@ -575,13 +576,19 @@ class Stats(VisitorTemplateView):
         #        else:
         #            p.mbox_stats = None
 
+        # Build process list
         import process.models as pmodels
         from process.mixins import compute_process_status
         for p in pmodels.Process.objects.filter(closed__isnull=True):
             active_processes.append((p, compute_process_status(p, self.visitor)))
-
         active_processes.sort(key=lambda x:(x[1]["log_first"].logdate if x[1]["log_first"] else None))
         ctx["active_processes"] = active_processes
+
+        # Count processes by status
+        by_status = Counter()
+        for proc, stat in active_processes:
+            by_status[stat["summary"]] += 1
+        ctx["by_status"] = sorted(by_status.items())
 
         return ctx
 

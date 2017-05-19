@@ -87,6 +87,26 @@ $(function() {
 </tbody>
 </table>
 
+<h2>Processes by status</h2>
+
+<table id="proc_bystatus" class="tablesorter">
+<thead>
+    <tr><th>Status</th><th>Count</th></tr>
+</thead>
+<tbody>
+    {% for st, count in by_status %}
+    <tr>
+        <td>{{st}}</td>
+        <td>{{count}}</td>
+    </tr>
+    {% endfor %}
+    <tr>
+      <td>Total</td>
+      <td>{{active_processes|length}}</td>
+    </tr>
+</tbody>
+</table>
+
 <h2 style="clear: both">Active processes</h2>
 
 <table class="tablesorter" id="progstats">
