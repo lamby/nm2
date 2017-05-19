@@ -11,32 +11,6 @@
 {% block head_resources %}
   {{block.super}}
   <link type="text/css" rel="stylesheet" media="all" href="{{ STATIC_URL }}css/nm.css">
-  {% if visitor.is_admin %}
-  <script src="{{STATIC_URL}}js/jquery-1.10.2.min.js"></script>
-  <script type="text/javascript">
-(function($){
-function ganneff_mode() {
-  $("button").text("DELETE!!!!");
-  $("a").each(function(idx, el) {
-    console.log("A", el)
-    var el = $(el);
-    var label = el.text();
-    if (/^(\[|admin|impersonate|add|edit)/.test(label))
-      el.text("DELETE!!!!");
-  });
-}
-function main()
-{
-  $("#logo").click(function(evt) {
-    ganneff_mode();
-    evt.preventDefault();
-    return false;
-  });
-}
-$(main);
-})(jQuery);
-  </script>
-  {% endif %}
 {% endblock %}
 
 {% block section %}<a href="{% url 'home' %}">NM</a>{% endblock %}
