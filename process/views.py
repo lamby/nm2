@@ -392,7 +392,7 @@ class StatementCreate(StatementMixin, FormView):
             msg = statement.rfc3156
             if msg is None:
                 from .email import notify_new_statement
-                notify_new_statement(statement, request=self.request)
+                notify_new_statement(statement, request=self.request, cc_nm=(self.requirement.type=="am_ok"))
 
         return redirect(self.requirement.get_absolute_url())
 
