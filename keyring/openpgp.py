@@ -13,7 +13,8 @@ class RFC3156(object):
     """
     def __init__(self, data):
         self.data = data
-        self.message = email.message_from_string(self.data)
+        # TODO: remove the encode in python3
+        self.message = email.message_from_string(self.data.encode("utf8"))
         self.parsed = self.find_payloads(self.message)
 
     def find_payloads(self, message):
