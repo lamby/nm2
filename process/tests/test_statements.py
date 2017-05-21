@@ -114,7 +114,6 @@ v85pPGXRppmFCX/Pk+U=
         self.assertEqual(pmodels.Statement.objects.count(), 0)
 
     def test_encoding1(self):
-        # Test with Ondřej Nový's key which has non-ascii characters
         bmodels.Fingerprint.objects.create(person=self.persons.app, fpr="3D983C52EB85980C46A56090357312559D1E064B", is_active=True, audit_skip=True)
         statement = "\xe8"
         url = reverse("process_statement_create", args=[self.processes.app.pk, "intent"])
