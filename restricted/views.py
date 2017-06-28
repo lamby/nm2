@@ -253,13 +253,38 @@ class MinechangelogsForm(forms.Form):
     )
 
 
-class MineChangelogs(TemplateView):
+class MineChangelogs(VisitorMixin, FormView):
     template_name = "restricted/minechangelogs.html"
+    form_class = MinechangelogsForm
 
     def check_permissions(self):
         super(MineChangelogs, self).check_permissions()
         if self.visitor is None:
             raise PermissionDenied
+
+    def load_objects(self):
+        super(MineChangelogs, self).load_objects()
+        self.key = self.kwargs.get("key", None)
+        if self.key:
+            self.person = bmodels.Person.lookup_or_404(self.key)
+        else:
+            self.person = None
+
+    def get_initial(self):
+        res = super(MineChangelogs, self).get_initial()
+        if not self.person:
+            return res
+
+        query = [
+            self.person.fullname,
+            self.person.email,
+        ]
+        if self.person.cn and self.person.mn and self.person.sn:
+            # some people don't use their middle names in changelogs
+            query.append("{} {}".format(self.person.cn, self.person.sn))
+        if self.person.uid:
+            query.append(self.person.uid)
+        return {"query": "\n".join(query)}
 
     def get_context_data(self, **kw):
         ctx = super(MineChangelogs, self).get_context_data(**kw)
@@ -267,56 +292,31 @@ class MineChangelogs(TemplateView):
         info = mmodels.info()
         info["max_ts"] = datetime.datetime.fromtimestamp(info["max_ts"])
         info["last_indexed"] = datetime.datetime.fromtimestamp(info["last_indexed"])
-
-        key = self.kwargs.get("key", None)
-        if key:
-            person = bmodels.Person.lookup_or_404(key)
-        else:
-            person = None
-
-        keywords=None
-        if request.method == 'POST':
-            form = MinechangelogsForm(request.POST)
-            if form.is_valid():
-                query = form.cleaned_data["query"]
-                keywords = [x.strip() for x in query.split("\n")]
-                entries = mmodels.query(keywords)
-                if form.cleaned_data["download"]:
-                    def send_entries():
-                        for e in entries:
-                            yield e
-                            yield "\n\n"
-                    res = http.HttpResponse(send_entries(), content_type="text/plain")
-                    if person:
-                        res["Content-Disposition"] = 'attachment; filename=changelogs-%s.txt' % person.lookup_key
-                    else:
-                        res["Content-Disposition"] = 'attachment; filename=changelogs.txt'
-                    return res
-                else:
-                    entries = list(entries)
-        else:
-            if person:
-                query = [
-                    person.fullname,
-                    person.email,
-                ]
-                if person.cn and person.mn and person.sn:
-                    # some people don't use their middle names in changelogs
-                    query.append("{} {}".format(person.cn, person.sn))
-                if person.uid:
-                    query.append(person.uid)
-                form = MinechangelogsForm(initial=dict(query="\n".join(query)))
-            else:
-                form = MinechangelogsForm()
-
         ctx.update(
-            keywords=keywords,
-            form=form,
             info=info,
             entries=entries,
-            person=person,
+            person=self.person,
         )
         return ctx
+
+    def form_valid(self, form):
+        query = form.cleaned_data["query"]
+        keywords = [x.strip() for x in query.split("\n")]
+        entries = mmodels.query(keywords)
+        if form.cleaned_data["download"]:
+            def send_entries():
+                for e in entries:
+                    yield e
+                    yield "\n\n"
+            res = http.HttpResponse(send_entries(), content_type="text/plain")
+            if person:
+                res["Content-Disposition"] = 'attachment; filename=changelogs-%s.txt' % person.lookup_key
+            else:
+                res["Content-Disposition"] = 'attachment; filename=changelogs.txt'
+            return res
+
+        entries = list(entries)
+        return self.render_to_response(self.get_context_data(form=form))
 
 
 class Impersonate(View):
