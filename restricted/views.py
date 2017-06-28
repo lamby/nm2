@@ -252,68 +252,77 @@ class MinechangelogsForm(forms.Form):
         help_text=_("Activate this field to download the changelog instead of displaying it"),
     )
 
-def minechangelogs(request, key=None):
-    if request.user.is_anonymous():
-        raise PermissionDenied
-    entries = None
-    info = mmodels.info()
-    info["max_ts"] = datetime.datetime.fromtimestamp(info["max_ts"])
-    info["last_indexed"] = datetime.datetime.fromtimestamp(info["last_indexed"])
 
-    if key:
-        person = bmodels.Person.lookup_or_404(key)
-    else:
-        person = None
+class MineChangelogs(TemplateView):
+    template_name = "restricted/minechangelogs.html"
 
-    keywords=None
-    if request.method == 'POST':
-        form = MinechangelogsForm(request.POST)
-        if form.is_valid():
-            query = form.cleaned_data["query"]
-            keywords = [x.strip() for x in query.split("\n")]
-            entries = mmodels.query(keywords)
-            if form.cleaned_data["download"]:
-                def send_entries():
-                    for e in entries:
-                        yield e
-                        yield "\n\n"
-                res = http.HttpResponse(send_entries(), content_type="text/plain")
-                if person:
-                    res["Content-Disposition"] = 'attachment; filename=changelogs-%s.txt' % person.lookup_key
-                else:
-                    res["Content-Disposition"] = 'attachment; filename=changelogs.txt'
-                return res
-            else:
-                entries = list(entries)
-    else:
-        if person:
-            query = [
-                person.fullname,
-                person.email,
-            ]
-            if person.cn and person.mn and person.sn:
-                # some people don't use their middle names in changelogs
-                query.append("{} {}".format(person.cn, person.sn))
-            if person.uid:
-                query.append(person.uid)
-            form = MinechangelogsForm(initial=dict(query="\n".join(query)))
+    def check_permissions(self):
+        super(MineChangelogs, self).check_permissions()
+        if self.visitor is None:
+            raise PermissionDenied
+
+    def get_context_data(self, **kw):
+        ctx = super(MineChangelogs, self).get_context_data(**kw)
+        entries = None
+        info = mmodels.info()
+        info["max_ts"] = datetime.datetime.fromtimestamp(info["max_ts"])
+        info["last_indexed"] = datetime.datetime.fromtimestamp(info["last_indexed"])
+
+        key = self.kwargs.get("key", None)
+        if key:
+            person = bmodels.Person.lookup_or_404(key)
         else:
-            form = MinechangelogsForm()
+            person = None
 
-    return render_to_response("restricted/minechangelogs.html",
-                              dict(
-                                  keywords=keywords,
-                                  form=form,
-                                  info=info,
-                                  entries=entries,
-                                  person=person,
-                              ),
-                              context_instance=template.RequestContext(request))
+        keywords=None
+        if request.method == 'POST':
+            form = MinechangelogsForm(request.POST)
+            if form.is_valid():
+                query = form.cleaned_data["query"]
+                keywords = [x.strip() for x in query.split("\n")]
+                entries = mmodels.query(keywords)
+                if form.cleaned_data["download"]:
+                    def send_entries():
+                        for e in entries:
+                            yield e
+                            yield "\n\n"
+                    res = http.HttpResponse(send_entries(), content_type="text/plain")
+                    if person:
+                        res["Content-Disposition"] = 'attachment; filename=changelogs-%s.txt' % person.lookup_key
+                    else:
+                        res["Content-Disposition"] = 'attachment; filename=changelogs.txt'
+                    return res
+                else:
+                    entries = list(entries)
+        else:
+            if person:
+                query = [
+                    person.fullname,
+                    person.email,
+                ]
+                if person.cn and person.mn and person.sn:
+                    # some people don't use their middle names in changelogs
+                    query.append("{} {}".format(person.cn, person.sn))
+                if person.uid:
+                    query.append(person.uid)
+                form = MinechangelogsForm(initial=dict(query="\n".join(query)))
+            else:
+                form = MinechangelogsForm()
+
+        ctx.update(
+            keywords=keywords,
+            form=form,
+            info=info,
+            entries=entries,
+            person=person,
+        )
+        return ctx
+
 
 class Impersonate(View):
     def get(self, request, key=None, *args, **kw):
         visitor = request.user
-        if not visitor.is_authenticated() or not visitor.is_admin: raise PermissionDenied
+        if not visitor.is_authenticated or not visitor.is_admin: raise PermissionDenied
         if key is None:
             del request.session["impersonate"]
         else:

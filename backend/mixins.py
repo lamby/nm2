@@ -19,7 +19,7 @@ class VisitorMixin(object):
     def set_visitor_info(self):
         self.impersonator = None
 
-        if not self.request.user.is_authenticated():
+        if not self.request.user.is_authenticated:
             self.visitor = None
         else:
             self.visitor = self.request.user
