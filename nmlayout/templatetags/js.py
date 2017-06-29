@@ -17,6 +17,7 @@
 
 from django import template
 from django.conf import settings
+from django.utils.safestring import mark_safe
 from backend import const
 
 STATIC_URL = getattr(settings, "STATIC_URL", "/static/")
@@ -79,6 +80,6 @@ def jsinclude(modlist):
     for name in modlist.split(","):
         add_module(name)
 
-    return "\n".join(modules)
+    return mark_safe("\n".join(modules))
 
 
