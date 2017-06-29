@@ -14,7 +14,7 @@ urlpatterns = [
     # AM preferences editor
     url(r'^amprofile(?:/(?P<key>[^/]+))?$', views.AMProfile.as_view(), name="restricted_amprofile"),
     # Show changelogs (minechangelogs)
-    url(r'^minechangelogs/(?P<key>[^/]+)?$', views.minechangelogs, name="restricted_minechangelogs"),
+    url(r'^minechangelogs/(?P<key>[^/]+)?$', views.MineChangelogs.as_view(), name="restricted_minechangelogs"),
     # Impersonate a user
     url(r'^impersonate/(?P<key>[^/]+)?$', views.Impersonate.as_view(), name="impersonate"),
     # Export database

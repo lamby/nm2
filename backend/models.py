@@ -289,9 +289,11 @@ class Person(PermissionsMixin, models.Model):
     def get_username(self):
         return self.username
 
+    @property
     def is_anonymous(self):
         return False
 
+    @property
     def is_authenticated(self):
         return True
 
@@ -713,7 +715,7 @@ class PersonAuditLog(models.Model):
         """
         Compute the changes between two different instances of a Person model
         """
-        exclude = ["last_login", "date_joined"]
+        exclude = ["last_login", "date_joined", "groups", "user_permissions"]
         changes = {}
         if old_person is None:
             for k, nv in model_to_dict(new_person, exclude=exclude).items():

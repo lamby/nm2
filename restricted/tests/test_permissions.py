@@ -35,7 +35,7 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
         for u in self.users.viewkeys() - allowed:
             self.assertVisit(WhenView(user=self.users[u]), ThenForbidden())
         for u in allowed:
-            self.assertVisit(WhenView(user=self.users[u]), ThenRedirect("^http://testserver/$"))
+            self.assertVisit(WhenView(user=self.users[u]), ThenRedirect("^/$"))
 
     def test_db_export(self):
         class WhenView(NMTestUtilsWhen):
