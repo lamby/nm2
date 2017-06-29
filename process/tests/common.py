@@ -1,8 +1,8 @@
 # coding: utf-8
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+
+
+
+
 from backend.unittest import NamedObjects, PersonFixtureMixin
 import backend.models as bmodels
 import process.models as pmodels
@@ -165,7 +165,7 @@ def get_all_process_types():
     Generate all valid (source_status, applying_for) pairs for all possible
     processes.
     """
-    for src, tgts in bmodels.Person._new_status_table.items():
+    for src, tgts in list(bmodels.Person._new_status_table.items()):
         for tgt in tgts:
             yield src, tgt
 

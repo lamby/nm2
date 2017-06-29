@@ -1,8 +1,8 @@
 # coding: utf-8
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+
+
+
+
 from . import models as bmodels
 from . import const
 from django.core.urlresolvers import reverse
@@ -151,7 +151,7 @@ class NMTestUtilsWhen(object):
         """
         Normalise the parameters using data from the fixture
         """
-        if isinstance(self.user, basestring):
+        if isinstance(self.user, str):
             self.user = getattr(fixture, "user_{}".format(self.user))
         if self.data is None:
             self.data = {}

@@ -1,8 +1,8 @@
 # coding: utf-8
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+
+
+
+
 from django.test import TestCase
 from django.core.urlresolvers import reverse
 from django.utils.timezone import now
@@ -45,14 +45,14 @@ class TestProcessStatementCreate(ProcessFixtureMixin, TestCase):
 
             # Post a signature done with the wrong key
             response = client.post(url, data={"statement": test_fpr2_signed_valid_text})
-            self.assertEquals(response.status_code, 200)
+            self.assertEqual(response.status_code, 200)
             self.assertFormErrorMatches(response, "form", "statement", "NO_PUBKEY")
             self.assertEqual(pmodels.Statement.objects.count(), 0)
 
             # Post an invalid signature
             text = test_fpr1_signed_valid_text.replace("I agree", "I do not agree")
             response = client.post(url, data={"statement": text})
-            self.assertEquals(response.status_code, 200)
+            self.assertEqual(response.status_code, 200)
             self.assertFormErrorMatches(response, "form", "statement", "BADSIG")
             self.assertEqual(pmodels.Statement.objects.count(), 0)
 
@@ -62,10 +62,10 @@ class TestProcessStatementCreate(ProcessFixtureMixin, TestCase):
             self.assertRedirectMatches(response, req.get_absolute_url())
             self.assertEqual(pmodels.Statement.objects.count(), 1)
             st = pmodels.Statement.objects.get(requirement=req)
-            self.assertEquals(st.requirement, req)
-            self.assertEquals(st.fpr, self.fingerprints.visitor)
-            self.assertEquals(st.statement, test_fpr1_signed_valid_text)
-            self.assertEquals(st.uploaded_by, self.visitor)
+            self.assertEqual(st.requirement, req)
+            self.assertEqual(st.fpr, self.fingerprints.visitor)
+            self.assertEqual(st.statement, test_fpr1_signed_valid_text)
+            self.assertEqual(st.uploaded_by, self.visitor)
             self.assertIsNotNone(st.uploaded_time)
 
     def _test_create_forbidden(self, req_type, visit_perms=set()):
@@ -109,7 +109,7 @@ v85pPGXRppmFCX/Pk+U=
         client = self.make_test_client(self.persons.app)
         # Post an invalid signature
         response = client.post(url, data={"statement": statement})
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
         self.assertFormErrorMatches(response, "form", "statement", "Ondřej Nový <novy@ondrej.org>")
         self.assertEqual(pmodels.Statement.objects.count(), 0)
 
@@ -120,7 +120,7 @@ v85pPGXRppmFCX/Pk+U=
         client = self.make_test_client(self.persons.app)
         # Post an invalid signature
         response = client.post(url, data={"statement": statement})
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
         self.assertFormErrorMatches(response, "form", "statement", "OpenPGP MIME data not found")
         self.assertEqual(pmodels.Statement.objects.count(), 0)
 

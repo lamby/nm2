@@ -1,8 +1,8 @@
 # coding: utf-8
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+
+
+
+
 from django.conf import settings
 from django.utils.timezone import utc, now
 import subprocess
@@ -55,7 +55,7 @@ class LogEntry(object):
         # Parsed dict, or None
         parsed = self._parse()
         if parsed:
-            self.parsed = { k.lower(): v for k, v in parsed.items() }
+            self.parsed = { k.lower(): v for k, v in list(parsed.items()) }
         else:
             self.parsed = None
 
@@ -72,7 +72,7 @@ class LogEntry(object):
         if self.re_import_changes.match(subject): return None
         if body.startswith("Action:"):
             operation = email.message_from_string(body.encode("utf-8"))
-            return dict(operation.items())
+            return dict(list(operation.items()))
         else:
             for match in self.re_summaries:
                 mo = match["re"].match(subject)

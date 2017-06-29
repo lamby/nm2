@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 from django.conf import settings
 from django.core.mail import send_mail, EmailMessage
 from django.template.loader import render_to_string
@@ -38,13 +38,13 @@ def get_body(message):
         body = []
         for part in text_parts:
             charset = get_charset(part, get_charset(message))
-            body.append(unicode(part.get_payload(decode=True),
+            body.append(str(part.get_payload(decode=True),
                                 charset,
                                 "replace"))
-        return u"\n".join(body).strip()
+        return "\n".join(body).strip()
     else: # if it is not multipart, the payload will be a string
           # representing the message body
-        body = unicode(message.get_payload(decode=True),
+        body = str(message.get_payload(decode=True),
                        get_charset(message),
                        "replace")
         return body.strip()
@@ -149,7 +149,7 @@ def get_mbox_as_dicts(filename):
     try:  ## we are reading, have not to flush with close
         for message in mailbox.mbox(filename, create=False):
             msg_dict = {'Body': get_body(message)}
-            for hkey, hval in message.items():
+            for hkey, hval in list(message.items()):
                 msg_dict[hkey] = decode_header(hval)
             yield msg_dict
     except mailbox.NoSuchMailboxError:

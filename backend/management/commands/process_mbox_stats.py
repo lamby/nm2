@@ -109,7 +109,7 @@ class Interaction(object):
                 d['median'] = median(d['response_time'])
                 log.debug("%s -> median: %s" % (process_key, d['median']))
         else:
-            for k, d in cls.data['emails'].iteritems():
+            for k, d in cls.data['emails'].items():
                 if d['num_mails'] > 1:
                     d['median'] = median(d['response_time'])
 
@@ -158,7 +158,7 @@ class Command(BaseCommand):
         for progress in managed_process:
             key = progress.lookup_key
             mailbox_file = progress.mailbox_file
-            log.debug("%s[%s] -> %s" % (unicode(progress), key, mailbox_file))
+            log.debug("%s[%s] -> %s" % (str(progress), key, mailbox_file))
             if mailbox_file:
                 for msg in mailbox.mbox(mailbox_file, create=False):
                     interactions.add(key, msg)
@@ -166,7 +166,7 @@ class Command(BaseCommand):
                 log.info("%s processed", mailbox_file)
             else:
                 log.warn("%s[%s] skiped, no mailbox file defined" %
-                         (unicode(progress), key))
+                         (str(progress), key))
 
         interactions.generate_email_stats()
         interactions.export(os.path.join(settings.DATA_DIR, 'mbox_stats.json'))

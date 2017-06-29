@@ -34,7 +34,7 @@ import gzip
 import re
 import time
 import codecs
-from cStringIO import StringIO
+from io import StringIO
 from backend import models as bmodels
 from backend import const
 from backend import utils
@@ -64,7 +64,7 @@ class Reporter(object):
         """Format and print a list of processes to `out`. If `print_manager`
         is True, print a column with the AM login. The `procs` list needs to
         be annotated with a `last_log` property used to display the date."""
-        print >>out
+        print(file=out)
 
         col_uid = 0
         if print_manager:
@@ -75,15 +75,13 @@ class Reporter(object):
 
         for p in procs:
             if print_manager:
-                print >>out, \
-                    str(p.last_log.date()).rjust(12), \
+                print(str(p.last_log.date()).rjust(12), \
                     p.manager.person.uid.ljust(col_uid), \
-                    "%s <%s>" % (p.person.fullname, p.person.lookup_key)
+                    "%s <%s>" % (p.person.fullname, p.person.lookup_key), file=out)
             else:
-                print >>out, \
-                    str(p.last_log.date()).rjust(12), \
-                    "%s <%s>" % (p.person.fullname, p.person.lookup_key)
-        print >>out
+                print(str(p.last_log.date()).rjust(12), \
+                    "%s <%s>" % (p.person.fullname, p.person.lookup_key), file=out)
+        print(file=out)
 
 
 
@@ -95,9 +93,9 @@ class Reporter(object):
 
     def rep00_period(self, out, **opts):
         if (self.until - self.since).days == 7:
-            print >>out, "For week ending %s." % str(self.until.date())
+            print("For week ending %s." % str(self.until.date()), file=out)
         else:
-            print >>out, "From %s to %s." % (self.since.date(), self.until.date())
+            print("From %s to %s." % (self.since.date(), self.until.date()), file=out)
 
     def rep01_summary(self, out, **opts):
         "Weekly Summary Statistics"
@@ -113,8 +111,8 @@ class Reporter(object):
         for p in new_procs:
             counts[p.applying_for].append(p)
 
-        for k, processes in sorted(counts.iteritems(), key=lambda x:const.SEQ_STATUS.get(x[0], 0)):
-            print >>out, "%d more people applied to become a %s:" % (len(counts[k]), const.ALL_STATUS_DESCS.get(k, "(unknown)"))
+        for k, processes in sorted(iter(counts.items()), key=lambda x:const.SEQ_STATUS.get(x[0], 0)):
+            print("%d more people applied to become a %s:" % (len(counts[k]), const.ALL_STATUS_DESCS.get(k, "(unknown)")), file=out)
             self.print_proclist(out, processes, False)
 
         # Processes that ended
@@ -127,8 +125,8 @@ class Reporter(object):
         for p in new_procs:
             counts[p.applying_for].append(p)
 
-        for k, processes in sorted(counts.iteritems(), key=lambda x:const.SEQ_STATUS.get(x[0], 0)):
-            print >>out, "%d people became a %s:" % (len(counts[k]), const.ALL_STATUS_DESCS.get(k, "(unknown)"))
+        for k, processes in sorted(iter(counts.items()), key=lambda x:const.SEQ_STATUS.get(x[0], 0)):
+            print("%d people became a %s:" % (len(counts[k]), const.ALL_STATUS_DESCS.get(k, "(unknown)")), file=out)
             self.print_proclist(out, processes, False)
 
     def rep02_newams(self, out, **opts):
@@ -143,11 +141,11 @@ class Reporter(object):
                                    .order_by("ended")
         count = new_procs.count()
         if count:
-            print >>out, "%d DDs are now %d days old and can decide to become AMs: ;)" % (
-                count, NEW_AM_THRESHOLD)
-            print >>out
+            print("%d DDs are now %d days old and can decide to become AMs: ;)" % (
+                count, NEW_AM_THRESHOLD), file=out)
+            print(file=out)
             for p in new_procs:
-                print >>out, "  %s <%s>" % (p.person.fullname, p.person.uid)
+                print("  %s <%s>" % (p.person.fullname, p.person.uid), file=out)
 
     def rep03_amchecks(self, out, **opts):
         "AM checks"
@@ -160,8 +158,8 @@ class Reporter(object):
                                .order_by("last_log")
         count = procs.count()
         if count > 0:
-            print >>out, "%d processes have had no apparent activity in the last %d days:" % (
-                count, INACTIVE_AM_PERIOD)
+            print("%d processes have had no apparent activity in the last %d days:" % (
+                count, INACTIVE_AM_PERIOD), file=out)
             self.print_proclist(out, procs)
 
         # Inactive AM_HOLD processes
@@ -172,8 +170,8 @@ class Reporter(object):
                                .order_by("last_log")
         count = procs.count()
         if count > 0:
-            print >>out, "%d processes have been on hold for longer than %d days:" % (
-                count, INACTIVE_AMHOLD_PERIOD)
+            print("%d processes have been on hold for longer than %d days:" % (
+                count, INACTIVE_AMHOLD_PERIOD), file=out)
             self.print_proclist(out, procs)
 
 
@@ -195,8 +193,8 @@ class Reporter(object):
         Run all weekly report functions
         """
         title = "Weekly Report on Debian New Members"
-        print >>out, title.center(self.twidth)
-        print >>out, ("=" * len(title)).center(self.twidth)
+        print(title.center(self.twidth), file=out)
+        print(("=" * len(title)).center(self.twidth), file=out)
 
         import inspect
         for name, meth in sorted(inspect.getmembers(self, predicate=inspect.ismethod)):
@@ -213,14 +211,14 @@ class Reporter(object):
                 continue
 
             # Else output it, with title and stuff
-            print >>out
+            print(file=out)
             if meth.__doc__:
                 title = meth.__doc__.strip().split("\n")[0].strip()
-                print >>out, title
-                print >>out, "=" * len(title)
+                print(title, file=out)
+                print("=" * len(title), file=out)
             out.write(mout.getvalue())
 
-        print >>out
+        print(file=out)
 
 
 re_date = re.compile("^\d+-\d+-\d+$")

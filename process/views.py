@@ -1,8 +1,8 @@
 # coding: utf-8
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+
+
+
+
 from django.utils.translation import ugettext as _
 from django.shortcuts import redirect, get_object_or_404
 from django.views.generic import TemplateView, View
@@ -612,7 +612,7 @@ class EmailLookup(VisitProcessMixin, View):
 
         import mailbox
         mbox = mailbox.mbox(mbox_pathname)
-        for key in mbox.iterkeys():
+        for key in mbox.keys():
             msg = mbox.get_message(key)
             if msg["Message-ID"].strip("<>") == msgid:
                 fp = mbox.get_file(key)

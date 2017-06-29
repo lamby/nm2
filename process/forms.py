@@ -1,8 +1,8 @@
 # coding: utf-8
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+
+
+
+
 from django import forms
 
 
@@ -20,11 +20,11 @@ class StatementForm(forms.Form):
         try:
             key = Key.objects.get_or_download(self.fpr)
         except RuntimeError as e:
-            raise forms.ValidationError("Cannot download the key: " + unicode(e))
+            raise forms.ValidationError("Cannot download the key: " + str(e))
 
         try:
             plaintext = key.verify(text)
         except RuntimeError as e:
-            raise forms.ValidationError("Cannot verify the signature: " + unicode(e))
+            raise forms.ValidationError("Cannot verify the signature: " + str(e))
 
         return (text, plaintext)

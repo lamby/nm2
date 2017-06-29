@@ -1,9 +1,9 @@
 #!/usr/bin/python
 # coding: utf-8
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+
+
+
+
 import mailbox
 import email
 import os
@@ -83,7 +83,7 @@ def aggregate(parsed_mbox):
 
     # Compute the most common address for a realname
     aliases = {}
-    for c in by_realname.itervalues():
+    for c in by_realname.values():
         ranked = c.most_common()
         for addr, count in ranked:
             aliases[addr] = ranked[0][0]

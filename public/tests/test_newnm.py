@@ -2,10 +2,10 @@
 """
 Test permissions
 """
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+
+
+
+
 from django.test import TestCase
 from django.core.urlresolvers import reverse
 from backend.models import Person
@@ -60,10 +60,10 @@ class TestNewnm(PersonFixtureMixin, TestCase):
     def test_require_login(self):
         client = self.make_test_client(None)
         response = client.get(reverse("public_newnm"))
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.context["person"], None)
-        self.assertEquals(response.context["errors"], [])
-        self.assertEquals(response.context["DAYS_VALID"], 3)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["person"], None)
+        self.assertEqual(response.context["errors"], [])
+        self.assertEqual(response.context["DAYS_VALID"], 3)
         self.assertContains(response, "Please login first")
         self.assertNotContains(response, "You already have an entry in the system")
         self.assertNotContains(response, "Not only you have an entry, but you are also")
@@ -74,10 +74,10 @@ class TestNewnm(PersonFixtureMixin, TestCase):
     def test_no_person(self):
         client = self.make_test_client("new_person-guest@users.alioth.debian.org")
         response = client.get(reverse("public_newnm"))
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.context["person"], None)
-        self.assertEquals(response.context["errors"], [])
-        self.assertEquals(response.context["DAYS_VALID"], 3)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["person"], None)
+        self.assertEqual(response.context["errors"], [])
+        self.assertEqual(response.context["DAYS_VALID"], 3)
         self.assertNotContains(response, "Please login first")
         self.assertNotContains(response, "You already have an entry in the system")
         self.assertNotContains(response, "Not only you have an entry, but you are also")
@@ -88,7 +88,7 @@ class TestNewnm(PersonFixtureMixin, TestCase):
         response = client.post(reverse("public_newnm"), data={"fpr": self.new_person_fingerprint, "sc_ok": "yes", "dmup_ok": "yes", "cn": "test", "email": "new_person@example.org"})
         self.assertRedirectMatches(response, reverse("public_newnm_resend_challenge", kwargs={"key": "new_person@example.org"}))
         new_person = Person.lookup("new_person@example.org")
-        self.assertEquals(new_person.status, const.STATUS_DC)
+        self.assertEqual(new_person.status, const.STATUS_DC)
         self.assertIsNotNone(new_person.expires)
         self.assertIsNotNone(new_person.pending)
 
@@ -98,23 +98,23 @@ class TestNewnm(PersonFixtureMixin, TestCase):
 
         # The new person has a page in the system
         response = client.get(new_person.get_absolute_url())
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
 
         # The new person can confirm its record
         response = client.get(reverse("public_newnm_confirm", kwargs={"nonce": new_person.pending}))
         self.assertRedirectMatches(response, new_person.get_absolute_url())
         new_person = Person.objects.get(pk=new_person.pk)
-        self.assertEquals(new_person.status, const.STATUS_DC)
+        self.assertEqual(new_person.status, const.STATUS_DC)
         self.assertIsNotNone(new_person.expires)
-        self.assertEquals(new_person.pending, "")
+        self.assertEqual(new_person.pending, "")
 
     def _test_non_dd(self, person):
         client = self.make_test_client(person)
         response = client.get(reverse("public_newnm"))
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.context["person"], self.persons[person])
-        self.assertEquals(response.context["errors"], [])
-        self.assertEquals(response.context["DAYS_VALID"], 3)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["person"], self.persons[person])
+        self.assertEqual(response.context["errors"], [])
+        self.assertEqual(response.context["DAYS_VALID"], 3)
         self.assertNotContains(response, "Please login first")
         self.assertContains(response, "You already have an entry in the system")
         self.assertNotContains(response, "Not only you have an entry, but you are also")
@@ -125,10 +125,10 @@ class TestNewnm(PersonFixtureMixin, TestCase):
     def _test_dd(self, person):
         client = self.make_test_client(person)
         response = client.get(reverse("public_newnm"))
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.context["person"], self.persons[person])
-        self.assertEquals(response.context["errors"], [])
-        self.assertEquals(response.context["DAYS_VALID"], 3)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["person"], self.persons[person])
+        self.assertEqual(response.context["errors"], [])
+        self.assertEqual(response.context["DAYS_VALID"], 3)
         self.assertNotContains(response, "Please login first")
         self.assertContains(response, "You already have an entry in the system")
         self.assertContains(response, "Not only you have an entry, but you are also")

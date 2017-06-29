@@ -1,8 +1,8 @@
 # coding: utf-8
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+
+
+
+
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
 from django.conf import settings
@@ -217,7 +217,7 @@ class Process(models.Model):
     objects = ProcessManager()
 
     def __unicode__(self):
-        return u"{} to become {}".format(self.person, self.applying_for)
+        return "{} to become {}".format(self.person, self.applying_for)
 
     def get_absolute_url(self):
         return reverse("process_show", args=[self.pk])
@@ -600,7 +600,7 @@ class Log(models.Model):
         ordering = ["-logdate"]
 
     def __unicode__(self):
-        return u"{}: {}".format(self.logdate, self.logtext)
+        return "{}: {}".format(self.logdate, self.logtext)
 
     @property
     def previous(self):

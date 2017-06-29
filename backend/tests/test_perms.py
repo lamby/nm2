@@ -1,8 +1,8 @@
 # coding: utf-8
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+
+
+
+
 from django.test import TestCase
 from backend import const
 from backend import models as bmodels
@@ -124,7 +124,7 @@ class TestVisitPersonNoProcess(OldProcessFixtureMixin, TestCase):
     def _test_perms(self, visited, perms):
         other_visitors = set(self.persons.keys())
         other_visitors.add(None)
-        for visitor, expected_perms in perms.perms.items():
+        for visitor, expected_perms in list(perms.perms.items()):
             other_visitors.discard(visitor)
             visit_perms = self.persons[visited].permissions_of(self.persons[visitor])
             self.assertPermsEqual(

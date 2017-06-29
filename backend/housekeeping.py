@@ -16,10 +16,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+
+
+
+
 from django.utils.timezone import now
 from django.conf import settings
 import django_housekeeping as hk
@@ -100,7 +100,7 @@ class BackupDB(hk.Task):
             return
 
         # Write the backup file
-        with utils.atomic_writer(fname, 0640) as fd:
+        with utils.atomic_writer(fname, 0o640) as fd:
             try:
                 gzfd = gzip.GzipFile(filename=fname[:-3], mode="w", compresslevel=9, fileobj=fd)
                 json.dump(people, gzfd, cls=Serializer, indent=2)
@@ -285,7 +285,7 @@ class CheckStatusProgressMatch(hk.Task):
             elif existing.closed < p.closed:
                 process_byperson[p.person] = p
 
-        for person, process in process_byperson.items():
+        for person, process in list(process_byperson.items()):
             if person.status != process.applying_for:
                 log.warn("%s: %s has status %s but the last completed process was applying for %s",
                          self.IDENTIFIER, self.hk.link(person), person.status, process.applying_for)

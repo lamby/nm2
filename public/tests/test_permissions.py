@@ -2,10 +2,10 @@
 """
 Test permissions
 """
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+
+
+
+
 from django.test import TestCase
 from backend import const
 from backend.test_common import *
@@ -35,7 +35,7 @@ class TestStatsPermissions(PersonFixtureMixin, TestCase):
     def _test_get_success(self, visitor, elements):
         client = self.make_test_client(visitor)
         response = client.get(reverse("public_stats"))
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
         self.assertContainsElements(response, self.elements, *elements)
 
 
@@ -47,7 +47,7 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
         class WhenView(NMTestUtilsWhen):
             url = reverse("public_newnm")
         self.assertVisit(WhenView(), ThenSuccess())
-        for u in self.users.itervalues():
+        for u in self.users.values():
             self.assertVisit(WhenView(user=u), ThenSuccess())
 
     def test_stats_latest(self):
@@ -57,7 +57,7 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
         class WhenView(NMTestUtilsWhen):
             url = reverse("public_stats_latest")
         self.assertVisit(WhenView(), ThenSuccess())
-        for u in self.users.itervalues():
+        for u in self.users.values():
             self.assertVisit(WhenView(user=u), ThenSuccess())
 
     def test_findperson(self):
@@ -77,7 +77,7 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
                 if b'id="search_form_submit"' in response.content:
                     fixture.fail("details are visible by {} when {}".format(when.user, when))
         self.assertVisit(WhenView(), ThenDoesNotSeeDetails())
-        for u in self.users.viewkeys() - frozenset(("fd", "dam")):
+        for u in self.users.keys() - frozenset(("fd", "dam")):
             self.assertVisit(WhenView(user=self.users[u]), ThenDoesNotSeeDetails())
         for u in ("fd", "dam"):
             self.assertVisit(WhenView(user=self.users[u]), ThenSeesDetails())
@@ -106,7 +106,7 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
                     fixture.fail("the user has notbeen created by {} when {}".format(when.user, when))
 
         self.assertVisit(WhenPost(), ThenForbidden())
-        for u in self.users.viewkeys() - frozenset(("fd", "dam")):
+        for u in self.users.keys() - frozenset(("fd", "dam")):
             self.assertVisit(WhenPost(user=self.users[u]), ThenForbidden())
         for u in ("fd", "dam"):
             self.assertVisit(WhenPost(user=self.users[u]), ThenCreatesUser())
@@ -118,7 +118,7 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
         class WhenView(NMTestUtilsWhen):
             url = reverse("people")
         self.assertVisit(WhenView(), ThenSuccess())
-        for u in self.users.itervalues():
+        for u in self.users.values():
             self.assertVisit(WhenView(user=u), ThenSuccess())
 
     def test_process(self):
@@ -142,7 +142,7 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
                 self.person.delete()
 
         self.assertVisit(WhenViewOther(), ThenSuccess())
-        for u in self.users.itervalues():
+        for u in self.users.values():
             self.assertVisit(WhenViewOther(user=u), ThenSuccess())
 
         # TODO: test visiting various combinations (applicant, dd, advocate and
@@ -156,7 +156,7 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
         class WhenView(NMTestUtilsWhen):
             url = reverse("public_progress", kwargs={ "progress": "app_ok" })
         self.assertVisit(WhenView(), ThenSuccess())
-        for u in self.users.itervalues():
+        for u in self.users.values():
             self.assertVisit(WhenView(user=u), ThenSuccess())
 
 # TODO: url(r'^newnm/resend_challenge/(?P<key>[^/]+)$', 'newnm_resend_challenge', name="public_newnm_resend_challenge"),
@@ -194,7 +194,7 @@ class ProcessesTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
                     fixture.fail("FD comments are visible by {} when {}".format(when.user, when))
 
         self.assertVisit(WhenView(), ThenDoesNotSeeFDComments())
-        for u in self.users.viewkeys() - frozenset(("fd", "dam")):
+        for u in self.users.keys() - frozenset(("fd", "dam")):
             self.assertVisit(WhenView(user=self.users[u]), ThenDoesNotSeeFDComments())
         for u in ("fd", "dam"):
             self.assertVisit(WhenView(user=self.users[u]), ThenSeesFDComments())
@@ -227,7 +227,7 @@ class ManagersTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
                     fixture.fail("details are visible by {} when {}".format(when.user, when))
         self.assertVisit(WhenView(), ThenDoesNotSeeDetails())
         ams = ("am", "fd", "dam")
-        for u in self.users.viewkeys() - frozenset(ams):
+        for u in self.users.keys() - frozenset(ams):
             self.assertVisit(WhenView(user=self.users[u]), ThenDoesNotSeeDetails())
         for u in ams:
             self.assertVisit(WhenView(user=self.users[u]), ThenSeesDetails())

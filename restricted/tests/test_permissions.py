@@ -1,8 +1,8 @@
 # coding: utf-8
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+
+
+
+
 from django.test import TestCase, TransactionTestCase
 from backend import const
 from backend.test_common import *
@@ -22,7 +22,7 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
             url = reverse("restricted_ammain")
         allowed = frozenset(("am", "fd", "dam"))
         self.assertVisit(WhenView(), ThenForbidden())
-        for u in self.users.viewkeys() - allowed:
+        for u in self.users.keys() - allowed:
             self.assertVisit(WhenView(user=self.users[u]), ThenForbidden())
         for u in allowed:
             self.assertVisit(WhenView(user=self.users[u]), ThenSuccess())
@@ -32,7 +32,7 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
             url = reverse("impersonate", kwargs={ "key": self.users["app"].lookup_key })
         allowed = frozenset(("fd", "dam"))
         self.assertVisit(WhenView(), ThenForbidden())
-        for u in self.users.viewkeys() - allowed:
+        for u in self.users.keys() - allowed:
             self.assertVisit(WhenView(user=self.users[u]), ThenForbidden())
         for u in allowed:
             self.assertVisit(WhenView(user=self.users[u]), ThenRedirect("^/$"))
@@ -42,7 +42,7 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
             url = reverse("restricted_db_export")
         allowed = frozenset(("dd_u", "dd_nu", "adv", "am", "fd", "dam"))
         self.assertVisit(WhenView(), ThenForbidden())
-        for u in self.users.viewkeys() - allowed:
+        for u in self.users.keys() - allowed:
             self.assertVisit(WhenView(user=self.users[u]), ThenForbidden())
         for u in allowed:
             self.assertVisit(WhenView(user=self.users[u]), ThenSuccess())
@@ -52,7 +52,7 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
             url = reverse("restricted_db_export") + "?full"
         allowed = frozenset(("fd", "dam"))
         self.assertVisit(WhenView(), ThenForbidden())
-        for u in self.users.viewkeys() - allowed:
+        for u in self.users.keys() - allowed:
             self.assertVisit(WhenView(user=self.users[u]), ThenForbidden())
         for u in allowed:
             self.assertVisit(WhenView(user=self.users[u]), ThenSuccess())
@@ -62,7 +62,7 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
             url = reverse("download_mail_archive", kwargs={ "key": self.users["app"].lookup_key })
         allowed = frozenset(("app", "adv", "am", "fd", "dam"))
         self.assertVisit(WhenView(), ThenForbidden())
-        for u in self.users.viewkeys() - allowed:
+        for u in self.users.keys() - allowed:
             self.assertVisit(WhenView(user=self.users[u]), ThenForbidden())
         # Success is a 404 because we did not create the file on disk
         for u in allowed:
@@ -73,7 +73,7 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
             url = reverse("display_mail_archive", kwargs={ "key": self.users["app"].lookup_key })
         allowed = frozenset(("app", "adv", "am", "fd", "dam"))
         self.assertVisit(WhenView(), ThenForbidden())
-        for u in self.users.viewkeys() - allowed:
+        for u in self.users.keys() - allowed:
             self.assertVisit(WhenView(user=self.users[u]), ThenForbidden())
         # Success is a 404 because we did not create the file on disk
         for u in allowed:
@@ -83,7 +83,7 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
         class WhenView(NMTestUtilsWhen):
             url = reverse("restricted_minechangelogs", kwargs={ "key": self.users["app"].lookup_key })
         self.assertVisit(WhenView(), ThenForbidden())
-        for u in self.users.viewkeys():
+        for u in self.users.keys():
             self.assertVisit(WhenView(user=self.users[u]), ThenSuccess())
 
 
@@ -136,7 +136,7 @@ class TestAMProfile(PersonFixtureMixin, TestCase):
     def _test_get_success(self, visitor, visited, elements):
         client = self.make_test_client(visitor)
         response = client.get(reverse("restricted_amprofile", args=[self.persons[visited].lookup_key]))
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
         self.assertContainsElements(response, self.elements, *elements)
 
     def _test_get_fail(self, visitor, visited):
@@ -154,13 +154,13 @@ class TestAMProfile(PersonFixtureMixin, TestCase):
             "is_dam": not visited.am.is_dam,
             "fd_comment": "new fd comment",
         })
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
         newvisited = bmodels.Person.objects.get(pk=visited.pk)
-        if "id_slots" in edited: self.assertEquals(newvisited.am.slots, visited.am.slots + 1)
-        if "id_is_am" in edited: self.assertEquals(newvisited.am.is_am, not visited.am.is_am)
-        if "id_is_fd" in edited: self.assertEquals(newvisited.am.is_fd, not visited.am.is_fd)
-        if "id_is_dam" in edited: self.assertEquals(newvisited.am.is_dam, not visited.am.is_dam)
-        if "fd_comments" in edited: self.assertEquals(newvisited.am.fd_comment, "new fd comment")
+        if "id_slots" in edited: self.assertEqual(newvisited.am.slots, visited.am.slots + 1)
+        if "id_is_am" in edited: self.assertEqual(newvisited.am.is_am, not visited.am.is_am)
+        if "id_is_fd" in edited: self.assertEqual(newvisited.am.is_fd, not visited.am.is_fd)
+        if "id_is_dam" in edited: self.assertEqual(newvisited.am.is_dam, not visited.am.is_dam)
+        if "fd_comments" in edited: self.assertEqual(newvisited.am.fd_comment, "new fd comment")
 
     def _test_post_fail(self, visitor, visited):
         client = self.make_test_client(visitor)
@@ -185,11 +185,11 @@ class TestAMProfile(PersonFixtureMixin, TestCase):
             self.assertIsNone(am)
         if am is None:
             return
-        self.assertEquals(visited.am.slots, am.slots)
-        self.assertEquals(visited.am.is_am, am.is_am)
-        self.assertEquals(visited.am.is_fd, am.is_fd)
-        self.assertEquals(visited.am.is_dam, am.is_dam)
-        self.assertEquals(visited.am.fd_comment, am.fd_comment)
+        self.assertEqual(visited.am.slots, am.slots)
+        self.assertEqual(visited.am.is_am, am.is_am)
+        self.assertEqual(visited.am.is_fd, am.is_fd)
+        self.assertEqual(visited.am.is_dam, am.is_dam)
+        self.assertEqual(visited.am.fd_comment, am.fd_comment)
 
 
 class AssignAMTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
@@ -206,7 +206,7 @@ class AssignAMTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
             url = reverse("assign_am", kwargs={ "key": self.users["app"].lookup_key })
         allowed = frozenset(("fd", "dam"))
         self.assertVisit(WhenView(), ThenForbidden())
-        for u in self.users.viewkeys() - allowed:
+        for u in self.users.keys() - allowed:
             self.assertVisit(WhenView(user=self.users[u]), ThenForbidden())
         for u in allowed:
             self.assertVisit(WhenView(user=self.users[u]), ThenSuccess())
@@ -225,7 +225,7 @@ class AssignAMAgainTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
         class WhenView(NMTestUtilsWhen):
             url = reverse("assign_am", kwargs={ "key": self.users["app"].lookup_key })
         self.assertVisit(WhenView(), ThenForbidden())
-        for u in self.users.viewkeys():
+        for u in self.users.keys():
             self.assertVisit(WhenView(user=self.users[u]), ThenForbidden())
 
         # TODO: post

@@ -2,10 +2,10 @@
 """
 Code used to list entries in keyrings
 """
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+
+
+
+
 from django.db import models
 from django.conf import settings
 from django.utils.timezone import utc, now
@@ -305,7 +305,7 @@ class GPG(object):
         keyring names
         """
         # If we only got one string, make it into a sequence
-        if isinstance(keyrings, basestring):
+        if isinstance(keyrings, str):
             keyrings = (keyrings, )
         cmd = self._base_cmd()
         for k in keyrings:
@@ -584,7 +584,7 @@ class KeycheckKeyResult(object):
         if "t" in flags: self.errors.update(("skip", "key_expired"))
 
         # Check UIDs
-        for uid in key.uids.itervalues():
+        for uid in key.uids.values():
             self.uids.append(KeycheckUidResult(self, uid))
 
         def int_expire(x):
@@ -612,7 +612,7 @@ class KeycheckKeyResult(object):
                 self.capabilities[cap] = int_expire(key.pub[6])
 
             # Check in subkeys
-            for sk in key.subkeys.itervalues():
+            for sk in key.subkeys.values():
                 if cap in sk[11]:
                     oldcap = self.capabilities.get(cap, None)
                     self.capabilities[cap] = max_expire(oldcap, sk[6])
@@ -655,7 +655,7 @@ class KeycheckUidResult(object):
         self.sigs_ok = []
         self.sigs_no_key = []
         self.sigs_bad = []
-        for sig in uid.sigs.itervalues():
+        for sig in uid.sigs.values():
             # Skip self-signatures
             if self.key_result.key.fpr.endswith(sig[4]): continue
             # dkg says:

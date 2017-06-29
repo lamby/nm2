@@ -1,8 +1,8 @@
 # coding: utf-8
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+
+
+
+
 import backend.models as bmodels
 from backend import const
 from django.views.generic import TemplateView, View
@@ -50,9 +50,9 @@ class Person(VisitPersonMixin, TemplateView):
             is_admin = self.visitor.is_admin
             for e in self.person.audit_log.order_by("-logdate"):
                 if is_admin:
-                    changes = sorted((k, v[0], v[1]) for k, v in json.loads(e.changes).items())
+                    changes = sorted((k, v[0], v[1]) for k, v in list(json.loads(e.changes).items()))
                 else:
-                    changes = sorted((k, v[0], v[1]) for k, v in json.loads(e.changes).items() if k not in ("fd_comment", "pending"))
+                    changes = sorted((k, v[0], v[1]) for k, v in list(json.loads(e.changes).items()) if k not in ("fd_comment", "pending"))
                 audit_log.append({
                     "logdate": e.logdate,
                     "author": e.author,

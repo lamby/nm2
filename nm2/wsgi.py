@@ -11,7 +11,7 @@ import os
 import sys
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "nm2.settings")
-os.umask(005)
+os.umask(0o05)
 
 project_root = '/srv/nm.debian.org/nm2'
 paths = [project_root]

@@ -1,8 +1,8 @@
 # coding: utf-8
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+
+
+
+
 from django.views.generic import TemplateView
 from django.core.exceptions import PermissionDenied
 from . import models as bmodels

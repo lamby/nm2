@@ -1,8 +1,8 @@
 # coding: utf-8
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+
+
+
+
 from django import http, template, forms
 from django.conf import settings
 from django.shortcuts import render, render_to_response, redirect, get_object_or_404
@@ -84,7 +84,7 @@ class AMMain(VisitorTemplateView):
                 const.PROGRESS_FD_OK: "prog_fd_ok",
                 const.PROGRESS_DAM_OK: "prog_dam_ok",
             }
-            for p in bmodels.Process.objects.filter(is_active=True, progress__in=DISPATCH.keys()) \
+            for p in bmodels.Process.objects.filter(is_active=True, progress__in=list(DISPATCH.keys())) \
                             .annotate(
                                 started=Min("log__logdate"),
                                 last_change=Max("log__logdate")) \
@@ -99,7 +99,7 @@ class AMMain(VisitorTemplateView):
                 const.PROGRESS_FD_HOLD: "prog_app_hold",
                 const.PROGRESS_DAM_HOLD: "prog_app_hold",
             }
-            for p in bmodels.Process.objects.filter(is_active=True, manager=None, progress__in=DISPATCH.keys()) \
+            for p in bmodels.Process.objects.filter(is_active=True, manager=None, progress__in=list(DISPATCH.keys())) \
                             .annotate(
                                 started=Min("log__logdate"),
                                 last_change=Max("log__logdate")) \
@@ -113,7 +113,7 @@ class AMMain(VisitorTemplateView):
                 const.PROGRESS_FD_HOLD: "prog_fd_hold",
                 const.PROGRESS_DAM_HOLD: "prog_dam_hold",
             }
-            for p in bmodels.Process.objects.filter(is_active=True, progress__in=DISPATCH.keys()) \
+            for p in bmodels.Process.objects.filter(is_active=True, progress__in=list(DISPATCH.keys())) \
                             .exclude(manager=None) \
                             .annotate(
                                 started=Min("log__logdate"),
@@ -137,7 +137,7 @@ class AMMain(VisitorTemplateView):
             const.PROGRESS_DONE: "am_prog_done",
             const.PROGRESS_CANCELLED: "am_prog_done",
         }
-        for p in bmodels.Process.objects.filter(manager=self.visitor.am, progress__in=DISPATCH.keys()) \
+        for p in bmodels.Process.objects.filter(manager=self.visitor.am, progress__in=list(DISPATCH.keys())) \
                         .annotate(
                             started=Min("log__logdate"),
                             last_change=Max("log__logdate")) \
@@ -451,7 +451,7 @@ class MailboxStats(VisitorTemplateView):
         except OSError:
             stats = {}
 
-        for email, st in stats["emails"].items():
+        for email, st in list(stats["emails"].items()):
             st["person"] = bmodels.Person.lookup_by_email(email)
             st["date_first_py"] = datetime.datetime.fromtimestamp(st["date_first"])
             st["date_last_py"] = datetime.datetime.fromtimestamp(st["date_last"])

@@ -50,11 +50,11 @@ def ask(prompt, prefill=None):
     if prefill:
         readline.set_startup_hook(lambda: readline.insert_text(prefill))
         try:
-            return raw_input(prompt)
+            return input(prompt)
         finally:
             readline.set_startup_hook()
     else:
-        return raw_input(prompt)
+        return input(prompt)
 
 def parse_datetime(s):
     if s is None: return None
