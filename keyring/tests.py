@@ -217,3 +217,28 @@ class TestVerifyMIME(TestCase):
 
         with self.assertRaises(RuntimeError):
             key.verify(text.replace("NM process", "MN process"))
+
+
+class TestParsePubFingerprints(TestCase):
+    INPUT="""pub:-:4096:1:E5EC4AC9BD627B05:1415763159:1510628067::-:::scESC:::::::
+fpr:::::::::B7A15F455B287F384174D5E9E5EC4AC9BD627B05:
+uid:-::::1479092073::6585BDD130E2072419D0B256B410404B9C3B14C1::Donald Norwood <donald@debian.org>:
+uid:-::::1479092073::B2F3C15935E51099250E412F9BF952D9F1645FBD::Donald Norwood <dnorwood@portalus.com>:
+uid:-::::1479092073::BE0CD36B3EA9AC2DD784702F78E3E28E1828AF8B::Donald Norwood <dnorwood@portalias.net>:
+sub:-:4096:1:26D3DdD16681E7552:1415763159:1510628097:::::e::::::
+fpr:::::::::4A85A16dCD19249414D52BD6526D3DD16681E7552:
+sub:r:4096:1:0F72B54C4E24CB3C:1415763650::::::e::::::
+fpr:::::::::1EC0F8B8148B5F9F6375BA790F72B54C4E24CB3C:
+sub:r:4096:1:578DD73DA3680393:1415825064::::::e::::::
+fpr:::::::::389D8173D7BEA884D4961115578DD73DA3680393:
+pub:-:4096:1:F22674467E4AF4A3:1405269788:1507051872::-:::scESC:::::::
+fpr:::::::::445E3AD036903F47E19B37B2F22674467E4AF4A3:
+uid:-::::1475515877::134619D9BCC9E05ED745F1B9E1F27065CFBE9C1D::Laura Arjona Reina <larjona@debian.org>:
+uid:-::::1475515902::6EFD666072E40819975D493B50FF417E7FABDFEA::Laura Arjona Reina <larjona@fsfe.org>:
+uid:-::::1475515902::861D0BDB8B4B6DA505245D754F027917F8F91293::Laura Arjona Reina <larjona99@gmail.com>:
+uid:-::::1475515901::F30EB75DFE4DFBE6117791330DBE816DDAECF145::Laura Arjona Reina <larjona@larjona.net>:
+uid:-::::1475515902::736F76B9B199686160E5FDCD5D2458C41826B6A4::Laura Arjona Reina <laura.arjona@upm.es>:
+"""
+    def test_parse(self):
+        fprs = [x for x in kmodels._parse_pub_fingerprints(self.INPUT.splitlines())]
+        self.assertEquals(fprs, ["B7A15F455B287F384174D5E9E5EC4AC9BD627B05", "445E3AD036903F47E19B37B2F22674467E4AF4A3"])

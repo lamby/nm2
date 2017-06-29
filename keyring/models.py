@@ -383,13 +383,8 @@ def _check_keyring(keyring, fpr):
     return gpg.has_key(keyring, fpr)
 
 
-def _list_keyring(keyring):
-    """
-    List all fingerprints in a keyring
-    """
-    gpg = GPG()
-    cmd = gpg.keyring_cmd(keyring, "--list-keys")
-    proc, lines = gpg.pipe_cmd(cmd)
+def _parse_pub_fingerprints(lines):
+    mode = None
     for line in lines:
         try:
             line = line.decode('utf-8')
@@ -398,8 +393,25 @@ def _list_keyring(keyring):
                 line = line.decode('iso8859-1')
             except:
                 line = line.decode('utf-8', errors='replace')
-        if not line.startswith("fpr"): continue
-        yield line.split(":")[9]
+        fields = line.split(":")
+        if fields[0] == "pub":
+            mode = "pub"
+        elif fields[0] == "sub":
+            mode = "sub"
+        elif fields[0] == "fpr":
+            if mode == "pub":
+                yield fields[9]
+
+
+def _list_keyring(keyring):
+    """
+    List all fingerprints in a keyring
+    """
+    gpg = GPG()
+    cmd = gpg.keyring_cmd(keyring, "--list-keys")
+    proc, lines = gpg.pipe_cmd(cmd)
+    for fpr in _parse_pub_fingerprints(lines):
+        yield fpr
     result = proc.wait()
     if result != 0:
         raise RuntimeError("gpg exited with status %d: %s" % (result, lines.stderr.getvalue().strip()))
