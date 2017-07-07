@@ -288,13 +288,11 @@ class MineChangelogs(VisitorMixin, FormView):
 
     def get_context_data(self, **kw):
         ctx = super(MineChangelogs, self).get_context_data(**kw)
-        entries = None
         info = mmodels.info()
         info["max_ts"] = datetime.datetime.fromtimestamp(info["max_ts"])
         info["last_indexed"] = datetime.datetime.fromtimestamp(info["last_indexed"])
         ctx.update(
             info=info,
-            entries=entries,
             person=self.person,
         )
         return ctx
@@ -316,7 +314,7 @@ class MineChangelogs(VisitorMixin, FormView):
             return res
 
         entries = list(entries)
-        return self.render_to_response(self.get_context_data(form=form))
+        return self.render_to_response(self.get_context_data(form=form, entries=entries))
 
 
 class Impersonate(View):
