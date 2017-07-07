@@ -314,7 +314,10 @@ class MineChangelogs(VisitorMixin, FormView):
             return res
 
         entries = list(entries)
-        return self.render_to_response(self.get_context_data(form=form, entries=entries))
+        return self.render_to_response(self.get_context_data(
+            form=form,
+            entries=entries,
+            keywords=keywords))
 
 
 class Impersonate(View):
