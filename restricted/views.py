@@ -309,8 +309,8 @@ class MineChangelogs(VisitorMixin, FormView):
                     yield e
                     yield "\n\n"
             res = http.HttpResponse(send_entries(), content_type="text/plain")
-            if person:
-                res["Content-Disposition"] = 'attachment; filename=changelogs-%s.txt' % person.lookup_key
+            if self.person:
+                res["Content-Disposition"] = 'attachment; filename=changelogs-%s.txt' % self.person.lookup_key
             else:
                 res["Content-Disposition"] = 'attachment; filename=changelogs.txt'
             return res
