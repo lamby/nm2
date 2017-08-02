@@ -71,8 +71,8 @@ class LogEntry(object):
         if self.re_update_changelog.match(subject): return None
         if self.re_import_changes.match(subject): return None
         if body.startswith("Action:"):
-            operation = email.message_from_string(body.encode("utf-8"))
-            return dict(list(operation.items()))
+            operation = email.message_from_string(body)
+            return dict(operation.items())
         else:
             for match in self.re_summaries:
                 mo = match["re"].match(subject)

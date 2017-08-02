@@ -185,7 +185,7 @@ class Add(RoleOperation):
         This is better than nothing, but not a lot better than that.
         """
         # See http://www.kalzumeus.com/2010/06/17/falsehoods-programmers-believe-about-names/
-        fn = subject.decode('utf8').split()
+        fn = subject.split()
         if len(fn) == 1:
             return fn[0], "", ""
         elif len(fn) == 2:

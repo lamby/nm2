@@ -1,13 +1,9 @@
 """
 Code used to access Debian's LDAP
 """
-
 from django.db import models
 from django.conf import settings
-try:
-    import ldap
-except ImportError:
-    import ldap3 as ldap
+import ldap3
 
 LDAP_SERVER = getattr(settings, "LDAP_SERVER", "ldap://db.debian.org")
 
@@ -17,13 +13,13 @@ class Entry(object):
         self.attrs = None
         self.uid = None
 
-    def init(self, dn, attrs):
+    def init(self, entry):
         """
         Init entry to point at these attributes
         """
-        self.dn = dn
-        self.attrs = attrs
-        self.uid = attrs["uid"][0]
+        self.dn = entry.entry_get_dn()
+        self.attrs = entry
+        self.uid = entry["uid"][0]
 
     def single(self, name):
         """
@@ -45,11 +41,10 @@ class Entry(object):
         return "guest" in self.attrs["supplementaryGid"]
 
 def list_people():
-    search_base = "dc=debian,dc=org"
-    l = ldap.initialize(LDAP_SERVER)
-    l.simple_bind_s("","")
+    conn = ldap3.Connection(LDAP_SERVER, auto_bind=True)
+    conn.search("dc=debian,dc=org", "(objectclass=inetOrgPerson)", ldap3.SUBTREE, attributes=ldap3.ALL_ATTRIBUTES)
     # Create the object only once
     entry = Entry()
-    for dn, attrs in l.search_s(search_base, ldap.SCOPE_SUBTREE, "objectclass=inetOrgPerson"):
-        entry.init(dn, attrs)
+    for e in conn.entries:
+        entry.init(e)
         yield entry
