@@ -1,5 +1,3 @@
-# coding: utf-8
-
 # nm.debian.org website backend
 #
 # Copyright (C) 2012  Enrico Zini <enrico@debian.org>
@@ -28,14 +26,15 @@ class atomic_writer(object):
     """
     Atomically write to a file
     """
-    def __init__(self, fname, mode=0o664, sync=True):
+    def __init__(self, fname, mode="w+b", chmod=0o664, sync=True, **kw):
         self.fname = fname
-        self.mode = mode
+        self.chmod = chmod
         self.sync = sync
         dirname = os.path.dirname(self.fname)
         if not os.path.isdir(dirname):
             os.makedirs(dirname)
-        self.outfd = tempfile.NamedTemporaryFile(dir=dirname)
+        self.fd, self.abspath = tempfile.mkstemp(dir=dirname, text="b" not in mode)
+        self.outfd = open(self.fd, mode, closefd=True, **kw)
 
     def __enter__(self):
         return self.outfd
@@ -43,11 +42,11 @@ class atomic_writer(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is None:
             self.outfd.flush()
-            if self.sync:
-                os.fdatasync(self.outfd.fileno())
-            os.fchmod(self.outfd.fileno(), self.mode)
-            os.rename(self.outfd.name, self.fname)
-            self.outfd.delete = False
+            if self.sync: os.fdatasync(self.fd)
+            os.fchmod(self.fd, self.chmod)
+            os.rename(self.abspath, self.fname)
+        else:
+            os.unlink(self.abspath)
         self.outfd.close()
         return False
 
