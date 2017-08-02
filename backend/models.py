@@ -1,11 +1,6 @@
-# coding: utf-8
 """
 Core models of the New Member site
 """
-
-
-
-
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import utc, now
 from django.db import models

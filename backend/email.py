@@ -1,4 +1,3 @@
-
 from django.conf import settings
 from django.core.mail import send_mail, EmailMessage
 from django.template.loader import render_to_string
@@ -67,7 +66,7 @@ def template_to_email(template_name, context):
     context.setdefault("default_from", "nm@debian.org")
     context.setdefault("default_subject", "Notification from nm.debian.org")
     text = render_to_string(template_name, context).strip()
-    m = email.message_from_string(text.encode('utf-8'))
+    m = email.message_from_string(text)
     msg = EmailMessage()
     msg.from_email = m.get("From", context["default_from"])
     msg.to = parse_recipient_list(m.get("To", EMAIL_PRIVATE_ANNOUNCES))

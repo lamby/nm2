@@ -1,7 +1,3 @@
-
-
-
-
 import backend.models as bmodels
 from backend.models import Person, Process, AM, Fingerprint
 from backend import const
@@ -410,14 +406,15 @@ class ExpectedPerms(object):
     """
     Store the permissions expected out of a *VisitorPermissions object
     """
-    def __init__(self, perms={}):
+    def __init__(self, perms=None):
+        if perms is None: perms = {}
         self.perms = {}
-        for visitors, expected_perms in list(perms.items()):
+        for visitors, expected_perms in perms.items():
             for visitor in visitors.split():
                 self.perms[visitor] = set(expected_perms.split())
 
     def _apply_diff(self, d, diff):
-        for visitors, change in list(diff.items()):
+        for visitors, change in diff.items():
             for visitor in visitors.split():
                 cur = change.apply(d.get(visitor, None))
                 if not cur:

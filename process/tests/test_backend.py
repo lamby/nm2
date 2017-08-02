@@ -12,7 +12,7 @@ from backend.unittest import BaseFixtureMixin, PersonFixtureMixin
 class TestRequirements(PersonFixtureMixin, TestCase):
     def assertRequirements(self, status, applying_for, expected):
         computed = pmodels.Process.objects.compute_requirements(status, applying_for)
-        self.assertItemsEqual(computed, expected)
+        self.assertCountEqual(computed, expected)
 
     def assertInvalid(self, status, applying_for):
         with self.assertRaises(RuntimeError) as re:

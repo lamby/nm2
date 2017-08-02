@@ -64,7 +64,7 @@ def formataddr(person, nametag=None):
     Return a formatted address like "Foo <foo@example.org>" for a Person
     """
     import email.utils
-    name = person.fullname.encode('unicode_escape')
+    name = person.fullname
     if nametag is not None:
         name += " " + nametag
     addr = person.preferred_email
