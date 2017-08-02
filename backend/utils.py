@@ -22,7 +22,7 @@ import os.path
 import os
 import errno
 import shutil
-from io import StringIO
+from io import BytesIO
 
 class atomic_writer(object):
     """
@@ -91,11 +91,11 @@ def stream_output(proc):
 class StreamStdoutKeepStderr(object):
     """
     Stream lines of standard output from a Popen object, keeping all of its
-    stderr inside a StringIO
+    stderr inside a BytesIO
     """
     def __init__(self, proc):
         self.proc = proc
-        self.stderr = StringIO()
+        self.stderr = BytesIO()
 
     def __iter__(self):
         last_line = None
@@ -105,7 +105,7 @@ class StreamStdoutKeepStderr(object):
                     if last_line is not None:
                         l = last_line + l
                         last_line = None
-                    if l.endswith("\n"):
+                    if l.endswith(b"\n"):
                         yield l
                     else:
                         last_line = l

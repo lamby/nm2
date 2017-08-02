@@ -1,14 +1,9 @@
-# coding: utf-8
-
-
-
-
 from django.test import TestCase
 from django.core.urlresolvers import reverse
 from django.utils.timezone import now, utc
 from django.core import mail
 from backend import const
-from mock import patch
+from unittest.mock import patch
 from .common import ProcessFixtureMixin, get_all_process_types
 import process.models as pmodels
 import datetime

@@ -1,8 +1,3 @@
-# coding: utf-8
-
-
-
-
 from django.test import TestCase, Client
 from django.core.urlresolvers import reverse
 from . import models as kmodels
@@ -125,7 +120,7 @@ class TestKeycheck(TestCase):
         c = Client()
         response = c.get(reverse("keyring_keycheck", kwargs={"fpr": test_fpr}))
         self.assertEqual(response.status_code, 200)
-        decoded = json.loads(response.content)
+        decoded = response.json()
         self.assertEqual(decoded["fpr"], test_fpr)
         self.assertIsInstance(decoded["errors"], list)
         self.assertIsInstance(decoded["uids"], list)
