@@ -59,7 +59,7 @@ class TestProcessStatementCreate(ProcessFixtureMixin, TestCase):
             st = pmodels.Statement.objects.get(requirement=req)
             self.assertEqual(st.requirement, req)
             self.assertEqual(st.fpr, self.fingerprints.visitor)
-            self.assertEqual(st.statement, test_fpr1_signed_valid_text)
+            self.assertEqual(st.statement, test_fpr1_signed_valid_text.strip())
             self.assertEqual(st.uploaded_by, self.visitor)
             self.assertIsNotNone(st.uploaded_time)
 
@@ -199,4 +199,4 @@ class TestProcessStatementRaw(ProcessFixtureMixin, TestCase):
         statement = self.statements[req_type]
         response = client.get(reverse("process_statement_raw", args=[self.processes.app.pk, req_type, statement.pk]))
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.content, test_fpr1_signed_valid_text)
+        self.assertEqual(response.content.decode("utf8"), test_fpr1_signed_valid_text)

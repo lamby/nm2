@@ -151,7 +151,9 @@ class Key(models.Model):
             return gpg.run_checked(cmd, input=data)
 
     def verify(self, data):
-        if data.strip().startswith("-----BEGIN PGP SIGNED MESSAGE-----"):
+        if isinstance(data, str):
+            data = data.encode("utf8")
+        if data.strip().startswith(b"-----BEGIN PGP SIGNED MESSAGE-----"):
             return self.verify_clearsigned(data)
         else:
             return self.verify_rfc3156(data)
@@ -162,7 +164,7 @@ class Key(models.Model):
         """
         # See https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=826405
         with tempdir_gpg() as gpg:
-            gpg.run_checked(gpg.cmd("--import"), input=self.key)
+            gpg.run_checked(gpg.cmd("--import"), input=self.key.encode("utf-8"))
             data_file = os.path.join(gpg.homedir, "data.txt")
             sig_file = os.path.join(gpg.homedir, "data.txt.asc")
             status_log = os.path.join(gpg.homedir, "status.log")
@@ -171,26 +173,24 @@ class Key(models.Model):
                 fd.write(data)
             with io.open(sig_file, "wb") as fd:
                 fd.write(signature)
-            with io.open(status_log, "wb") as fd_status:
-                with io.open(logger_log, "wb") as fd_logger:
-                    cmd = gpg.cmd("--status-fd", str(fd_status.fileno()), "--logger-fd", str(fd_logger.fileno()), "--verify", sig_file, data_file)
-                    stdout, stderr, result = gpg.run_cmd(cmd)
+            cmd = gpg.cmd("--status-file", status_log, "--logger-file", logger_log, "--verify", sig_file, data_file)
+            stdout, stderr, result = gpg.run_cmd(cmd)
 
             if result != 0:
                 errors = []
-                with io.open(status_log, "rt", encoding="utf-8", errors="replace") as fd:
+                with io.open(status_log, "rb") as fd:
                     for line in fd:
-                        if not line.startswith("[GNUPG:]"): continue
+                        if not line.startswith(b"[GNUPG:]"): continue
                         errors.append(line[8:])
 
                 if errors:
-                    errmsg = "; ".join(errors)
+                    errmsg = b"; ".join(errors)
                 else:
                     errmsg = stderr
-                    with io.open(logger_log, "rt", encoding="utf-8", errors="replace") as fd:
+                    with io.open(logger_log, "rb") as fd:
                         errmsg += fd.read()
 
-                raise RuntimeError("gpg exited with status {}: {}".format(result, errmsg))
+                raise RuntimeError("gpg exited with status {}: {}".format(result, errmsg.decode("utf-8", errors="replace")))
 
             with io.open(status_log, "rt", encoding="utf-8", errors="replace") as fd:
                 status = fd.read()
@@ -210,12 +210,10 @@ class Key(models.Model):
             data_file = os.path.join(gpg.homedir, "data.txt")
             status_log = os.path.join(gpg.homedir, "status.log")
             logger_log = os.path.join(gpg.homedir, "logger.log")
-            with io.open(data_file, "wt", encoding="utf-8") as fd:
+            with io.open(data_file, "wb") as fd:
                 fd.write(data)
-            with io.open(status_log, "wb") as fd_status:
-                with io.open(logger_log, "wb") as fd_logger:
-                    cmd = gpg.cmd("--status-fd", str(fd_status.fileno()), "--logger-fd", str(fd_logger.fileno()), "--decrypt", data_file)
-                    plaintext, stderr, result = gpg.run_cmd(cmd)
+            cmd = gpg.cmd("--status-file", status_log, "--logger-file", logger_log, "--decrypt", data_file)
+            plaintext, stderr, result = gpg.run_cmd(cmd)
 
             if result != 0:
                 errors = []

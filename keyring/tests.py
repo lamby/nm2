@@ -211,7 +211,7 @@ class TestVerifyMIME(TestCase):
         key.verify(text)
 
         with self.assertRaises(RuntimeError):
-            key.verify(text.replace("NM process", "MN process"))
+            key.verify(text.replace(b"NM process", b"MN process"))
 
 
 class TestParsePubFingerprints(TestCase):
@@ -235,5 +235,5 @@ uid:-::::1475515901::F30EB75DFE4DFBE6117791330DBE816DDAECF145::Laura Arjona Rein
 uid:-::::1475515902::736F76B9B199686160E5FDCD5D2458C41826B6A4::Laura Arjona Reina <laura.arjona@upm.es>:
 """
     def test_parse(self):
-        fprs = [x for x in kmodels._parse_pub_fingerprints(self.INPUT.splitlines())]
+        fprs = [x for x in kmodels._parse_pub_fingerprints(x.encode("utf8") for x in self.INPUT.splitlines())]
         self.assertEqual(fprs, ["B7A15F455B287F384174D5E9E5EC4AC9BD627B05", "445E3AD036903F47E19B37B2F22674467E4AF4A3"])

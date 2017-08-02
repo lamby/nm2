@@ -617,7 +617,7 @@ class EmailLookup(VisitProcessMixin, View):
             if msg["Message-ID"].strip("<>") == msgid:
                 fp = mbox.get_file(key)
                 try:
-                    return { "msg": fp.read() }
+                    return { "msg": fp.read().decode("utf8") }
                 finally:
                     fp.close()
 

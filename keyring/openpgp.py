@@ -1,20 +1,13 @@
-# coding: utf-8
-
-
-
-
 import email
-import six
 import re
 
-class RFC3156(object):
+class RFC3156:
     """
     Access data inside OpenPGP MIME emails
     """
     def __init__(self, data):
         self.data = data
-        # TODO: remove the encode in python3
-        self.message = email.message_from_string(self.data.encode("utf8"))
+        self.message = email.message_from_bytes(self.data)
         self.parsed = self.find_payloads(self.message)
 
     def find_payloads(self, message):
@@ -29,9 +22,9 @@ class RFC3156(object):
                 self.text, self.sig = message.get_payload()
                 if self.sig.get_content_type() != 'application/pgp-signature':
                     raise RuntimeError("second payload is not an application/pgp-signature payload")
-                self.text_data = re.sub(r"\r?\n", "\r\n", self.text.as_string(False))
-                self.sig_data = self.sig.get_payload()
-                if not isinstance(self.sig_data, six.binary_type):
+                self.text_data = re.sub(rb"\r?\n", b"\r\n", self.text.as_bytes(False))
+                self.sig_data = self.sig.get_payload(None, True)
+                if not isinstance(self.sig_data, bytes):
                     raise RuntimeError("signature payload is not a byte string")
 
                 return True

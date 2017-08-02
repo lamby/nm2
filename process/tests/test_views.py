@@ -78,10 +78,10 @@ class TestEmailLookup(ProcessFixtureMixin, TestCase):
                     data={"url": "https://lists.debian.org/debian-newmaint/2016/06/msg00044.html"}
                 )
                 self.assertEqual(response.status_code, 200)
-                decoded = json.loads(response.content)
+                decoded = json.loads(response.content.decode("utf8"))
                 self.assertNotIn("error", decoded)
                 self.assertIn("msg", decoded)
-                with open("test_data/debian-newmaint.mbox", "rb") as fd:
+                with open("test_data/debian-newmaint.mbox", "rt") as fd:
                     self.assertEqual(decoded["msg"].rstrip(), "".join(list(fd)[1:]).rstrip())
             finally:
                 os.unlink(mbox_file)
