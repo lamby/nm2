@@ -146,7 +146,7 @@ class Key(models.Model):
         encrypted result.
         """
         with tempdir_gpg() as gpg:
-            gpg.run_checked(gpg.cmd("--import"), input=self.key)
+            gpg.run_checked(gpg.cmd("--import"), input=self.key.encode("utf-8"))
             cmd = gpg.cmd("--encrypt", "--armor", "--no-default-recipient", "--trust-model=always", "--recipient", self.fpr)
             return gpg.run_checked(cmd, input=data)
 

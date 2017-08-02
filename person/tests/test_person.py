@@ -1,15 +1,10 @@
-# coding: utf8
-
-
-
-
 from django.test import TestCase
 from django.core.urlresolvers import reverse
 from django.utils.timezone import now
 from backend import const
 from backend import models as bmodels
 from backend.unittest import PersonFixtureMixin, ExpectedSets, TestSet, PageElements
-from mock import patch
+from unittest.mock import patch
 
 
 class TestPerson(PersonFixtureMixin, TestCase):

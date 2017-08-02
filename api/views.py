@@ -137,7 +137,7 @@ class Status(APIVisitorMixin, View):
         return self._serialize_people(persons)
 
     def post(self, request, *args, **kw):
-        names = [str(x) for x in json.loads(request.body)]
+        names = [str(x) for x in json.loads(request.body.decode("utf8"))]
         persons = bmodels.Person.objects.filter(username__in=names)
         return self._serialize_people(persons)
 

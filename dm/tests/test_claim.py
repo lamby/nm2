@@ -60,7 +60,7 @@ class TestClaim(PersonFixtureMixin, TestCase):
         self.assertEqual(response.context["username"], orig_username)
         self.assertEqual(response.context["fpr"].fpr, self.test_fingerprint)
         self.assertIn("/dm/claim/confirm", response.context["plaintext"])
-        self.assertIn("-----BEGIN PGP MESSAGE-----", response.context["challenge"])
+        self.assertIn(b"-----BEGIN PGP MESSAGE-----", response.context["challenge"])
         return orig_username, response.context["plaintext"].strip()
 
     def _test_success(self, person):
