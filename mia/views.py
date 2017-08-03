@@ -33,4 +33,7 @@ class Uploaders(VisitorMixin, TemplateView):
             fprs.append(fpr)
         fprs.sort(key=lambda f:f.last_upload, reverse=True)
         ctx["fprs"] = fprs
+
+        ctx["no_fpr"] = Person.objects.filter(status__in=(const.STATUS_DD_NU, const.STATUS_DD_U), fprs__isnull=True).order_by("uid")
+
         return ctx

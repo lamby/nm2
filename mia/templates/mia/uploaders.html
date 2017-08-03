@@ -60,5 +60,28 @@ happened more than <input type="number" name="days" value="{{days}}"> days ago.
 </tbody>
 </table>
 
+{% if no_fpr %}
+<h2>Debian Developers without fingerprint</h2>
+
+<table class="proctable tablesorter {{class}}">
+<thead>
+    <tr>
+        <th>Person</th>
+        <th>Uid</th>
+        <th>Status</th>
+    </tr>
+</thead>
+<tbody>
+    {% for person in no_fpr %}
+    <tr>
+      <td>{{person.fullname}}</td>
+      <td>{{person.a_link}}</td>
+      <td>{{person.status|desc_status}}</td>
+    </tr>
+    {% endfor %}
+</tbody>
+</table>
+{% endif %}
+
 {% endblock %}
 
