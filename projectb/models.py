@@ -90,6 +90,7 @@ def read_gpg():
     if proc.wait() != 0:
         raise RuntimeError("gpg exited with error {}".format(proc.returncode))
 
+
 class Maintainers(object):
     def __init__(self):
         self.conn = psycopg2.connect("service=projectb")

@@ -14,13 +14,8 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-
-
-
-
 import django_housekeeping as hk
-from backend.maintenance import MakeLink
+from backend.housekeeping import MakeLink
 import backend.models as bmodels
 from backend import const
 from . import models as pmodels
@@ -28,13 +23,15 @@ import logging
 
 log = logging.getLogger(__name__)
 
+STAGES = ["main"]
+
 class CheckDMList(hk.Task):
     """
     Show entries that do not match between projectb DM list and out DB
     """
     DEPENDS = [MakeLink]
 
-    def run_main(self):
+    def run_main(self, stage):
         # Code used to import DMs is at 64a3e35a5c55aa3ee122e6234ad24c74a57dd843
         # Now this is just a consistency check
         maints = pmodels.Maintainers()
@@ -59,3 +56,31 @@ class CheckDMList(hk.Task):
 
             log.info("%s: %s/%s exists in projectb but not in our DB",
                      self.IDENTIFIER, maint["email"], maint["fpr"])
+
+
+class UpdateLastUpload(hk.Task):
+    """
+    Update fingerprint.last_upload dates
+    """
+    DEPENDS = [MakeLink]
+
+    def run_main(self, stage):
+        by_fpr = {}
+
+        with pmodels.cursor() as cur:
+            cur.execute("""
+SELECT MAX(s.install_date) as date, f.fingerprint
+          FROM source s
+          JOIN fingerprint f ON s.sig_fpr = f.id
+       GROUP BY f.fingerprint
+""")
+            for date, fpr in cur:
+                by_fpr[fpr] = date
+            
+        for fpr in bmodels.Fingerprint.objects.all():
+            date = by_fpr.get(fpr.fpr)
+            if date is None: continue
+            if date == fpr.last_upload: continue
+            fpr.last_upload = date
+            # Skip audit since we are only updating statistics data
+            fpr.save(audit_skip=True)

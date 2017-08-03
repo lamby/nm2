@@ -643,6 +643,7 @@ class Fingerprint(models.Model):
     person = models.ForeignKey(Person, related_name="fprs")
     fpr = FingerprintField(verbose_name="OpenPGP key fingerprint", max_length=40, unique=True)
     is_active = models.BooleanField(default=False, help_text="whether this key is curently in use")
+    last_upload = models.DateField(null=True, blank=True, help_text=_("date of the last ftp-master upload done with this key"))
 
     def __unicode__(self):
         return self.fpr
