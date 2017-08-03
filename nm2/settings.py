@@ -137,6 +137,7 @@ INSTALLED_APPS = [
     'api',
     'contributors',
     'wizard',
+    'mia',
 ]
 
 TEMPLATES = [

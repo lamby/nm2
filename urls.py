@@ -1,8 +1,3 @@
-# coding: utf-8
-
-
-
-
 from django.conf.urls import include, url
 from django.views.generic import TemplateView
 from backend.mixins import VisitorTemplateView
@@ -28,6 +23,7 @@ urlpatterns = [
     url(r'^apikeys/', include("apikeys.urls")),
     url(r'^keyring/', include("keyring.urls")),
     url(r'^wizard/', include("wizard.urls")),
+    url(r'^mia/', include("mia.urls")),
 
     # Uncomment the admin/doc line below to enable admin documentation:
     url(r'^admin/doc/', include('django.contrib.admindocs.urls')),

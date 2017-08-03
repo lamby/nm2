@@ -1,0 +1,7 @@
+from django.conf.urls import url
+from . import views
+
+urlpatterns = [
+    url(r'^uploaders$', views.Uploaders.as_view(), name="mia_uploaders"),
+]
+
