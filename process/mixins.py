@@ -69,7 +69,7 @@ def compute_process_status(process, visitor, visit_perms=None):
         "log_first": log[0] if log else None,
         "log_last": log[-1] if log else None,
         "log": log,
-        "advocates": sorted(advocates),
+        "advocates": sorted(advocates, key=lambda x:x.uid),
         "summary": summary,
     }
 
