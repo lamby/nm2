@@ -137,7 +137,7 @@ def decode_header(val):
     res = []
     for buf, charset in email.header.decode_header(val):
         if charset is None:
-           res.append(buf)
+           res.append(buf.decode("utf-8", errors="replace"))
         elif charset == "unknown-8bit":
            res.append(buf.decode("utf-8", errors="replace"))
         else:
