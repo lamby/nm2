@@ -1,11 +1,6 @@
-# coding: utf-8
 """
 Core models of the New Member site
 """
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import utc, now
 from django.db import models
@@ -19,7 +14,7 @@ from .fields import *
 from .utils import cached_property
 from backend.notifications import maybe_notify_applicant_on_progress
 import datetime
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import os.path
 import re
 import json
@@ -176,7 +171,7 @@ class PersonManager(BaseUserManager):
         except self.model.DoesNotExist:
             return None
 
-    def get_from_other_db(self, other_db_name, uid=None, email=None, fpr=None, username=None, format_person=lambda x:unicode(x)):
+    def get_from_other_db(self, other_db_name, uid=None, email=None, fpr=None, username=None, format_person=lambda x:str(x)):
         """
         Get one Person entry matching the informations that another database
         has about a person.
@@ -426,7 +421,7 @@ class Person(PermissionsMixin, models.Model):
             return self.email
 
     def __unicode__(self):
-        return u"{} <{}>".format(self.fullname, self.email)
+        return "{} <{}>".format(self.fullname, self.email)
 
     def __repr__(self):
         return "{} <{}> [uid:{}, status:{}]".format(
@@ -448,7 +443,7 @@ class Person(PermissionsMixin, models.Model):
             conditional_escape(self.lookup_key)))
 
     def get_ddpo_url(self):
-        return u"http://qa.debian.org/developer.php?{}".format(urllib.urlencode(dict(login=self.preferred_email)))
+        return "http://qa.debian.org/developer.php?{}".format(urllib.parse.urlencode(dict(login=self.preferred_email)))
 
     def get_portfolio_url(self):
         parms = dict(
@@ -465,7 +460,7 @@ class Person(PermissionsMixin, models.Model):
             parms["gpgfp"] = self.fpr
         if self.uid:
             parms["username"] = self.uid
-        return u"http://portfolio.debian.net/result?" + urllib.urlencode(parms)
+        return "http://portfolio.debian.net/result?" + urllib.parse.urlencode(parms)
 
     def get_contributors_url(self):
         if self.is_dd:
@@ -718,12 +713,12 @@ class PersonAuditLog(models.Model):
         exclude = ["last_login", "date_joined", "groups", "user_permissions"]
         changes = {}
         if old_person is None:
-            for k, nv in model_to_dict(new_person, exclude=exclude).items():
+            for k, nv in list(model_to_dict(new_person, exclude=exclude).items()):
                 changes[k] = [None, nv]
         else:
             old = model_to_dict(old_person, exclude=exclude)
             new = model_to_dict(new_person, exclude=exclude)
-            for k, nv in new.items():
+            for k, nv in list(new.items()):
                 ov = old.get(k, None)
                 # Also ignore changes like None -> ""
                 if ov != nv and (ov or nv):
@@ -738,12 +733,12 @@ class PersonAuditLog(models.Model):
         exclude = []
         changes = {}
         if existing_fpr is None:
-            for k, nv in model_to_dict(new_fpr, exclude=exclude).items():
+            for k, nv in list(model_to_dict(new_fpr, exclude=exclude).items()):
                 changes["fpr:{}:{}".format(new_fpr.fpr, k)] = [None, nv]
         else:
             old = model_to_dict(existing_fpr, exclude=exclude)
             new = model_to_dict(new_fpr, exclude=exclude)
-            for k, nv in new.items():
+            for k, nv in list(new.items()):
                 ov = old.get(k, None)
                 # Also ignore changes like None -> ""
                 if ov != nv and (ov or nv):
@@ -783,8 +778,8 @@ class AM(models.Model):
     fd_comment = models.TextField("Front Desk comments", null=False, blank=True, default="")
 
     def __unicode__(self):
-        return u"%s %c%c%c" % (
-            unicode(self.person),
+        return "%s %c%c%c" % (
+            str(self.person),
             "a" if self.is_am else "-",
             "f" if self.is_fd else "-",
             "d" if self.is_dam else "-",
@@ -859,7 +854,7 @@ class AM(models.Model):
                 am.proc_active.append(p)
 
         res = []
-        for am in ams.values():
+        for am in list(ams.values()):
             am.stats_active = len(am.proc_active)
             am.stats_held = len(am.proc_held)
             am.stats_free = am.slots - am.stats_active
@@ -974,8 +969,8 @@ class Process(models.Model):
         super(Process, self).save(*args, **kw)
 
     def __unicode__(self):
-        return u"{} to become {} ({})".format(
-            unicode(self.person),
+        return "{} to become {} ({})".format(
+            str(self.person),
             const.ALL_STATUS_DESCS.get(self.applying_for, self.applying_for),
             const.ALL_PROGRESS_DESCS.get(self.progress, self.progress),
         )
@@ -1192,7 +1187,7 @@ class Process(models.Model):
 
     def annotate_with_duration_stats(self):
         s = self.duration_stats()
-        for k, v in s.iteritems():
+        for k, v in s.items():
             setattr(self, k, v)
 
     def finalize(self, logtext, tstamp=None, audit_author=None, audit_notes=None):
@@ -1202,7 +1197,7 @@ class Process(models.Model):
         """
         if self.progress != const.PROGRESS_DAM_OK:
             raise ValueError("cannot finalise progress {}: status is {} instead of {}".format(
-                unicode(self), self.progress, const.PROGRESS_DAM_OK))
+                str(self), self.progress, const.PROGRESS_DAM_OK))
 
         if tstamp is None:
             tstamp = now()
@@ -1243,7 +1238,7 @@ class Log(models.Model):
     logtext = models.TextField(null=False, blank=True, default="")
 
     def __unicode__(self):
-        return u"{}: {}".format(self.logdate, self.logtext)
+        return "{}: {}".format(self.logdate, self.logtext)
 
     @property
     def previous(self):
@@ -1296,7 +1291,7 @@ MOCK_FD_COMMENTS = [
 ]
 
 MOCK_LOGTEXTS = [
-    "ok", "hmm", "meh", "asdf", "moo", "...", u"üñįç♥ḋə"
+    "ok", "hmm", "meh", "asdf", "moo", "...", "üñįç♥ḋə"
 ]
 
 def export_db(full=False):

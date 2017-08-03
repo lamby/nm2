@@ -2,10 +2,10 @@
 """
 Test DM claim interface
 """
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+
+
+
+
 from django.test import TestCase
 from django.core.urlresolvers import reverse
 from backend.models import Person, Fingerprint
@@ -130,7 +130,7 @@ class TestPersonFingerprints(PersonFixtureMixin, TestCase):
     def _test_get_success(self, visitor, visited):
         client = self.make_test_client(visitor)
         response = client.get(reverse("fprs_person_list", kwargs={"key": self.persons[visited].lookup_key}))
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
 
     def _test_post_success(self, visitor, visited):
         client = self.make_test_client(visitor)
@@ -139,26 +139,26 @@ class TestPersonFingerprints(PersonFixtureMixin, TestCase):
         response = client.post(reverse("fprs_person_list", kwargs={"key": self.persons[visited].lookup_key}), data={"fpr": test_fingerprint1})
         self.assertRedirectMatches(response, reverse("fprs_person_list", kwargs={"key": self.persons[visited].lookup_key}))
         fpr1 = Fingerprint.objects.get(fpr=test_fingerprint1)
-        self.assertEquals(fpr1.is_active, True)
-        self.assertEquals(fpr1.person, self.persons[visited])
+        self.assertEqual(fpr1.is_active, True)
+        self.assertEqual(fpr1.person, self.persons[visited])
 
         # Add a second one, it becomes the active one
         response = client.post(reverse("fprs_person_list", kwargs={"key": self.persons[visited].lookup_key}), data={"fpr": test_fingerprint2})
         self.assertRedirectMatches(response, reverse("fprs_person_list", kwargs={"key": self.persons[visited].lookup_key}))
         fpr2 = Fingerprint.objects.get(fpr=test_fingerprint2)
-        self.assertEquals(fpr2.is_active, True)
-        self.assertEquals(fpr2.person, self.persons[visited])
+        self.assertEqual(fpr2.is_active, True)
+        self.assertEqual(fpr2.person, self.persons[visited])
 
         fpr1 = Fingerprint.objects.get(fpr=test_fingerprint1)
-        self.assertEquals(fpr1.is_active, False)
+        self.assertEqual(fpr1.is_active, False)
 
         # Activate the first one
         response = client.post(reverse("fprs_person_activate", kwargs={"key": self.persons[visited].lookup_key, "fpr": test_fingerprint1}))
         self.assertRedirectMatches(response, reverse("fprs_person_list", kwargs={"key": self.persons[visited].lookup_key}))
         fpr1 = Fingerprint.objects.get(fpr=test_fingerprint1)
         fpr2 = Fingerprint.objects.get(fpr=test_fingerprint2)
-        self.assertEquals(fpr1.is_active, True)
-        self.assertEquals(fpr2.is_active, False)
+        self.assertEqual(fpr1.is_active, True)
+        self.assertEqual(fpr2.is_active, False)
 
     def _test_get_forbidden(self, visitor, visited):
         client = self.make_test_client(visitor)

@@ -1,8 +1,8 @@
 # coding: utf-8
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+
+
+
+
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect, get_object_or_404
 from backend.mixins import VisitPersonMixin
@@ -63,7 +63,7 @@ def compute_process_status(process, visitor, visit_perms=None):
 
     return {
         "requirements": requirements,
-        "requirements_sorted": sorted(requirements.values(), key=lambda x: REQUIREMENT_TYPES_DICT[x.type].sort_order),
+        "requirements_sorted": sorted(list(requirements.values()), key=lambda x: REQUIREMENT_TYPES_DICT[x.type].sort_order),
         "requirements_ok": sorted(rok, key=lambda x: REQUIREMENT_TYPES_DICT[x.type].sort_order),
         "requirements_missing": sorted(rnok, key=lambda x: REQUIREMENT_TYPES_DICT[x.type].sort_order),
         "log_first": log[0] if log else None,

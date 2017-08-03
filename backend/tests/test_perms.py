@@ -1,8 +1,3 @@
-# coding: utf-8
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 from django.test import TestCase
 from backend import const
 from backend import models as bmodels
@@ -25,7 +20,7 @@ class TestPersonPermissions(OldProcessFixtureMixin, TestCase):
         cls.processes.create("applicant2", person=cls.persons.applicant2, applying_for=const.STATUS_DD_NU, progress=const.PROGRESS_AM, manager=cls.persons.am_r_dd)
 
     def assertPerms(self, pname, perms):
-        self.assertItemsEqual(self.persons[pname].perms, perms)
+        self.assertCountEqual(self.persons[pname].perms, perms)
 
     def test_person(self):
         self.assertPerms("pending", [])
@@ -48,66 +43,66 @@ class TestPersonPermissions(OldProcessFixtureMixin, TestCase):
 class TestVisitPersonNoProcess(OldProcessFixtureMixin, TestCase):
     @classmethod
     def __add_extra_tests__(cls):
-        cls._add_method(cls._test_perms, "pending", perms=ExpectedPerms({
+        cls._add_method(cls._test_perms, "pending", perms={
             "fd dam": "update_keycheck edit_email edit_bio edit_ldap view_person_audit_log fd_comments",
             "activeam": "update_keycheck edit_bio edit_ldap view_person_audit_log",
             "pending": "update_keycheck edit_email edit_bio",
             "dd_nu dd_u oldam": "view_person_audit_log update_keycheck",
-        }))
+        })
 
-        cls._add_method(cls._test_perms, "dc", perms=ExpectedPerms({
+        cls._add_method(cls._test_perms, "dc", perms={
             "fd dam": "update_keycheck edit_email edit_bio edit_ldap view_person_audit_log request_new_status fd_comments",
             "dc": "update_keycheck edit_email edit_bio edit_ldap view_person_audit_log request_new_status",
             "activeam": "update_keycheck edit_bio edit_ldap view_person_audit_log",
             "dd_nu dd_u oldam": "view_person_audit_log update_keycheck",
-        }))
+        })
 
-        cls._add_method(cls._test_perms, "dc_ga", perms=ExpectedPerms({
+        cls._add_method(cls._test_perms, "dc_ga", perms={
             "fd dam": "update_keycheck edit_email edit_bio view_person_audit_log request_new_status fd_comments",
             "dc_ga": "update_keycheck edit_email edit_bio view_person_audit_log request_new_status",
             "activeam": "update_keycheck edit_bio view_person_audit_log",
             "dd_nu dd_u oldam": "view_person_audit_log update_keycheck",
-        }))
+        })
 
-        cls._add_method(cls._test_perms, "dm", perms=ExpectedPerms({
+        cls._add_method(cls._test_perms, "dm", perms={
             "fd dam": "update_keycheck edit_email edit_bio edit_ldap view_person_audit_log request_new_status fd_comments",
             "dm": "update_keycheck edit_email edit_bio edit_ldap view_person_audit_log request_new_status",
             "activeam": "update_keycheck edit_bio edit_ldap view_person_audit_log",
             "dd_nu dd_u oldam": "view_person_audit_log update_keycheck",
-        }))
+        })
 
-        cls._add_method(cls._test_perms, "dm_ga", perms=ExpectedPerms({
+        cls._add_method(cls._test_perms, "dm_ga", perms={
             "fd dam": "update_keycheck edit_email edit_bio view_person_audit_log request_new_status fd_comments",
             "dm_ga": "update_keycheck edit_email edit_bio view_person_audit_log request_new_status",
             "activeam": "update_keycheck edit_bio view_person_audit_log",
             "dd_nu dd_u oldam": "view_person_audit_log update_keycheck",
-        }))
+        })
 
-        cls._add_method(cls._test_perms, "dd_nu", perms=ExpectedPerms({
+        cls._add_method(cls._test_perms, "dd_nu", perms={
             "fd dam": "update_keycheck edit_email edit_bio view_person_audit_log request_new_status fd_comments",
             "dd_nu": "update_keycheck edit_email edit_bio view_person_audit_log request_new_status",
             "activeam": "update_keycheck edit_bio view_person_audit_log",
             "dd_u oldam": "view_person_audit_log update_keycheck",
-        }))
+        })
 
-        cls._add_method(cls._test_perms, "dd_u", perms=ExpectedPerms({
+        cls._add_method(cls._test_perms, "dd_u", perms={
             "fd dam": "update_keycheck edit_email edit_bio view_person_audit_log fd_comments",
             "dd_u": "update_keycheck edit_email edit_bio view_person_audit_log",
-            "activeam dd_u": "update_keycheck edit_bio view_person_audit_log",
+            "activeam": "update_keycheck edit_bio view_person_audit_log",
             "dd_nu oldam": "view_person_audit_log update_keycheck",
-        }))
+        })
 
-        cls._add_method(cls._test_perms, "fd", perms=ExpectedPerms({
+        cls._add_method(cls._test_perms, "fd", perms={
             "fd dam": "update_keycheck edit_email edit_bio view_person_audit_log request_new_status fd_comments",
             "activeam": "update_keycheck edit_bio view_person_audit_log",
             "dd_nu dd_u oldam": "view_person_audit_log update_keycheck",
-        }))
+        })
 
-        cls._add_method(cls._test_perms, "dam", perms=ExpectedPerms({
+        cls._add_method(cls._test_perms, "dam", perms={
             "fd dam": "update_keycheck edit_email edit_bio view_person_audit_log fd_comments",
             "activeam": "view_person_audit_log update_keycheck edit_bio",
             "dd_nu dd_u oldam": "view_person_audit_log update_keycheck",
-        }))
+        })
 
     def assertPermsEqual(self, action, perms_type, wanted, got):
         got = set(got)
@@ -120,8 +115,8 @@ class TestVisitPersonNoProcess(OldProcessFixtureMixin, TestCase):
         if extra: msg.append("has extra {} {}".format(perms_type, ", ".join(sorted(extra))))
         self.fail(action + " " + " and ".join(msg))
 
-
     def _test_perms(self, visited, perms):
+        perms = ExpectedPerms(perms)
         other_visitors = set(self.persons.keys())
         other_visitors.add(None)
         for visitor, expected_perms in perms.perms.items():

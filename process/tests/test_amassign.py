@@ -1,8 +1,3 @@
-# coding: utf-8
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 from django.test import TestCase
 from django.core.urlresolvers import reverse
 from django.utils.timezone import now
@@ -10,7 +5,7 @@ from backend import const
 from backend import models as bmodels
 from backend.unittest import PersonFixtureMixin
 import process.models as pmodels
-from mock import patch
+from unittest.mock import patch
 from .common import ProcessFixtureMixin
 
 
@@ -47,9 +42,9 @@ class TestProcessAMAssign(ProcessFixtureMixin, TestCase):
             self.assertIsNone(assignment.unassigned_time)
 
             from django.core import mail
-            self.assertEquals(len(mail.outbox), 1)
-            self.assertEquals(mail.outbox[0].cc, [self.processes.app.archive_email])
-            self.assertEquals(mail.outbox[0].subject, "New Member process, Debian Developer, uploading")
+            self.assertEqual(len(mail.outbox), 1)
+            self.assertEqual(mail.outbox[0].cc, [self.processes.app.archive_email])
+            self.assertEqual(mail.outbox[0].subject, "New Member process, Debian Developer, uploading")
 
     def test_forbidden(self):
         with patch.object(pmodels.Requirement, "permissions_of", return_value=set()):

@@ -22,7 +22,7 @@ def mc_format_entry(value, keywords, autoescape=None):
 
     keywords = frozenset(keywords)
     tokenized = tokenizer.split(value)
-    for i in xrange(len(tokenized)):
+    for i in range(len(tokenized)):
         if tokenized[i] in keywords:
             # highlight keywords
             tokenized[i] = "<b>%s</b>" % esc(tokenized[i])

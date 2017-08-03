@@ -16,10 +16,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+
+
+
+
 from django import http, forms
 from django.conf import settings
 from django.shortcuts import redirect, render, get_object_or_404
@@ -497,9 +497,9 @@ class AuditLog(VisitorTemplateView):
         cutoff = now() - datetime.timedelta(days=30)
         for e in bmodels.PersonAuditLog.objects.filter(logdate__gte=cutoff).order_by("-logdate"):
             if is_admin:
-                changes = sorted((k, v[0], v[1]) for k, v in json.loads(e.changes).items())
+                changes = sorted((k, v[0], v[1]) for k, v in list(json.loads(e.changes).items()))
             else:
-                changes = sorted((k, v[0], v[1]) for k, v in json.loads(e.changes).items() if k != "fd_comment")
+                changes = sorted((k, v[0], v[1]) for k, v in list(json.loads(e.changes).items()) if k != "fd_comment")
             audit_log.append({
                 "person": e.person,
                 "logdate": e.logdate,
@@ -855,7 +855,7 @@ class Newnm(VisitorMixin, FormView):
         ctx = super(Newnm, self).get_context_data(**kw)
         form = ctx["form"]
         errors = []
-        for k, v in form.errors.iteritems():
+        for k, v in form.errors.items():
             if k in ("cn", "mn", "sn"):
                 section = "name"
             elif k in ("sc_ok", "dmup_ok"):

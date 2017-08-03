@@ -183,13 +183,13 @@ class Command(BaseCommand):
             logging.basicConfig(level=logging.INFO, stream=sys.stderr, format=FORMAT)
 
         if not fnames:
-            print >>sys.stderr, "please provide a JSON dump file name"
+            print("please provide a JSON dump file name", file=sys.stderr)
             sys.exit(1)
 
         if opts["author"]:
             author = lookup_person(opts["author"])
             if not author:
-                print >>sys.stderr, "Author {} not found".format(opts["author"])
+                print("Author {} not found".format(opts["author"]), file=sys.stderr)
                 sys.exit(1)
         else:
             author = None

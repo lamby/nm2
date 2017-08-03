@@ -15,10 +15,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+
+
+
+
 import django_housekeeping as hk
 from backend.maintenance import MakeLink
 import backend.models as bmodels
@@ -44,7 +44,7 @@ class CheckDMList(hk.Task):
                 log.info("%s: %s DB status is %s but it appears to projectb to be a DM instead",
                          self.IDENTIFIER, self.maint.link(p), p.status)
 
-        for maint in maints.db.itervalues():
+        for maint in maints.db.values():
             person = bmodels.Person.lookup(maint["fpr"])
             if person is not None:
                 check_status(person)

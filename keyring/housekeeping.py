@@ -1,8 +1,8 @@
 # coding: utf-8
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+
+
+
+
 import django_housekeeping as hk
 from django.conf import settings
 from django.utils.timezone import utc, now
@@ -124,7 +124,7 @@ class CheckKeyringConsistency(hk.Task):
             const.STATUS_EMERITUS_DD: self.hk.keyrings.emeritus_dd,
         }
         keyring_by_fpr = {}
-        for status, keyring in keyring_by_status.items():
+        for status, keyring in list(keyring_by_status.items()):
             for fpr in keyring:
                 if fpr in keyring_by_fpr:
                     log.warn("%s: fingerprint %s is both in keyring %s and in keyring %s",

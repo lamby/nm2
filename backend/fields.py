@@ -1,8 +1,8 @@
 # coding: utf-8
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+
+
+
+
 from django.db import models
 import re
 
@@ -15,7 +15,7 @@ class FingerprintField(models.CharField):
     @classmethod
     def clean_fingerprint(cls, value):
         # Refuse all non-strings
-        if not isinstance(value, basestring): return None
+        if not isinstance(value, str): return None
         # Remove spaces
         value = cls.re_spaces.sub("", value)
         # Convert empty strings to None

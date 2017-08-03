@@ -33,7 +33,7 @@ import gzip
 import re
 import time
 import codecs
-from cStringIO import StringIO
+from io import StringIO
 from backend import models as bmodels
 from backend import const
 from backend import utils
@@ -95,7 +95,7 @@ class Command(BaseCommand):
             import inspect
             for name, m in inspect.getmembers(reports, predicate=inspect.ismethod):
                 if not name.startswith("list_"): continue
-                print name[5:], "-", m.__doc__.strip()
+                print(name[5:], "-", m.__doc__.strip())
             return
 
         # Run all reports, merge their results
@@ -103,16 +103,16 @@ class Command(BaseCommand):
         for arg in args:
             method = getattr(reports, "list_" + arg, None)
             if method is None:
-                print >>sys.stderr, "Report '%s' not found" % arg
+                print("Report '%s' not found" % arg, file=sys.stderr)
                 continue
             result.update(method())
 
         # Sort and print what we got
         if opts["procmail"]:
-            print "# Automatically generated - do not edit"
+            print("# Automatically generated - do not edit")
             for email in sorted(result):
-                print ":0c"
-                print "!", email
+                print(":0c")
+                print("!", email)
         else:
             for email in sorted(result):
-                print email
+                print(email)

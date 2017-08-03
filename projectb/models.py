@@ -134,7 +134,7 @@ class Maintainers(object):
         self.validate()
 
         log.info("projectb: load source package information...")
-        for rec in self.db.itervalues():
+        for rec in self.db.values():
             rec["sources"] = set(self.get_sources(rec))
 
         self.save_to_pickle()
@@ -185,7 +185,7 @@ class Maintainers(object):
                 rec["pdb_mid"] = id
 
     def validate(self):
-        for rec in self.db.itervalues():
+        for rec in self.db.values():
             rec["warn_maintmap"] = \
                rec.get("pdb_fid", None) is None or \
                rec.get("pdb_uid", None) is None or \

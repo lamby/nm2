@@ -1,8 +1,3 @@
-# coding: utf-8
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 from django.test import TestCase, Client
 from django.core.urlresolvers import reverse
 from . import models as kmodels
@@ -86,17 +81,17 @@ class TestKeycheck(TestCase):
         encoded = kmodels.Key.objects.download(test_fpr1)
         self.assertTrue(encoded.startswith("-----BEGIN PGP PUBLIC KEY BLOCK-----"))
         key = kmodels.Key.objects.get_or_download(fpr=test_fpr1, body=encoded)
-        self.assertEquals(key.fpr, test_fpr1)
-        self.assertEquals(key.key, encoded)
-        self.assertEquals(key.check_sigs, "")
+        self.assertEqual(key.fpr, test_fpr1)
+        self.assertEqual(key.key, encoded)
+        self.assertEqual(key.check_sigs, "")
         self.assertIsNone(key.check_sigs_updated)
 
         key.update_check_sigs()
         self.assertIsNotNone(key.check_sigs_updated)
-        self.assertNotEquals(key.check_sigs, b"")
+        self.assertNotEqual(key.check_sigs, b"")
 
         results = key.keycheck()
-        self.assertEquals(results.key.fpr, test_fpr1)
+        self.assertEqual(results.key.fpr, test_fpr1)
         self.assertIsInstance(results.errors, set)
         self.assertIsInstance(results.uids, list)
         for u in results.uids:
@@ -106,14 +101,14 @@ class TestKeycheck(TestCase):
         else:
             self.fail("'Enrico Zini <enrico@debian.org>' not found in {}".format(repr([x.uid.name for x in results.uids])))
 
-        self.assertEquals(uid.uid.name, "Enrico Zini <enrico@debian.org>")
+        self.assertEqual(uid.uid.name, "Enrico Zini <enrico@debian.org>")
         self.assertIsInstance(uid.errors, set)
         self.assertIsInstance(uid.sigs_ok, list)
         self.assertIsInstance(uid.sigs_no_key, list)
         self.assertIsInstance(uid.sigs_bad, list)
 
         # Test key signature verification
-        self.assertEquals(key.verify(test_signed), "This is a test string\n")
+        self.assertEqual(key.verify(test_signed), "This is a test string\n")
         kmodels.Key.objects.test_preload(test_fpr2)
         key2 = kmodels.Key.objects.get_or_download(fpr=test_fpr2)
         with self.assertRaises(RuntimeError):
@@ -124,9 +119,9 @@ class TestKeycheck(TestCase):
         kmodels.Key.objects.test_preload(test_fpr)
         c = Client()
         response = c.get(reverse("keyring_keycheck", kwargs={"fpr": test_fpr}))
-        self.assertEquals(response.status_code, 200)
-        decoded = json.loads(response.content)
-        self.assertEquals(decoded["fpr"], test_fpr)
+        self.assertEqual(response.status_code, 200)
+        decoded = response.json()
+        self.assertEqual(decoded["fpr"], test_fpr)
         self.assertIsInstance(decoded["errors"], list)
         self.assertIsInstance(decoded["uids"], list)
         for k in decoded["uids"]:
@@ -136,7 +131,7 @@ class TestKeycheck(TestCase):
         else:
             self.fail("'Enrico Zini <enrico@debian.org>' not found in {}".format(repr([x["name"] for x in decoded["uids"]])))
 
-        self.assertEquals(uid["name"], "Enrico Zini <enrico@debian.org>")
+        self.assertEqual(uid["name"], "Enrico Zini <enrico@debian.org>")
         self.assertIsInstance(uid["errors"], list)
         self.assertIsInstance(uid["sigs_ok"], list)
         self.assertIsInstance(uid["sigs_no_key"], int)
@@ -147,7 +142,7 @@ class TestKeycheck(TestCase):
         kmodels.Key.objects.test_preload(fpr)
         key = kmodels.Key.objects.get_or_download(fpr=fpr)
         results = key.keycheck()
-        self.assertEquals(results.key.fpr, fpr)
+        self.assertEqual(results.key.fpr, fpr)
         self.assertIsInstance(results.errors, set)
         self.assertIsInstance(results.uids, list)
         for u in results.uids:
@@ -157,14 +152,14 @@ class TestKeycheck(TestCase):
         else:
             self.fail("'Ondřej Nový <novy@ondrej.org>' not found in {}".format(repr([x.uid.name for x in results.uids])))
 
-        self.assertEquals(uid.uid.name, "Ondřej Nový <novy@ondrej.org>")
+        self.assertEqual(uid.uid.name, "Ondřej Nový <novy@ondrej.org>")
         self.assertIsInstance(uid.errors, set)
         self.assertIsInstance(uid.sigs_ok, list)
         self.assertIsInstance(uid.sigs_no_key, list)
         self.assertIsInstance(uid.sigs_bad, list)
 
         # Test key signature verification
-        self.assertEquals(key.verify(test_signed_3D983C52EB85980C46A56090357312559D1E064B),
+        self.assertEqual(key.verify(test_signed_3D983C52EB85980C46A56090357312559D1E064B),
             "I agree to uphold the Social Contract and the Debian Free Software Guidelines in my Debian work.\n"
             "I have read the Debian Machine Usage Policy and I accept them.\n")
         test_fpr2 = "66B4DFB68CB24EBBD8650BC4F4B4B0CC797EBFAB"
@@ -203,7 +198,7 @@ Kbul7r6fmKMmeViXW8TS
         kmodels.Key.objects.test_preload(test_fpr)
         key = kmodels.Key.objects.get_or_download(fpr=test_fpr)
         decoded = key.verify(text)
-        self.assertEquals(decoded, "þiş is a têst message úsed while debügging nm.debiån.ørg ♥\n")
+        self.assertEqual(decoded, "þiş is a têst message úsed while debügging nm.debiån.ørg ♥\n")
 
 
 class TestVerifyMIME(TestCase):
@@ -216,7 +211,7 @@ class TestVerifyMIME(TestCase):
         key.verify(text)
 
         with self.assertRaises(RuntimeError):
-            key.verify(text.replace("NM process", "MN process"))
+            key.verify(text.replace(b"NM process", b"MN process"))
 
 
 class TestParsePubFingerprints(TestCase):
@@ -240,5 +235,5 @@ uid:-::::1475515901::F30EB75DFE4DFBE6117791330DBE816DDAECF145::Laura Arjona Rein
 uid:-::::1475515902::736F76B9B199686160E5FDCD5D2458C41826B6A4::Laura Arjona Reina <laura.arjona@upm.es>:
 """
     def test_parse(self):
-        fprs = [x for x in kmodels._parse_pub_fingerprints(self.INPUT.splitlines())]
-        self.assertEquals(fprs, ["B7A15F455B287F384174D5E9E5EC4AC9BD627B05", "445E3AD036903F47E19B37B2F22674467E4AF4A3"])
+        fprs = [x for x in kmodels._parse_pub_fingerprints(x.encode("utf8") for x in self.INPUT.splitlines())]
+        self.assertEqual(fprs, ["B7A15F455B287F384174D5E9E5EC4AC9BD627B05", "445E3AD036903F47E19B37B2F22674467E4AF4A3"])

@@ -15,10 +15,10 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+
+
+
+
 from django import http
 from django.core.exceptions import PermissionDenied
 from django.utils.translation import ugettext as _
@@ -137,7 +137,7 @@ class Status(APIVisitorMixin, View):
         return self._serialize_people(persons)
 
     def post(self, request, *args, **kw):
-        names = [str(x) for x in json.loads(request.body)]
+        names = [str(x) for x in json.loads(request.body.decode("utf8"))]
         persons = bmodels.Person.objects.filter(username__in=names)
         return self._serialize_people(persons)
 

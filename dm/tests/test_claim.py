@@ -2,10 +2,10 @@
 """
 Test DM claim interface
 """
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+
+
+
+
 from django.test import TestCase
 from django.core.urlresolvers import reverse
 from backend.models import Person, Fingerprint
@@ -52,36 +52,36 @@ class TestClaim(PersonFixtureMixin, TestCase):
 
         client = self.make_test_client(orig_username)
         response = client.get(reverse("dm_claim"))
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.context["username"], orig_username)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["username"], orig_username)
 
         response = client.post(reverse("dm_claim"), data={"fpr": self.test_fingerprint})
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.context["username"], orig_username)
-        self.assertEquals(response.context["fpr"].fpr, self.test_fingerprint)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["username"], orig_username)
+        self.assertEqual(response.context["fpr"].fpr, self.test_fingerprint)
         self.assertIn("/dm/claim/confirm", response.context["plaintext"])
-        self.assertIn("-----BEGIN PGP MESSAGE-----", response.context["challenge"])
+        self.assertIn(b"-----BEGIN PGP MESSAGE-----", response.context["challenge"])
         return orig_username, response.context["plaintext"].strip()
 
     def _test_success(self, person):
         orig_username, confirm_url = self.get_confirm_url(person)
         client = self.make_test_client(orig_username)
         response = client.get(confirm_url)
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.context["errors"], [])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["errors"], [])
         person = Person.objects.get(pk=self.persons[person].pk)
         # The username has now been set
-        self.assertEquals(person.username, orig_username)
+        self.assertEqual(person.username, orig_username)
 
     def _test_is_dd(self, person):
         orig_username, confirm_url = self.get_confirm_url(person)
         client = self.make_test_client(orig_username)
         response = client.get(confirm_url)
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.context["errors"], ["The GPG fingerprint corresponds to a Debian Developer."])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["errors"], ["The GPG fingerprint corresponds to a Debian Developer."])
         person = Person.objects.get(pk=self.persons[person].pk)
         # The username has not been set
-        self.assertEquals(person.username, "invalid@example.org")
+        self.assertEqual(person.username, "invalid@example.org")
 
     def test_anonymous(self):
         client = self.make_test_client(None)

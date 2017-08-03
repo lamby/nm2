@@ -15,10 +15,10 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+
+
+
+
 import django
 from django.utils.timezone import utc
 from django.test import TransactionTestCase
@@ -119,8 +119,8 @@ class LogTest(TransactionTestCase):
                            logtext="all ok")
         log_dd2.save()
 
-        self.assertEquals(log_dm2.previous, log_dm1)
-        self.assertEquals(log_dd2.previous, log_dd1)
+        self.assertEqual(log_dm2.previous, log_dm1)
+        self.assertEqual(log_dd2.previous, log_dd1)
 
         log_dd3 = bmodels.Log(changed_by=self.p.am,
                            process=self.p.process_dd,
@@ -129,8 +129,8 @@ class LogTest(TransactionTestCase):
                            logtext="advocacies are ok")
         log_dd3.save()
 
-        self.assertEquals(log_dd3.previous, log_dd2)
-        self.assertEquals(log_dd3.previous.previous, log_dd1)
+        self.assertEqual(log_dd3.previous, log_dd2)
+        self.assertEqual(log_dd3.previous.previous, log_dd1)
 
 
 class NotificationTest(TransactionTestCase):
@@ -238,12 +238,12 @@ class FingerprintTest(TransactionTestCase):
         # Spaces are stripped
         f = bmodels.Fingerprint.objects.create(fpr="A410 5B0A 9F84 97EC AB5F  1683 8D5B 478C F7FE 4DAA", person=p, audit_skip=True)
         db_fpr = cr.execute("select fpr from fingerprints where id='{}'".format(f.id)).fetchone()[0]
-        self.assertEquals(db_fpr, "A4105B0A9F8497ECAB5F16838D5B478CF7FE4DAA")
+        self.assertEqual(db_fpr, "A4105B0A9F8497ECAB5F16838D5B478CF7FE4DAA")
 
         # Letters are uppercased
         f = bmodels.Fingerprint.objects.create(fpr="a410 5b0a 9f84 97ec ab5f1683 8d5b 478c f7fe 4dab", person=p, audit_skip=True)
         on_db_valid_fpr = cr.execute("select fpr from fingerprints where id='{}'".format(f.id)).fetchone()[0]
-        self.assertEquals(on_db_valid_fpr, "A4105B0A9F8497ECAB5F16838D5B478CF7FE4DAB")
+        self.assertEqual(on_db_valid_fpr, "A4105B0A9F8497ECAB5F16838D5B478CF7FE4DAB")
 
         # Everything else is discarded
         with self.assertRaises(django.db.IntegrityError):
@@ -285,13 +285,13 @@ class PersonExpires(TransactionTestCase):
         self.person.save(audit_skip=True)
         p = run_maint()
         self.assertIsNotNone(p)
-        self.assertEquals(p.expires, today)
+        self.assertEqual(p.expires, today)
 
         self.person.expires = today + datetime.timedelta(days=1)
         self.person.save(audit_skip=True)
         p = run_maint()
         self.assertIsNotNone(p)
-        self.assertEquals(p.expires, today + datetime.timedelta(days=1))
+        self.assertEqual(p.expires, today + datetime.timedelta(days=1))
 
         # if expires is older than today and Person is DC and there are no
         # processes, it expires

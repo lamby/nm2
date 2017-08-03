@@ -1,15 +1,10 @@
-# coding: utf8
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 from django.test import TestCase
 from django.core.urlresolvers import reverse
 from django.utils.timezone import now
 from backend import const
 from backend import models as bmodels
 from backend.unittest import PersonFixtureMixin, ExpectedSets, TestSet, PageElements
-from mock import patch
+from unittest.mock import patch
 
 
 class TestPerson(PersonFixtureMixin, TestCase):
@@ -98,16 +93,16 @@ class TestEditMixin(PersonFixtureMixin):
         }
 
         # Set all fields to the original value
-        for name, (oldval, newval) in cls.all_fields.items():
+        for name, (oldval, newval) in list(cls.all_fields.items()):
             setattr(cls.visited, name, oldval)
         cls.visited.save(audit_skip=True)
 
     def get_post_data(self):
-        return { name: newval for name, (oldval, newval) in self.all_fields.items() }
+        return { name: newval for name, (oldval, newval) in list(self.all_fields.items()) }
 
     def assertChanged(self):
         self.visited.refresh_from_db()
-        for name, (oldval, newval) in self.all_fields.items():
+        for name, (oldval, newval) in list(self.all_fields.items()):
             if name in self.edited_fields:
                 self.assertEqual(getattr(self.visited, name), newval)
             else:
@@ -115,7 +110,7 @@ class TestEditMixin(PersonFixtureMixin):
 
     def assertNotChanged(self):
         self.visited.refresh_from_db()
-        for name, (oldval, newval) in self.all_fields.items():
+        for name, (oldval, newval) in list(self.all_fields.items()):
             self.assertEqual(getattr(self.visited, name), oldval)
 
     def assertSuccess(self):

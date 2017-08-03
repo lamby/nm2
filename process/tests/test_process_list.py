@@ -1,8 +1,8 @@
 # coding: utf-8
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+
+
+
+
 from django.test import TestCase
 from django.core.urlresolvers import reverse
 from .common import ProcessFixtureMixin
@@ -18,7 +18,7 @@ class TestList(ProcessFixtureMixin, TestCase):
     def _test_success(self, visitor):
         client = self.make_test_client(visitor)
         response = client.get(reverse("process_list"))
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
 
 #    def _test_forbidden(self, visitor):
 #        client = self.make_test_client(visitor)

@@ -121,7 +121,7 @@ class Importer(object):
 
         for logentry in person["log"]:
             if logentry["applying_for"] not in by_target:
-                log.warning("%s not in %s for %s", logentry["applying_for"], by_target.keys(), p)
+                log.warning("%s not in %s for %s", logentry["applying_for"], list(by_target.keys()), p)
             if logentry["logdate"] is None:
                 log.warning("Skipping '%s' log entry for %s because of a missing date", logentry["logtext"], repr(p))
                 continue
@@ -313,7 +313,7 @@ class Importer(object):
     def import_advocates(self):
         # Clear the uid cache
         self.people_cache_by_uid = dict()
-        for id, advocates in self.todo_advocates.iteritems():
+        for id, advocates in self.todo_advocates.items():
             proc = bmodels.Process.objects.get(id=id)
             for adv in advocates:
                 a = self.people_cache_by_uid.get(adv, None)
@@ -369,16 +369,16 @@ class Command(BaseCommand):
             logging.basicConfig(level=logging.INFO, stream=sys.stderr, format=FORMAT)
 
         if not fnames:
-            print >>sys.stderr, "please provide a JSON dump file name"
+            print("please provide a JSON dump file name", file=sys.stderr)
             sys.exit(1)
 
         with open(fnames[0]) as fd:
             people = json.load(fd)
 
         importer = Importer()
-        for k, v in people.iteritems():
+        for k, v in people.items():
             importer.import_person(v)
-        for k, v in people.iteritems():
+        for k, v in people.items():
             importer.import_processes(v)
         importer.import_ldap(opts["ldap"])
         importer.import_ldap_pass2(opts["ldap"])

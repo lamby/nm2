@@ -1,11 +1,6 @@
-# coding: utf-8
 """
 Code used to list entries in keyrings
 """
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 from django.db import models
 from django.conf import settings
 from django.utils.timezone import utc, now
@@ -78,7 +73,7 @@ class KeyManager(models.Manager):
         if text[0] != "-----BEGIN PGP PUBLIC KEY BLOCK-----": raise RuntimeError("downloaded key material has invalid begin line")
         if text[-1] != "-----END PGP PUBLIC KEY BLOCK-----": raise RuntimeError("downloaded key material has invalid end line")
         with tempdir_gpg() as gpg:
-            gpg.run_checked(gpg.cmd("--import"), input=res.text)
+            gpg.run_checked(gpg.cmd("--import"), input=res.content)
             return gpg.run_checked(gpg.cmd("--export", "-a", fpr)).decode("utf-8", errors="replace")
 
     def test_preload(self, fpr):
@@ -137,7 +132,7 @@ class Key(models.Model):
         # Daniel Kahn Gillmor <dkg@fifthhorseman.net>,
         # and others.
         with tempdir_gpg() as gpg:
-            gpg.run_checked(gpg.cmd("--import"), input=self.key)
+            gpg.run_checked(gpg.cmd("--import"), input=self.key.encode("utf-8"))
 
             # Check key
             cmd = gpg.keyring_cmd(("debian-keyring.gpg", "debian-nonupload.gpg"), "--check-sigs", self.fpr)
@@ -151,12 +146,14 @@ class Key(models.Model):
         encrypted result.
         """
         with tempdir_gpg() as gpg:
-            gpg.run_checked(gpg.cmd("--import"), input=self.key)
+            gpg.run_checked(gpg.cmd("--import"), input=self.key.encode("utf-8"))
             cmd = gpg.cmd("--encrypt", "--armor", "--no-default-recipient", "--trust-model=always", "--recipient", self.fpr)
             return gpg.run_checked(cmd, input=data)
 
     def verify(self, data):
-        if data.strip().startswith("-----BEGIN PGP SIGNED MESSAGE-----"):
+        if isinstance(data, str):
+            data = data.encode("utf8")
+        if data.strip().startswith(b"-----BEGIN PGP SIGNED MESSAGE-----"):
             return self.verify_clearsigned(data)
         else:
             return self.verify_rfc3156(data)
@@ -167,7 +164,7 @@ class Key(models.Model):
         """
         # See https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=826405
         with tempdir_gpg() as gpg:
-            gpg.run_checked(gpg.cmd("--import"), input=self.key)
+            gpg.run_checked(gpg.cmd("--import"), input=self.key.encode("utf-8"))
             data_file = os.path.join(gpg.homedir, "data.txt")
             sig_file = os.path.join(gpg.homedir, "data.txt.asc")
             status_log = os.path.join(gpg.homedir, "status.log")
@@ -176,26 +173,24 @@ class Key(models.Model):
                 fd.write(data)
             with io.open(sig_file, "wb") as fd:
                 fd.write(signature)
-            with io.open(status_log, "wb") as fd_status:
-                with io.open(logger_log, "wb") as fd_logger:
-                    cmd = gpg.cmd("--status-fd", str(fd_status.fileno()), "--logger-fd", str(fd_logger.fileno()), "--verify", sig_file, data_file)
-                    stdout, stderr, result = gpg.run_cmd(cmd)
+            cmd = gpg.cmd("--status-file", status_log, "--logger-file", logger_log, "--verify", sig_file, data_file)
+            stdout, stderr, result = gpg.run_cmd(cmd)
 
             if result != 0:
                 errors = []
-                with io.open(status_log, "rt", encoding="utf-8", errors="replace") as fd:
+                with io.open(status_log, "rb") as fd:
                     for line in fd:
-                        if not line.startswith("[GNUPG:]"): continue
+                        if not line.startswith(b"[GNUPG:]"): continue
                         errors.append(line[8:])
 
                 if errors:
-                    errmsg = "; ".join(errors)
+                    errmsg = b"; ".join(errors)
                 else:
                     errmsg = stderr
-                    with io.open(logger_log, "rt", encoding="utf-8", errors="replace") as fd:
+                    with io.open(logger_log, "rb") as fd:
                         errmsg += fd.read()
 
-                raise RuntimeError("gpg exited with status {}: {}".format(result, errmsg))
+                raise RuntimeError("gpg exited with status {}: {}".format(result, errmsg.decode("utf-8", errors="replace")))
 
             with io.open(status_log, "rt", encoding="utf-8", errors="replace") as fd:
                 status = fd.read()
@@ -211,16 +206,14 @@ class Key(models.Model):
         """
         # See https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=826405
         with tempdir_gpg() as gpg:
-            gpg.run_checked(gpg.cmd("--import"), input=self.key)
+            gpg.run_checked(gpg.cmd("--import"), input=self.key.encode("utf-8"))
             data_file = os.path.join(gpg.homedir, "data.txt")
             status_log = os.path.join(gpg.homedir, "status.log")
             logger_log = os.path.join(gpg.homedir, "logger.log")
-            with io.open(data_file, "wt", encoding="utf-8") as fd:
+            with io.open(data_file, "wb") as fd:
                 fd.write(data)
-            with io.open(status_log, "wb") as fd_status:
-                with io.open(logger_log, "wb") as fd_logger:
-                    cmd = gpg.cmd("--status-fd", str(fd_status.fileno()), "--logger-fd", str(fd_logger.fileno()), "--decrypt", data_file)
-                    plaintext, stderr, result = gpg.run_cmd(cmd)
+            cmd = gpg.cmd("--status-file", status_log, "--logger-file", logger_log, "--decrypt", data_file)
+            plaintext, stderr, result = gpg.run_cmd(cmd)
 
             if result != 0:
                 errors = []
@@ -305,7 +298,7 @@ class GPG(object):
         keyring names
         """
         # If we only got one string, make it into a sequence
-        if isinstance(keyrings, basestring):
+        if isinstance(keyrings, str):
             keyrings = (keyrings, )
         cmd = self._base_cmd()
         for k in keyrings:
@@ -342,7 +335,7 @@ class GPG(object):
         Run gpg with the given command, waiting for its completion, returning a triple
         (stdout, stderr, result)
         """
-        proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+        proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = proc.communicate(input=input)
         result = proc.wait()
         return stdout, stderr, result
@@ -369,7 +362,7 @@ class GPG(object):
         where proc is the subprocess.Popen object, and lines is a
         backend.utils.StreamStdoutKeepStderr object connected to proc.
         """
-        proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+        proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         proc.stdin.close()
         lines = StreamStdoutKeepStderr(proc)
         return proc, lines
@@ -584,7 +577,7 @@ class KeycheckKeyResult(object):
         if "t" in flags: self.errors.update(("skip", "key_expired"))
 
         # Check UIDs
-        for uid in key.uids.itervalues():
+        for uid in key.uids.values():
             self.uids.append(KeycheckUidResult(self, uid))
 
         def int_expire(x):
@@ -612,7 +605,7 @@ class KeycheckKeyResult(object):
                 self.capabilities[cap] = int_expire(key.pub[6])
 
             # Check in subkeys
-            for sk in key.subkeys.itervalues():
+            for sk in key.subkeys.values():
                 if cap in sk[11]:
                     oldcap = self.capabilities.get(cap, None)
                     self.capabilities[cap] = max_expire(oldcap, sk[6])
@@ -655,7 +648,7 @@ class KeycheckUidResult(object):
         self.sigs_ok = []
         self.sigs_no_key = []
         self.sigs_bad = []
-        for sig in uid.sigs.itervalues():
+        for sig in uid.sigs.values():
             # Skip self-signatures
             if self.key_result.key.fpr.endswith(sig[4]): continue
             # dkg says:

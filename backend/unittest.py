@@ -1,7 +1,3 @@
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 import backend.models as bmodels
 from backend.models import Person, Process, AM, Fingerprint
 from backend import const
@@ -31,7 +27,7 @@ class NamedObjects(dict):
         This allows to use __getitem__ with already resolved objects, just to have
         functions that can take either objects or their fixture names.
         """
-        if not isinstance(key, basestring): return key
+        if not isinstance(key, str): return key
         return super(NamedObjects, self).__getitem__(key)
 
     def __getattr__(self, key):
@@ -49,7 +45,7 @@ class NamedObjects(dict):
         If self._defaults for an argument is a string, then calls .format() on
         it passing _name and self._defaults as format arguments.
         """
-        for k, v in self._defaults.items():
+        for k, v in list(self._defaults.items()):
             if isinstance(v, six.string_types):
                 kw.setdefault(k, v.format(_name=_name, **self._defaults))
             elif hasattr(v, "__call__"):
@@ -85,7 +81,7 @@ class NamedObjects(dict):
         This can be used in methods like tearDownClass to remove objects common
         to all tests.
         """
-        for o in self.values():
+        for o in list(self.values()):
             o.delete()
 
 
@@ -192,7 +188,7 @@ class TestBase(object):
         should_have = []
         should_not_have = []
         content = response.content.decode("utf-8")
-        for name, regex in elements.items():
+        for name, regex in list(elements.items()):
             if name in want:
                 if not regex.search(content):
                     should_have.append(name)
@@ -357,7 +353,7 @@ class ExpectedSets(defaultdict):
 
     @property
     def visitors(self):
-        return self.keys()
+        return list(self.keys())
 
     def set(self, visitors, text):
         for v in visitors.split():
@@ -375,9 +371,9 @@ class ExpectedSets(defaultdict):
 
     def combine(self, other):
         res = ExpectedSets(self.testcase, action_msg=self.action_msg, issue_msg=self.issue_msg)
-        for k, v in self.items():
+        for k, v in list(self.items()):
             res[k] = v.clone()
-        for k, v in other.items():
+        for k, v in list(other.items()):
             res[k].update(v)
         return res
 
@@ -410,7 +406,8 @@ class ExpectedPerms(object):
     """
     Store the permissions expected out of a *VisitorPermissions object
     """
-    def __init__(self, perms={}):
+    def __init__(self, perms=None):
+        if perms is None: perms = {}
         self.perms = {}
         for visitors, expected_perms in perms.items():
             for visitor in visitors.split():
@@ -456,7 +453,7 @@ class PageElements(dict):
 
     def clone(self):
         res = PageElements()
-        res.update(self.items())
+        res.update(list(self.items()))
         return res
 
 

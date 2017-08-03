@@ -1,8 +1,8 @@
 # coding: utf-8
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+
+
+
+
 from django.test import TestCase
 from backend import const
 from backend import models as bmodels
@@ -12,7 +12,7 @@ from backend.unittest import BaseFixtureMixin, PersonFixtureMixin
 class TestRequirements(PersonFixtureMixin, TestCase):
     def assertRequirements(self, status, applying_for, expected):
         computed = pmodels.Process.objects.compute_requirements(status, applying_for)
-        self.assertItemsEqual(computed, expected)
+        self.assertCountEqual(computed, expected)
 
     def assertInvalid(self, status, applying_for):
         with self.assertRaises(RuntimeError) as re:

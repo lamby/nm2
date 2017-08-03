@@ -1,5 +1,3 @@
-# coding: utf-8
-
 # nm.debian.org website backend
 #
 # Copyright (C) 2012  Enrico Zini <enrico@debian.org>
@@ -22,20 +20,21 @@ import os.path
 import os
 import errno
 import shutil
-from io import StringIO
+from io import BytesIO
 
 class atomic_writer(object):
     """
     Atomically write to a file
     """
-    def __init__(self, fname, mode=0o664, sync=True):
+    def __init__(self, fname, mode="w+b", chmod=0o664, sync=True, **kw):
         self.fname = fname
-        self.mode = mode
+        self.chmod = chmod
         self.sync = sync
         dirname = os.path.dirname(self.fname)
         if not os.path.isdir(dirname):
             os.makedirs(dirname)
-        self.outfd = tempfile.NamedTemporaryFile(dir=dirname)
+        self.fd, self.abspath = tempfile.mkstemp(dir=dirname, text="b" not in mode)
+        self.outfd = open(self.fd, mode, closefd=True, **kw)
 
     def __enter__(self):
         return self.outfd
@@ -43,11 +42,11 @@ class atomic_writer(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is None:
             self.outfd.flush()
-            if self.sync:
-                os.fdatasync(self.outfd.fileno())
-            os.fchmod(self.outfd.fileno(), self.mode)
-            os.rename(self.outfd.name, self.fname)
-            self.outfd.delete = False
+            if self.sync: os.fdatasync(self.fd)
+            os.fchmod(self.fd, self.chmod)
+            os.rename(self.abspath, self.fname)
+        else:
+            os.unlink(self.abspath)
         self.outfd.close()
         return False
 
@@ -91,11 +90,11 @@ def stream_output(proc):
 class StreamStdoutKeepStderr(object):
     """
     Stream lines of standard output from a Popen object, keeping all of its
-    stderr inside a StringIO
+    stderr inside a BytesIO
     """
     def __init__(self, proc):
         self.proc = proc
-        self.stderr = StringIO()
+        self.stderr = BytesIO()
 
     def __iter__(self):
         last_line = None
@@ -105,12 +104,12 @@ class StreamStdoutKeepStderr(object):
                     if last_line is not None:
                         l = last_line + l
                         last_line = None
-                    if l.endswith("\n"):
+                    if l.endswith(b"\n"):
                         yield l
                     else:
                         last_line = l
             elif tag == "E":
-                self.stderr.write(unicode(buf))
+                self.stderr.write(buf)
         if last_line is not None:
             yield last_line
 

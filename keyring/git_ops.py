@@ -1,8 +1,8 @@
 # coding: utf-8
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+
+
+
+
 from backend import const
 import backend.models as bmodels
 import backend.ops as bops
@@ -84,12 +84,12 @@ class Operation(object):
         # Check if we are unambiguously referring to a record that we
         # can update
         person = None
-        for v in persons.values():
+        for v in list(persons.values()):
             if person is None:
                 person = v
             elif person != v:
                 msg = []
-                for k, v in persons.items():
+                for k, v in list(persons.items()):
                     msg.append("{} by {}".format(k, v.lookup_key))
                 raise OperationError(self.log_entry, "commit matches multiple people: {}".format(", ".join(msg)))
 
@@ -185,7 +185,7 @@ class Add(RoleOperation):
         This is better than nothing, but not a lot better than that.
         """
         # See http://www.kalzumeus.com/2010/06/17/falsehoods-programmers-believe-about-names/
-        fn = subject.decode('utf8').split()
+        fn = subject.split()
         if len(fn) == 1:
             return fn[0], "", ""
         elif len(fn) == 2:

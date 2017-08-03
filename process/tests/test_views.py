@@ -1,8 +1,3 @@
-# coding: utf-8
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 from django.test import TestCase
 from django.core.urlresolvers import reverse
 from django.utils.timezone import now
@@ -10,7 +5,7 @@ from backend import const
 from backend import models as bmodels
 from backend.unittest import PersonFixtureMixin, ExpectedSets, TestSet, PageElements
 import process.models as pmodels
-from mock import patch
+from unittest.mock import patch
 import tempfile
 import mailbox
 import os
@@ -51,7 +46,7 @@ class TestDownloadStatements(ProcessFixtureMixin, TestCase):
             tf.write(mbox_data)
             tf.flush()
             mbox = mailbox.mbox(tf.name)
-            self.assertEquals(len(mbox), 3)
+            self.assertEqual(len(mbox), 3)
 
     def test_download(self):
         url = reverse("process_download_statements", args=[self.processes.app.pk])
@@ -62,7 +57,7 @@ class TestDownloadStatements(ProcessFixtureMixin, TestCase):
             tf.write(response.content)
             tf.flush()
             mbox = mailbox.mbox(tf.name)
-            self.assertEquals(len(mbox), 3)
+            self.assertEqual(len(mbox), 3)
 
 
 class TestEmailLookup(ProcessFixtureMixin, TestCase):
@@ -82,11 +77,11 @@ class TestEmailLookup(ProcessFixtureMixin, TestCase):
                     reverse("process_email_lookup", args=[self.processes.app.pk]),
                     data={"url": "https://lists.debian.org/debian-newmaint/2016/06/msg00044.html"}
                 )
-                self.assertEquals(response.status_code, 200)
-                decoded = json.loads(response.content)
+                self.assertEqual(response.status_code, 200)
+                decoded = json.loads(response.content.decode("utf8"))
                 self.assertNotIn("error", decoded)
                 self.assertIn("msg", decoded)
-                with open("test_data/debian-newmaint.mbox", "rb") as fd:
+                with open("test_data/debian-newmaint.mbox", "rt") as fd:
                     self.assertEqual(decoded["msg"].rstrip(), "".join(list(fd)[1:]).rstrip())
             finally:
                 os.unlink(mbox_file)

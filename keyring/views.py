@@ -16,10 +16,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+
+
+
+
 from . import models as kmodels
 from backend import models as bmodels
 from django import http
@@ -91,5 +91,5 @@ def keycheck(request, fpr):
         return json_response(k)
     except RuntimeError as e:
         return json_response({
-            "error": unicode(e)
+            "error": str(e)
         }, status_code=500)
