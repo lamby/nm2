@@ -1,11 +1,13 @@
 from django import template
 from django.utils.html import conditional_escape
 from django.utils.safestring import mark_safe
+from django.template.defaultfilters import stringfilter
 import re
 
 register = template.Library()
 
 @register.filter(name='mc_format_entry')
+@stringfilter
 def mc_format_entry(value, keywords, autoescape=None):
     if autoescape:
         esc = conditional_escape
