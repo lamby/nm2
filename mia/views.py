@@ -31,7 +31,7 @@ class Uploaders(VisitorMixin, TemplateView):
         for fpr in by_person.values():
             if (today - fpr.last_upload).days < days: continue
             fprs.append(fpr)
-        fprs.sort(key=lambda f:f.last_upload, reverse=True)
+        fprs.sort(key=lambda f:f.last_upload)
         ctx["fprs"] = fprs
 
         ctx["no_fpr"] = Person.objects.filter(status__in=(const.STATUS_DD_NU, const.STATUS_DD_U), fprs__isnull=True).order_by("uid")
