@@ -29,12 +29,15 @@
     <li><a href="{% url 'public_newnm' %}">{% trans "Join the NM process" %}</a>
 </ul>
 
+{% if visitor %}
 {% trans "Site features available to anyone with a web password:" %}
 
 <ul>
     <li><a href="{% url 'restricted_minechangelogs' %}">minechangelogs {% trans "front-end" %}</a></li>
 </ul>
+{% endif %}
 
+{% if visitor and visitor.is_am %}
 {% trans "If you are an Application Manager, you can look at:" %}
 
 <ul>
@@ -42,6 +45,7 @@
     <li><a href="{% url 'restricted_amprofile' %}">{% trans "AM personal settings" %}</a></li>
     <li><a href="{% url 'restricted_db_export' %}">{% trans "Database export you can use to setup a development site" %}</a></li>
 </ul>
+{% endif %}
 
 <h2>{% trans "Contact" %}</h2>
 
