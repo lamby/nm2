@@ -151,7 +151,7 @@ class Whoami(APIVisitorMixin, View):
     Return a JSON with information on the currently logged in user
     """
     def get(self, request, *args, **kw):
-        if request.user.is_authenticated():
+        if request.user.is_authenticated:
             data = model_to_dict(self.visitor, fields=["username", "cn", "mn", "sn", "email", "uid", "status", "status_changed"])
             data["fpr"] = self.visitor.fpr
         else:
