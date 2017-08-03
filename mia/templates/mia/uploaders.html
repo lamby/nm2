@@ -54,7 +54,7 @@ happened more than <input type="number" name="days" value="{{days}}"> days ago.
       <td><a href="{{fpr.person.get_ddpo_url}}">{{fpr.person.fullname}}</a></td>
       <td>{{fpr.person.a_link}}</td>
       <td>{{fpr.fpr|fingerprint}}</td>
-      <td>{{fpr.last_upload}}</td>
+      <td val="{{fpr.last_upload|date:'Y-m-d'}}">{{fpr.last_upload}}</td>
     </tr>
     {% endfor %}
 </tbody>
