@@ -137,11 +137,14 @@ def decode_header(val):
     res = []
     for buf, charset in email.header.decode_header(val):
         if charset is None:
-           res.append(buf.decode("utf-8", errors="replace"))
+            if isinstance(buf, bytes):
+                res.append(buf.decode("utf-8", errors="replace"))
+            else:
+                res.append(buf)
         elif charset == "unknown-8bit":
-           res.append(buf.decode("utf-8", errors="replace"))
+            res.append(buf.decode("utf-8", errors="replace"))
         else:
-           res.append(buf.decode(charset, errors="replace"))
+            res.append(buf.decode(charset, errors="replace"))
     return " ".join(res)
 
 def get_mbox_as_dicts(filename):
