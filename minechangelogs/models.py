@@ -100,7 +100,7 @@ class parse_projectb(object):
         if "old_seen_ids" in self.state:
             state["old_seen_ids"] = self.state["old_seen_ids"]
 
-        with utils.atomic_writer(self.statefile) as outfd:
+        with utils.atomic_writer(self.statefile, mode="wt") as outfd:
             json.dump(state, outfd)
 
     def get_changes(self):
