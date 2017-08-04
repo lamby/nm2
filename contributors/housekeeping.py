@@ -106,12 +106,9 @@ class UpdateLastVote(hk.Task):
 
         for uid, date in votes.items():
             date = datetime.datetime.strptime(date, "%Y-%m-%d").date()
-            print("DATE", uid, date)
             person = by_uid.get(uid)
             if person is None: continue
-            print("  PERSON", person)
             if person.last_vote == date: continue
             # Skip audit since we are only updating statistics data
-            print("  CHANGED", person.last_vote, date)
             person.last_vote = date
             person.save(audit_skip=True)
