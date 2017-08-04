@@ -87,8 +87,15 @@ class UpdateLastVote(hk.Task):
     """
     DEPENDS = [MakeLink]
 
+    def _fetch_url(self, url):
+        bundle="/etc/ssl/ca-debian/ca-certificates.crt"
+        if os.path.exists(bundle):
+            return requests.get(url, verify=bundle)
+        else:
+            return requests.get(url)
+
     def run_main(self, stage):
-        res = requests.get("https://contributors.debian.org/mia/last-significant.json")
+        res = self._fetch_url("https://contributors.debian.org/mia/last-significant.json")
         by_type = res.json()
         votes = by_type["vote.debian.org/vote"]
 
