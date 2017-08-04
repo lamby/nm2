@@ -31,12 +31,12 @@ class CheckDMList(hk.Task):
             try:
                 f = bmodels.Fingerprint.objects.get(fpr=fpr)
             except bmodels.Fingerprint.DoesNotExist:
-                log.info("%s: %s exists in projectb but not in our DB",
+                log.warn("%s: %s exists in projectb but not in our DB",
                          self.IDENTIFIER, fpr)
                 continue
 
             if f.person.status not in (const.STATUS_DM, const.STATUS_DM_GA):
-                log.info("%s: %s DB status is %s but it appears to projectb to be a DM instead",
+                log.warn("%s: %s DB status is %s but it appears to projectb to be a DM instead",
                          self.IDENTIFIER, self.hk.link(f.person), f.person.status)
 
 
