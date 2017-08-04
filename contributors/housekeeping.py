@@ -1,31 +1,12 @@
-# nm.debian.org website housekeeping
-# pymode:lint_ignore=E501
-#
-# Copyright (C) 2014  Enrico Zini <enrico@debian.org>
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as
-# published by the Free Software Foundation, either version 3 of the
-# License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-
-
-
-
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from backend.housekeeping import MakeLink
 import django_housekeeping as hk
 import backend.models as bmodels
+from backend import const
 import debiancontributors as dc
+import requests
+import datetime
 import logging
 
 log = logging.getLogger(__name__)
@@ -98,3 +79,31 @@ dirs: {git_repo_nm}
         res, info = submission.post()
         if not res:
             log.error("%s: submission failed: %r", self.IDENTIFIER, info)
+
+
+class UpdateLastVote(hk.Task):
+    """
+    Update fingerprint.last_vote dates
+    """
+    DEPENDS = [MakeLink]
+
+    def run_main(self, stage):
+        res = requests.get("https://contributors.debian.org/mia/last-significant.json")
+        by_type = res.json()
+        votes = by_type["vote.debian.org/vote"]
+
+        by_uid = {}
+        for person in bmodels.Person.objects.filter(status__in=(const.STATUS_DD_U, const.STATUS_DD_NU)):
+            by_uid[person.uid] = person
+
+        for uid, date in votes.items():
+            date = datetime.datetime.strptime(date, "%Y-%m-%d").date()
+            print("DATE", uid, date)
+            person = by_uid.get(uid)
+            if person is None: continue
+            print("  PERSON", person)
+            if person.last_vote == date: continue
+            # Skip audit since we are only updating statistics data
+            print("  CHANGED", person.last_vote, date)
+            person.last_vote = date
+            person.save(audit_skip=True)

@@ -274,6 +274,7 @@ class Person(PermissionsMixin, models.Model):
             help_text="This person will be deleted after this date if the status is still {} and"
                       " no Process has started".format(const.STATUS_DC))
     pending = models.CharField("Nonce used to confirm this pending record", max_length=255, unique=False, blank=True)
+    last_vote = models.DateField(null=True, blank=True, help_text=_("date of the last vote done with this uid"))
 
     def get_full_name(self):
         return self.fullname

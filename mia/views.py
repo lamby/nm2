@@ -4,6 +4,7 @@ from django.utils.timezone import now
 from backend.mixins import VisitorMixin
 from backend.models import Person, Fingerprint
 from backend import const
+import datetime
 
 
 class Uploaders(VisitorMixin, TemplateView):
@@ -36,4 +37,33 @@ class Uploaders(VisitorMixin, TemplateView):
 
         ctx["no_fpr"] = Person.objects.filter(status__in=(const.STATUS_DD_NU, const.STATUS_DD_U), fprs__isnull=True).order_by("uid")
 
+        return ctx
+
+
+class Voters(VisitorMixin, TemplateView):
+    """
+    List inactive voters
+    """
+    template_name = "mia/voters.html"
+
+    def get_context_data(self, **kw):
+        ctx = super().get_context_data(**kw)
+
+        days = int(self.request.GET.get("days", 365 * 2))
+        ctx["days"] = days
+
+        # Map each Person to the Fingerprint with the most recent last_upload
+        today = now().date()
+        people = []
+        for person in Person.objects.filter(status__in=(const.STATUS_DD_U, const.STATUS_DD_NU)):
+            if person.last_vote is None:
+                last = person.status_changed.date()
+            else:
+                last = person.last_vote
+            if (today - last).days < days: continue
+            people.append(person)
+
+        fallback_sort_date = datetime.date(1970, 1, 1)
+        people.sort(key=lambda p:(p.last_vote or fallback_sort_date))
+        ctx["people"] = people
         return ctx
