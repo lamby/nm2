@@ -1,7 +1,3 @@
-
-
-
-
 from django import template
 from django.utils.html import conditional_escape
 from django.utils.safestring import mark_safe
@@ -100,4 +96,4 @@ def nm_js_support():
     for s in const.ALL_PROGRESS:
         res.append('var %s = "%s";' % (s.code, s.tag))
 
-    return "\n".join(res)
+    return mark_safe("\n".join(res))
