@@ -59,13 +59,9 @@ class Managers(VisitorTemplateView):
               JOIN process_process p ON pam.process_id=p.id
              GROUP BY am.id
             """)
-            stats = {}
             for amid, total, active, held in cursor:
-                s = stats.get(amid)
-                if s is None:
-                    stats[amid] = (total, active, held)
-                else:
-                    stats[amid] = (s[0] + total, s[1] + active, s[2] + held)
+                s = stats.get(amid, (0, 0, 0))
+                stats[amid] = (s[0] + total, s[1] + active, s[2] + held)
 
         # Read the list of AMs, with default sorting, and annotate with the
         # statistics
