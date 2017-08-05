@@ -1,8 +1,3 @@
-# coding: utf-8
-
-
-
-
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
 from django.conf import settings
@@ -213,6 +208,8 @@ class Process(models.Model):
     approved_time = models.DateTimeField(null=True, blank=True, help_text=_("Date the process was reviewed and considered complete, or NULL if not yet reviewed"))
     closed = models.DateTimeField(null=True, blank=True, help_text=_("Date the process was closed, or NULL if still open"))
     fd_comment = models.TextField("Front Desk comments", blank=True, default="")
+    rt_request = models.TextField("RT request text", blank=True, default="")
+    rt_ticket =  models.IntegerField("RT request ticket", null=True)
 
     objects = ProcessManager()
 
