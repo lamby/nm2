@@ -741,7 +741,7 @@ class Approve(VisitProcessMixin, FormView):
             return report_error("Could not find ticket number is response")
         self.process.rt_ticket = int(mo.group(1))
         self.process.rt_request = signed
-        self.procses.approved_by = self.visitor
+        self.process.approved_by = self.visitor
         self.process.approved_time = now()
         self.process.save(audit_author=self.visitor, audit_notes="approved")
         return redirect(self.process.get_absolute_url())
