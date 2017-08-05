@@ -688,10 +688,10 @@ class Approve(VisitProcessMixin, FormView):
 
     def check_permissions(self):
         super().check_permissions()
-        #if not self.process.frozen:
-        #    raise PermissionDenied
-        #if self.process.approved:
-        #    raise PermissionDenied
+        if not self.process.frozen:
+            raise PermissionDenied
+        if self.process.approved:
+            raise PermissionDenied
 
     def get_context_data(self, **kw):
         ctx = super().get_context_data(**kw)
@@ -707,7 +707,6 @@ class Approve(VisitProcessMixin, FormView):
             lines.append("{}: {}".format(key, val))
 
         lines.append("Text:")
-        lines.append(" [DELETE ME, I AM A TEST]")
         for line in signed.splitlines():
             lines.append(" " + line)
 

@@ -219,7 +219,10 @@
 </table>
 
 <a href="{% url 'process_download_statements' pk=process.pk %}">(download all signed statements in a single mailbox file)</a>
-{% if visitor.is_admin and process.frozen_by %}<br><a href="{% url 'process_rt_ticket' pk=process.pk %}">Draft RT ticket</a>{% endif %}
+{% if visitor.is_admin and process.frozen_by %}
+<br><a href="{% url 'process_rt_ticket' pk=process.pk %}">Draft RT ticket (old interface)</a>
+<br><a href="{% url 'process_approve' pk=process.pk %}">Approve process and open RT ticket</a>
+{% endif %}
 
 <h3>Log</h2>
 
