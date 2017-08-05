@@ -486,7 +486,7 @@ def only_needs_guest_account(process):
     return False
 
 
-def make_rt_ticket_text(visitor, process):
+def make_rt_ticket_text(request, visitor, process):
     ctx = {
         "visitor": visitor,
         "person": process.person,
@@ -495,15 +495,15 @@ def make_rt_ticket_text(visitor, process):
 
     ## Build request text
 
-    request = []
+    req = []
     if process.person.status == const.STATUS_DC:
         if process.applying_for == const.STATUS_DC_GA:
-            request.append("Please create a porter account for {person.fullname} (sponsored by {sponsors}).")
+            req.append("Please create a porter account for {person.fullname} (sponsored by {sponsors}).")
     elif process.person.status == const.STATUS_DC_GA:
         pass
     elif process.person.status == const.STATUS_DM:
         if process.applying_for == const.STATUS_DM_GA:
-            request.append("Please create a porter account for {person.fullname} (currently a DM).")
+            req.append("Please create a porter account for {person.fullname} (currently a DM).")
     elif process.person.status == const.STATUS_DM_GA:
         pass
     elif process.person.status == const.STATUS_DD_NU:
@@ -516,16 +516,16 @@ def make_rt_ticket_text(visitor, process):
     only_guest_account = only_needs_guest_account(process)
 
     if not only_guest_account:
-        request.append("Please make {person.fullname} (currently '{status}') a '{applying_for}' (advocated by {sponsors}).")
+        req.append("Please make {person.fullname} (currently '{status}') a '{applying_for}' (advocated by {sponsors}).")
 
     if not only_guest_account:
         if process.person.status == const.STATUS_DC:
-            request.append("Key {person.fpr} should be added to the '{applying_for}' keyring.")
+            req.append("Key {person.fpr} should be added to the '{applying_for}' keyring.")
         else:
-            request.append("Key {person.fpr} should be moved from the '{status}' to the '{applying_for}' keyring.")
+            req.append("Key {person.fpr} should be moved from the '{status}' to the '{applying_for}' keyring.")
 
     if process.person.status not in (const.STATUS_DC, const.STATUS_DM):
-        request.append("Note that {person.fullname} already has an account in LDAP.")
+        req.append("Note that {person.fullname} already has an account in LDAP.")
 
     sponsors = set()
     try:
@@ -548,7 +548,7 @@ def make_rt_ticket_text(visitor, process):
     import textwrap
     wrapper = textwrap.TextWrapper(width=75)
     wrapped = []
-    for paragraph in request:
+    for paragraph in req:
         for line in wrapper.wrap(paragraph.format(**format_args)):
             wrapped.append(line)
         wrapped.append("")
@@ -565,6 +565,8 @@ def make_rt_ticket_text(visitor, process):
                 wrapped.append(line)
         wrapped.append("")
     ctx["intents"] = "\n".join(wrapped)
+
+    ctx["process_url"] = request.build_absolute_uri(process.get_absolute_url())
 
     from django.template.loader import render_to_string
     return render_to_string("process/rt_ticket.txt", ctx).strip()
@@ -587,9 +589,7 @@ class MakeRTTicket(VisitProcessMixin, TemplateView):
 
         ctx["only_guest_account"] = only_guest_account
 
-        ctx["text"] = make_rt_ticket_text(self.visitor, self.process)
-
-        ctx["process_url"] = self.request.build_absolute_uri(self.process.get_absolute_url())
+        ctx["text"] = make_rt_ticket_text(self.request, self.visitor, self.process)
 
         return ctx
 
