@@ -476,74 +476,107 @@ class DownloadStatements(VisitProcessMixin, View):
         return res
 
 
+def only_needs_guest_account(process):
+    if process.person.status == const.STATUS_DC:
+        if process.applying_for == const.STATUS_DC_GA:
+            return True
+    elif process.person.status == const.STATUS_DM:
+        if process.applying_for == const.STATUS_DM_GA:
+            return True
+    return False
+
+
+def make_rt_ticket_text(visitor, process):
+    ctx = {
+        "visitor": visitor,
+        "person": process.person,
+        "process": process,
+    }
+
+    ## Build request text
+
+    request = []
+    if process.person.status == const.STATUS_DC:
+        if process.applying_for == const.STATUS_DC_GA:
+            request.append("Please create a porter account for {person.fullname} (sponsored by {sponsors}).")
+    elif process.person.status == const.STATUS_DC_GA:
+        pass
+    elif process.person.status == const.STATUS_DM:
+        if process.applying_for == const.STATUS_DM_GA:
+            request.append("Please create a porter account for {person.fullname} (currently a DM).")
+    elif process.person.status == const.STATUS_DM_GA:
+        pass
+    elif process.person.status == const.STATUS_DD_NU:
+        pass
+    elif process.person.status == const.STATUS_EMERITUS_DD:
+        pass
+    elif process.person.status == const.STATUS_REMOVED_DD:
+        pass
+
+    only_guest_account = only_needs_guest_account(process)
+
+    if not only_guest_account:
+        request.append("Please make {person.fullname} (currently '{status}') a '{applying_for}' (advocated by {sponsors}).")
+
+    if not only_guest_account:
+        if process.person.status == const.STATUS_DC:
+            request.append("Key {person.fpr} should be added to the '{applying_for}' keyring.")
+        else:
+            request.append("Key {person.fpr} should be moved from the '{status}' to the '{applying_for}' keyring.")
+
+    if process.person.status not in (const.STATUS_DC, const.STATUS_DM):
+        request.append("Note that {person.fullname} already has an account in LDAP.")
+
+    sponsors = set()
+    try:
+        adv_req = process.requirements.get(type="advocate")
+    except pmodels.Requirement.DoesNotExist:
+        adv_req = None
+    if adv_req is not None:
+        for st in adv_req.statements.all():
+            sponsors.add(st.uploaded_by.lookup_key)
+    sponsors = ", ".join(sorted(sponsors))
+
+    format_args = {
+        "person": process.person,
+        "process": process,
+        "status": const.ALL_STATUS_DESCS[process.person.status],
+        "applying_for": const.ALL_STATUS_DESCS[process.applying_for],
+        "sponsors": sponsors,
+    }
+
+    import textwrap
+    wrapper = textwrap.TextWrapper(width=75)
+    wrapped = []
+    for paragraph in request:
+        for line in wrapper.wrap(paragraph.format(**format_args)):
+            wrapped.append(line)
+        wrapped.append("")
+    ctx["request"] = "\n".join(wrapped)
+
+
+    # Format the declarations of intent
+
+    wrapper = textwrap.TextWrapper(width=75, initial_indent="  ", subsequent_indent="  ")
+    wrapped = []
+    for intent in pmodels.Statement.objects.filter(requirement__process=process, requirement__type="intent"):
+        for paragraph in intent.statement_clean.splitlines():
+            for line in wrapper.wrap(paragraph):
+                wrapped.append(line)
+        wrapped.append("")
+    ctx["intents"] = "\n".join(wrapped)
+
+    from django.template.loader import render_to_string
+    return render_to_string("process/rt_ticket.txt", ctx).strip()
+
+
 class MakeRTTicket(VisitProcessMixin, TemplateView):
     template_name = "process/make_rt_ticket.html"
 
     def get_context_data(self, **kw):
         ctx = super(MakeRTTicket, self).get_context_data(**kw)
 
-        only_guest_account = False
-
-        request = []
-        if self.person.status == const.STATUS_DC:
-            if self.process.applying_for == const.STATUS_DC_GA:
-                only_guest_account = True
-                request.append("Please create a porter account for {person.fullname} (sponsored by {sponsors}).")
-        elif self.person.status == const.STATUS_DC_GA:
-            pass
-        elif self.person.status == const.STATUS_DM:
-            if self.process.applying_for == const.STATUS_DM_GA:
-                only_guest_account = True
-                request.append("Please create a porter account for {person.fullname} (currently a DM).")
-        elif self.person.status == const.STATUS_DM_GA:
-            pass
-        elif self.person.status == const.STATUS_DD_NU:
-            pass
-        elif self.person.status == const.STATUS_EMERITUS_DD:
-            pass
-        elif self.person.status == const.STATUS_REMOVED_DD:
-            pass
-
-
-        # Build the request text
-        if not only_guest_account:
-            request.append("Please make {person.fullname} (currently '{status}') a '{applying_for}' (advocated by {sponsors}).")
-
-        if not only_guest_account:
-            if self.person.status == const.STATUS_DC:
-                request.append("Key {person.fpr} should be added to the '{applying_for}' keyring.")
-            else:
-                request.append("Key {person.fpr} should be moved from the '{status}' to the '{applying_for}' keyring.")
-
-        if self.visit_perms.person_has_ldap_record:
-            request.append("Note that {person.fullname} already has an account in LDAP.")
-
-        sponsors = set()
-        try:
-            adv_req = self.process.requirements.get(type="advocate")
-        except pmodels.Requirement.DoesNotExist:
-            adv_req = None
-        if adv_req is not None:
-            for st in adv_req.statements.all():
-                sponsors.add(st.uploaded_by.lookup_key)
-        sponsors = ", ".join(sorted(sponsors))
-
-        format_args = {
-            "person": self.person,
-            "process": self.process,
-            "status": const.ALL_STATUS_DESCS[self.person.status],
-            "applying_for": const.ALL_STATUS_DESCS[self.process.applying_for],
-            "sponsors": sponsors,
-        }
-
-        import textwrap
-        wrapper = textwrap.TextWrapper(width=75)
-        wrapped = []
-        for paragraph in request:
-            for line in wrapper.wrap(paragraph.format(**format_args)):
-                wrapped.append(line)
-            wrapped.append("")
-        ctx["request"] = "\n".join(wrapped)
+        only_guest_account = only_needs_guest_account(self.process)
 
         if only_guest_account:
             ctx["mail_to"] = "Debian Sysadmin requests <admin@rt.debian.org>"
@@ -554,19 +587,12 @@ class MakeRTTicket(VisitProcessMixin, TemplateView):
 
         ctx["only_guest_account"] = only_guest_account
 
-        wrapper = textwrap.TextWrapper(width=75, initial_indent="  ", subsequent_indent="  ")
-        wrapped = []
-        for intent in pmodels.Statement.objects.filter(requirement__process=self.process, requirement__type="intent"):
-            for paragraph in intent.statement_clean.splitlines():
-                for line in wrapper.wrap(paragraph):
-                    wrapped.append(line)
-            wrapped.append("")
-
-        ctx["intents"] = "\n".join(wrapped)
+        ctx["text"] = make_rt_ticket_text(self.visitor, self.process)
 
         ctx["process_url"] = self.request.build_absolute_uri(self.process.get_absolute_url())
 
         return ctx
+
 
 class EmailLookup(VisitProcessMixin, View):
     def _fetch_url(self, url):
