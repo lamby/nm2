@@ -476,74 +476,109 @@ class DownloadStatements(VisitProcessMixin, View):
         return res
 
 
+def only_needs_guest_account(process):
+    if process.person.status == const.STATUS_DC:
+        if process.applying_for == const.STATUS_DC_GA:
+            return True
+    elif process.person.status == const.STATUS_DM:
+        if process.applying_for == const.STATUS_DM_GA:
+            return True
+    return False
+
+
+def make_rt_ticket_text(request, visitor, process):
+    ctx = {
+        "visitor": visitor,
+        "person": process.person,
+        "process": process,
+    }
+
+    ## Build request text
+
+    req = []
+    if process.person.status == const.STATUS_DC:
+        if process.applying_for == const.STATUS_DC_GA:
+            req.append("Please create a porter account for {person.fullname} (sponsored by {sponsors}).")
+    elif process.person.status == const.STATUS_DC_GA:
+        pass
+    elif process.person.status == const.STATUS_DM:
+        if process.applying_for == const.STATUS_DM_GA:
+            req.append("Please create a porter account for {person.fullname} (currently a DM).")
+    elif process.person.status == const.STATUS_DM_GA:
+        pass
+    elif process.person.status == const.STATUS_DD_NU:
+        pass
+    elif process.person.status == const.STATUS_EMERITUS_DD:
+        pass
+    elif process.person.status == const.STATUS_REMOVED_DD:
+        pass
+
+    only_guest_account = only_needs_guest_account(process)
+
+    if not only_guest_account:
+        req.append("Please make {person.fullname} (currently '{status}') a '{applying_for}' (advocated by {sponsors}).")
+
+    if not only_guest_account:
+        if process.person.status == const.STATUS_DC:
+            req.append("Key {person.fpr} should be added to the '{applying_for}' keyring.")
+        else:
+            req.append("Key {person.fpr} should be moved from the '{status}' to the '{applying_for}' keyring.")
+
+    if process.person.status not in (const.STATUS_DC, const.STATUS_DM):
+        req.append("Note that {person.fullname} already has an account in LDAP.")
+
+    sponsors = set()
+    try:
+        adv_req = process.requirements.get(type="advocate")
+    except pmodels.Requirement.DoesNotExist:
+        adv_req = None
+    if adv_req is not None:
+        for st in adv_req.statements.all():
+            sponsors.add(st.uploaded_by.lookup_key)
+    sponsors = ", ".join(sorted(sponsors))
+
+    format_args = {
+        "person": process.person,
+        "process": process,
+        "status": const.ALL_STATUS_DESCS[process.person.status],
+        "applying_for": const.ALL_STATUS_DESCS[process.applying_for],
+        "sponsors": sponsors,
+    }
+
+    import textwrap
+    wrapper = textwrap.TextWrapper(width=75)
+    wrapped = []
+    for paragraph in req:
+        for line in wrapper.wrap(paragraph.format(**format_args)):
+            wrapped.append(line)
+        wrapped.append("")
+    ctx["request"] = "\n".join(wrapped)
+
+
+    # Format the declarations of intent
+
+    wrapper = textwrap.TextWrapper(width=75, initial_indent="  ", subsequent_indent="  ")
+    wrapped = []
+    for intent in pmodels.Statement.objects.filter(requirement__process=process, requirement__type="intent"):
+        for paragraph in intent.statement_clean.splitlines():
+            for line in wrapper.wrap(paragraph):
+                wrapped.append(line)
+        wrapped.append("")
+    ctx["intents"] = "\n".join(wrapped)
+
+    ctx["process_url"] = request.build_absolute_uri(process.get_absolute_url())
+
+    from django.template.loader import render_to_string
+    return render_to_string("process/rt_ticket.txt", ctx).strip()
+
+
 class MakeRTTicket(VisitProcessMixin, TemplateView):
     template_name = "process/make_rt_ticket.html"
 
     def get_context_data(self, **kw):
         ctx = super(MakeRTTicket, self).get_context_data(**kw)
 
-        only_guest_account = False
-
-        request = []
-        if self.person.status == const.STATUS_DC:
-            if self.process.applying_for == const.STATUS_DC_GA:
-                only_guest_account = True
-                request.append("Please create a porter account for {person.fullname} (sponsored by {sponsors}).")
-        elif self.person.status == const.STATUS_DC_GA:
-            pass
-        elif self.person.status == const.STATUS_DM:
-            if self.process.applying_for == const.STATUS_DM_GA:
-                only_guest_account = True
-                request.append("Please create a porter account for {person.fullname} (currently a DM).")
-        elif self.person.status == const.STATUS_DM_GA:
-            pass
-        elif self.person.status == const.STATUS_DD_NU:
-            pass
-        elif self.person.status == const.STATUS_EMERITUS_DD:
-            pass
-        elif self.person.status == const.STATUS_REMOVED_DD:
-            pass
-
-
-        # Build the request text
-        if not only_guest_account:
-            request.append("Please make {person.fullname} (currently '{status}') a '{applying_for}' (advocated by {sponsors}).")
-
-        if not only_guest_account:
-            if self.person.status == const.STATUS_DC:
-                request.append("Key {person.fpr} should be added to the '{applying_for}' keyring.")
-            else:
-                request.append("Key {person.fpr} should be moved from the '{status}' to the '{applying_for}' keyring.")
-
-        if self.visit_perms.person_has_ldap_record:
-            request.append("Note that {person.fullname} already has an account in LDAP.")
-
-        sponsors = set()
-        try:
-            adv_req = self.process.requirements.get(type="advocate")
-        except pmodels.Requirement.DoesNotExist:
-            adv_req = None
-        if adv_req is not None:
-            for st in adv_req.statements.all():
-                sponsors.add(st.uploaded_by.lookup_key)
-        sponsors = ", ".join(sorted(sponsors))
-
-        format_args = {
-            "person": self.person,
-            "process": self.process,
-            "status": const.ALL_STATUS_DESCS[self.person.status],
-            "applying_for": const.ALL_STATUS_DESCS[self.process.applying_for],
-            "sponsors": sponsors,
-        }
-
-        import textwrap
-        wrapper = textwrap.TextWrapper(width=75)
-        wrapped = []
-        for paragraph in request:
-            for line in wrapper.wrap(paragraph.format(**format_args)):
-                wrapped.append(line)
-            wrapped.append("")
-        ctx["request"] = "\n".join(wrapped)
+        only_guest_account = only_needs_guest_account(self.process)
 
         if only_guest_account:
             ctx["mail_to"] = "Debian Sysadmin requests <admin@rt.debian.org>"
@@ -554,19 +589,10 @@ class MakeRTTicket(VisitProcessMixin, TemplateView):
 
         ctx["only_guest_account"] = only_guest_account
 
-        wrapper = textwrap.TextWrapper(width=75, initial_indent="  ", subsequent_indent="  ")
-        wrapped = []
-        for intent in pmodels.Statement.objects.filter(requirement__process=self.process, requirement__type="intent"):
-            for paragraph in intent.statement_clean.splitlines():
-                for line in wrapper.wrap(paragraph):
-                    wrapped.append(line)
-            wrapped.append("")
-
-        ctx["intents"] = "\n".join(wrapped)
-
-        ctx["process_url"] = self.request.build_absolute_uri(self.process.get_absolute_url())
+        ctx["text"] = make_rt_ticket_text(self.request, self.visitor, self.process)
 
         return ctx
+
 
 class EmailLookup(VisitProcessMixin, View):
     def _fetch_url(self, url):
@@ -623,4 +649,79 @@ class EmailLookup(VisitProcessMixin, View):
         res = http.HttpResponse(content_type="application/json")
         json.dump(self._fetch(url), res)
         return res
+
+
+class ApproveForm(forms.Form):
+    signed = forms.CharField(label="Signed RT text", widget=forms.Textarea(attrs={"rows": 25, "cols": 80}))
+
+
+class Approve(VisitProcessMixin, FormView):
+    template_name = "process/approve.html"
+    form_class = ApproveForm
+
+    def load_objects(self):
+        super().load_objects()
+        self.only_guest_account = only_needs_guest_account(self.process)
+
+        if self.only_guest_account:
+            subject = "Guest account on porter machines for {}".format(self.person.fullname)
+        else:
+            subject = "{} to become {}".format(self.person.fullname, const.ALL_STATUS_DESCS[self.process.applying_for])
+
+        cc = [self.person.email, self.process.archive_email]
+        if self.process.applying_for == "dm":
+            cc.append("nm@debian.org")
+            requestor = "nm@debian.org"
+        else:
+            requestor = "da-manager@debian.org"
+            cc.append("da-manager@debian.org")
+
+        self.rt_content = {
+            "id": "ticket/new",
+            "Queue": "DSA - Incoming" if self.only_guest_account else "Keyring - Incoming",
+            "Requestor": requestor,
+            "Subject": subject,
+            "Cc": ", ".join(cc)
+        }
+
+    def check_permissions(self):
+        super().check_permissions()
+        #if not self.process.frozen:
+        #    raise PermissionDenied
+        #if self.process.approved:
+        #    raise PermissionDenied
+
+    def get_context_data(self, **kw):
+        ctx = super().get_context_data(**kw)
+        ctx["rt_content"] = sorted(self.rt_content.items())
+        ctx["text"] = make_rt_ticket_text(self.request, self.visitor, self.process)
+        return ctx
+
+    def form_valid(self, form):
+        signed = form.cleaned_data["signed"]
+
+        lines = []
+        for key, val in self.rt_content.items():
+            lines.append("{}: {}".format(key, val))
+
+        lines.append("Text:")
+        lines.append(" [DELETE ME, I AM A TEST]")
+        for line in signed.splitlines():
+            lines.append(" " + line)
+
+        args = {"data": { "content": "\n".join(lines) } }
+        bundle="/etc/ssl/ca-debian/ca-certificates.crt"
+        if os.path.exists(bundle):
+            args["verify"] = bundle
+
+        res = requests.post("https://rt.debian.org/REST/1.0/ticket/new", **args)
+        res.raise_for_status()
+        out = http.HttpResponse(content_type="text/plain")
+        res_lines = res.text.splitlines()
+        ver, status, text = res_lines[0].split(None, 2)
+        if int(status) != 200:
+            print("FAIL", file=out)
+        print("status code:", res.status_code, status, file=out)
+        print(res.text, file=out)
+        return out
 
