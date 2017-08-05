@@ -33,6 +33,7 @@
       {% if process.frozen_by %}
         {% if process.approved_by %}
           Approved by {{process.approved_by.a_link}} on {{process.approved_time|date:"Y-m-d"}}.
+          {% if process.rt_ticket %}RT ticket: <a href="https://rt.debian.org/{{process.rt_ticket}}">{{process.rt_ticket}}</a>.{% endif %}
         {% else %}
           Frozen for review by {{process.frozen_by.a_link}} on {{process.frozen_time|date:"Y-m-d"}}.
         {% endif %}
