@@ -1,25 +1,3 @@
-# coding: utf-8
-# nm.debian.org website reports
-#
-# Copyright (C) 2012--2014  Enrico Zini <enrico@debian.org>
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as
-# published by the Free Software Foundation, either version 3 of the
-# License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-
-
-
-
 from django import http, forms
 from django.conf import settings
 from django.shortcuts import redirect, render, get_object_or_404
@@ -57,19 +35,37 @@ class Managers(VisitorTemplateView):
         from django.db import connection
 
         # Compute statistics indexed by AM id
-        cursor = connection.cursor()
-        cursor.execute("""
-        SELECT am.id,
-            count(*) as total,
-            sum(case when process.is_active then 1 else 0 end) as active,
-            sum(case when process.progress=%s then 1 else 0 end) as held
-        FROM am
-        JOIN process ON process.manager_id=am.id
-        GROUP BY am.id
-        """, (const.PROGRESS_AM_HOLD,))
-        stats = {}
-        for amid, total, active, held in cursor:
-            stats[amid] = (total, active, held)
+        with connection.cursor() as cursor:
+            cursor.execute("""
+            SELECT am.id,
+                   count(*) as total,
+                   sum(case when process.is_active then 1 else 0 end) as active,
+                   sum(case when process.progress=%s then 1 else 0 end) as held
+              FROM am
+              JOIN process ON process.manager_id=am.id
+             GROUP BY am.id
+            """, (const.PROGRESS_AM_HOLD,))
+            stats = {}
+            for amid, total, active, held in cursor:
+                stats[amid] = (total, active, held)
+
+            cursor.execute("""
+            SELECT am.id,
+                   count(*) as total,
+                   sum(case when p.closed is null then 1 else 0 end) as active,
+                   sum(case when pam.paused then 1 else 0 end) as held
+              FROM am
+              JOIN process_amassignment pam ON pam.am_id=am.id
+              JOIN process_process p ON pam.process_id=p.id
+             GROUP BY am.id
+            """)
+            stats = {}
+            for amid, total, active, held in cursor:
+                s = stats.get(amid)
+                if s is None:
+                    stats[amid] = (total, active, held)
+                else:
+                    stats[amid] = (s[0] + total, s[1] + active, s[2] + held)
 
         # Read the list of AMs, with default sorting, and annotate with the
         # statistics
