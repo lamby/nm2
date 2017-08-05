@@ -722,12 +722,26 @@ class Approve(VisitProcessMixin, FormView):
 
         res = requests.post("https://rt.debian.org/REST/1.0/ticket/new", **args)
         res.raise_for_status()
-        out = http.HttpResponse(content_type="text/plain")
         res_lines = res.text.splitlines()
         ver, status, text = res_lines[0].split(None, 2)
-        if int(status) != 200:
-            print("FAIL", file=out)
-        print("status code:", res.status_code, status, file=out)
-        print(res.text, file=out)
-        return out
 
+        def report_error(msg):
+            out = http.HttpResponse(content_type="text/plain")
+            print("Error:", msg, file=out)
+            print("RT response:", file=out)
+            for line in res_lines:
+                print(line, file=out)
+            return out
+
+        if int(status) != 200:
+            return report_error("RT status code is not 200")
+
+        mo = re.match("# Ticket (\d+) created.", res_lines[2])
+        if not mo:
+            return report_error("Could not find ticket number is response")
+        self.process.rt_ticket = int(mo.group(1))
+        self.process.rt_request = signed
+        self.procses.approved_by = self.visitor
+        self.process.approved_time = now()
+        self.process.save(audit_author=self.visitor, audit_notes="approved")
+        return redirect(self.process.get_absolute_url())
