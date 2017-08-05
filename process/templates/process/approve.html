@@ -13,6 +13,8 @@
 
 <h2>Unsigned statement</h2>
 
+<p>To sign the contents of the clipboard: <br><tt>xclip -o | gpg --clearsign --default-key {{visitor.fpr}} | xclip</tt></p>
+
 <textarea cols="80" rows="25">
 {{text|safe}}
 </textarea>
