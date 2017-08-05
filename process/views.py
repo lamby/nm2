@@ -650,3 +650,49 @@ class EmailLookup(VisitProcessMixin, View):
         json.dump(self._fetch(url), res)
         return res
 
+
+#class Approve(VisitProcessMixin, FormView):
+#    template_name = "process/approve.html"
+#
+#    def get_context_data(self, **kw):
+#        ctx = super().get_context_data(**kw)
+#
+#        only_guest_account = only_needs_guest_account(self.process)
+#
+#<h1>Draft RT ticket for {{person}} / {{process.applying_for|desc_status}}</h1>
+#
+#<textarea rows="70" cols="80">
+#From: {{visitor.fullname}} &lt;{{visitor.email}}&gt;
+#To: {{mail_to}}{% if process.applying_for == "dm" %}
+#Cc: Debian NM Front Desk &lt;nm@debian.org&gt;,
+#	{{person.fullname}} &lt;{{person.email}}&gt;,
+#	{{process.archive_email}}
+#Reply-To: Debian NM Front Desk &lt;nm@debian.org&gt;
+#{% else %}
+#Cc: Debian Account Managers &lt;da-manager@debian.org&gt;,
+#	{{person.fullname}} &lt;{{person.email}}&gt;,
+#	{{process.archive_email}}
+#Reply-To: Debian Account Managers &lt;da-manager@debian.org&gt;
+#{% endif %}Subject: {{subject}}
+#{% spaceless %}
+#{% if visitor.uid == "joerg" %}
+#Organization: Goliath-BBS
+#Gcc: nnimap+gkar:Sentmail.DAM
+#--text follows this line--
+#<#secure method=pgp mode=sign>
+#{% endif %}
+#{% endspaceless %}
+#{{text}}
+#</textarea>
+#
+#        if only_guest_account:
+#            ctx["mail_to"] = "Debian Sysadmin requests <admin@rt.debian.org>"
+#            ctx["subject"] = "Guest account on porter machines for {}".format(self.person.fullname)
+#        else:
+#            ctx["mail_to"] = "Debian Keyring requests <keyring@rt.debian.org>"
+#            ctx["subject"] = "{} to become {}".format(self.person.fullname, const.ALL_STATUS_DESCS[self.process.applying_for])
+#
+#        ctx["text"] = make_rt_ticket_text(request, self.visitor, self.process)
+#
+#        return ctx
+#
