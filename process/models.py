@@ -216,7 +216,7 @@ class Process(models.Model):
 
     objects = ProcessManager()
 
-    def __unicode__(self):
+    def __str__(self):
         return "{} to become {}".format(self.person, self.applying_for)
 
     def get_absolute_url(self):
@@ -335,7 +335,7 @@ class Requirement(models.Model):
         unique_together = ("process", "type")
         ordering = ["type"]
 
-    def __unicode__(self):
+    def __str__(self):
         return self.type_desc
 
     @property
@@ -550,7 +550,7 @@ class Statement(models.Model):
     uploaded_by = models.ForeignKey(bmodels.Person, related_name="+", help_text=_("Person who uploaded the statement"))
     uploaded_time = models.DateTimeField(help_text=_("When the statement has been uploaded"))
 
-    def __unicode__(self):
+    def __str__(self):
         return "{}:{}".format(self.fpr, self.requirement)
 
     def get_key(self):
@@ -599,7 +599,7 @@ class Log(models.Model):
     class Meta:
         ordering = ["-logdate"]
 
-    def __unicode__(self):
+    def __str__(self):
         return "{}: {}".format(self.logdate, self.logtext)
 
     @property
@@ -758,7 +758,7 @@ class Log(models.Model):
 #                self.archive_key = "-".join((ts, self.applying_for, self.person.email))
 #        super(Process, self).save(*args, **kw)
 #
-#    def __unicode__(self):
+#    def __str__(self):
 #        return u"{} to become {} ({})".format(
 #            unicode(self.person),
 #            const.ALL_STATUS_DESCS.get(self.applying_for, self.applying_for),

@@ -421,7 +421,7 @@ class Person(PermissionsMixin, models.Model):
         else:
             return self.email
 
-    def __unicode__(self):
+    def __str__(self):
         return "{} <{}>".format(self.fullname, self.email)
 
     def __repr__(self):
@@ -646,7 +646,7 @@ class Fingerprint(models.Model):
     is_active = models.BooleanField(default=False, help_text="whether this key is curently in use")
     last_upload = models.DateField(null=True, blank=True, help_text=_("date of the last ftp-master upload done with this key"))
 
-    def __unicode__(self):
+    def __str__(self):
         return self.fpr
 
     def get_key(self):
@@ -779,7 +779,7 @@ class AM(models.Model):
     created = models.DateTimeField("AM record created", null=True, default=now)
     fd_comment = models.TextField("Front Desk comments", null=False, blank=True, default="")
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s %c%c%c" % (
             str(self.person),
             "a" if self.is_am else "-",
@@ -970,7 +970,7 @@ class Process(models.Model):
                 self.archive_key = "-".join((ts, self.applying_for, self.person.email))
         super(Process, self).save(*args, **kw)
 
-    def __unicode__(self):
+    def __str__(self):
         return "{} to become {} ({})".format(
             str(self.person),
             const.ALL_STATUS_DESCS.get(self.applying_for, self.applying_for),
@@ -1239,7 +1239,7 @@ class Log(models.Model):
     logdate = models.DateTimeField(null=False, default=now)
     logtext = models.TextField(null=False, blank=True, default="")
 
-    def __unicode__(self):
+    def __str__(self):
         return "{}: {}".format(self.logdate, self.logtext)
 
     @property
