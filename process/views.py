@@ -657,6 +657,7 @@ class ApproveForm(forms.Form):
 
 
 class Approve(VisitProcessMixin, FormView):
+    require_visitor = "admin"
     template_name = "process/approve.html"
     form_class = ApproveForm
 
@@ -743,5 +744,6 @@ class Approve(VisitProcessMixin, FormView):
         self.process.rt_request = signed
         self.process.approved_by = self.visitor
         self.process.approved_time = now()
-        self.process.save(audit_author=self.visitor, audit_notes="approved")
+        self.process.save()
+        self.process.add_log(self.visitor, "Process approved", action="proc_approve", is_public=True)
         return redirect(self.process.get_absolute_url())
