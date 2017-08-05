@@ -6,6 +6,7 @@ from django.utils.timezone import now
 from django.db import transaction
 from django import forms, http
 from django.core.exceptions import PermissionDenied
+from django.conf import settings
 from backend.mixins import VisitorMixin, VisitPersonMixin
 from backend import const
 import backend.models as bmodels
@@ -713,6 +714,11 @@ class Approve(VisitProcessMixin, FormView):
         bundle="/etc/ssl/ca-debian/ca-certificates.crt"
         if os.path.exists(bundle):
             args["verify"] = bundle
+
+        rt_user = getattr(settings, "RT_USER", None)
+        rt_pass = getattr(settings, "RT_PASS", None)
+        if rt_user is not None and rt_pass is not None:
+            args["params"] = { "user": rt_user, "pass": rt_pass }
 
         res = requests.post("https://rt.debian.org/REST/1.0/ticket/new", **args)
         res.raise_for_status()
