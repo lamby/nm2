@@ -1,0 +1,28 @@
+{% extends "process/base.html" %}
+{% load nm %}
+
+{% block content %}
+
+<h1>Approve {{person}} / {{process.applying_for|desc_status}}</h1>
+
+<table>
+  {% for key, value in rt_content %}
+  <tr><th>{{key}}</th><td><tt>{{value}}</tt></td></tr>
+  {% endfor %}
+</table>
+
+<h2>Unsigned statement</h2>
+
+<textarea cols="80" rows="25">
+{{text|safe}}
+</textarea>
+
+<h2>Signed statement</h2>
+
+<form action="{{request.build_absolute_uri}}" method="POST">{% csrf_token %}
+  <p><button type="submit">Approve</button></p>
+  <p>{{form.signed.errors}}</p>
+  {{form.signed}}
+</form>
+
+{% endblock %}

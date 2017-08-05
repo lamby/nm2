@@ -1,0 +1,26 @@
+{% load nm %}
+Hi
+
+{{request}}
+  First name:       {{person.cn}}
+  Middle name:      {{person.mn|default:"-"}}
+  Last name:        {{person.sn}}
+  Key fingerprint:  {{person.fpr}}
+  Target keyring:   {{process.applying_for|desc_status}}
+  Username:         {{person.uid}}
+  Forward email:    {{person.email}}
+  Details:          {{process_url}}
+
+{{person.fullname}} has accepted the DMUP in a signed statement.
+
+Details from {{person.uid}}:
+
+{{intents}}
+
+-- 
+Thank you,
+{% if process.applying_for == "dm" %}
+{{visitor.fullname}} (as Front Desk)
+{% else %}
+{{visitor.fullname}} (as DAM)
+{% endif %}
