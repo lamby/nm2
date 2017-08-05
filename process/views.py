@@ -680,7 +680,7 @@ class Approve(VisitProcessMixin, FormView):
 
         self.rt_content = {
             "id": "ticket/new",
-            "Queue": "DSA - Incoming" if self.only_guest_account else "Keyring - Incoming",
+            "Queue": "DSA - Incoming" if self.only_guest_account else "Keyring",
             "Requestor": requestor,
             "Subject": subject,
             "Cc": ", ".join(cc)
@@ -720,6 +720,7 @@ class Approve(VisitProcessMixin, FormView):
         if rt_user is not None and rt_pass is not None:
             args["params"] = { "user": rt_user, "pass": rt_pass }
 
+        # See https://rt-wiki.bestpractical.com/wiki/REST
         res = requests.post("https://rt.debian.org/REST/1.0/ticket/new", **args)
         res.raise_for_status()
         res_lines = res.text.splitlines()
