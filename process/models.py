@@ -272,7 +272,6 @@ class Process(models.Model):
     def get_statements_as_mbox(self):
         from .email import build_python_message
 
-
         # Generating mailboxes in python2 is surprisingly difficult and painful.
         # A lot of this code has been put together thanks to:
         # http://wordeology.com/computer/how-to-send-good-unicode-email-with-python.html

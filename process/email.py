@@ -1,8 +1,3 @@
-# coding: utf-8
-
-
-
-
 from backend import const
 from backend.email import template_to_email
 import backend.models as bmodels
@@ -16,27 +11,28 @@ import logging
 
 log = logging.getLogger(__name__)
 
-def _to_header(value):
+def _to_header(values):
     from backend.models import Person
-    if isinstance(value, six.string_types):
-        return Header(value, "utf-8")
-    elif isinstance(value, Person):
-        return email.utils.formataddr((
-            Header(value.fullname, "utf-8").encode(),
-            Header(value.email, "utf-8").encode()
-        ))
-    else:
-        return ", ".join(_to_header(x) for x in value)
+    addrs = []
+    if not isinstance(values, list):
+        values = [values]
+
+    for value in values:
+        if isinstance(value, str):
+            addrs.append(('', value))
+        elif isinstance(value, Person):
+            addrs.append((value.fullname, value.email))
+        else:
+            addrs.append(value)
+
+    return ", ".join(email.utils.formataddr(a) for a in addrs)
 
 def _to_django_addr(value):
     from backend.models import Person
     if isinstance(value, six.string_types):
         return value
     elif isinstance(value, Person):
-        return email.utils.formataddr((
-            Header(value.fullname, "utf-8").encode(),
-            Header(value.email, "utf-8").encode()
-        ))
+        return email.utils.formataddr((value.fullname, value.email))
     else:
         raise TypeError("argument is not a string or Person")
 
@@ -45,10 +41,7 @@ def _to_django_addrlist(value):
     if isinstance(value, six.string_types):
         return [value]
     elif isinstance(value, Person):
-        return [email.utils.formataddr((
-            Header(value.fullname, "utf-8").encode(),
-            Header(value.email, "utf-8").encode()
-        ))]
+        return [email.utils.formataddr((value.fullname, value.email))]
     else:
         res = []
         for item in value:
@@ -75,7 +68,7 @@ def build_python_message(from_email=None, to=None, cc=None, reply_to=None, subje
 
     msg = factory()
     msg["From"] = _to_header(from_email)
-    msg["Subject"] = _to_header(subject)
+    msg["Subject"] = Header(subject, "utf-8")
     msg["Date"] = email.utils.formatdate(time.mktime(date.timetuple()))
     if to: msg["To"] = _to_header(to)
     if cc: msg["Cc"] = _to_header(cc)
