@@ -651,48 +651,77 @@ class EmailLookup(VisitProcessMixin, View):
         return res
 
 
-#class Approve(VisitProcessMixin, FormView):
-#    template_name = "process/approve.html"
-#
-#    def get_context_data(self, **kw):
-#        ctx = super().get_context_data(**kw)
-#
-#        only_guest_account = only_needs_guest_account(self.process)
-#
-#<h1>Draft RT ticket for {{person}} / {{process.applying_for|desc_status}}</h1>
-#
-#<textarea rows="70" cols="80">
-#From: {{visitor.fullname}} &lt;{{visitor.email}}&gt;
-#To: {{mail_to}}{% if process.applying_for == "dm" %}
-#Cc: Debian NM Front Desk &lt;nm@debian.org&gt;,
-#	{{person.fullname}} &lt;{{person.email}}&gt;,
-#	{{process.archive_email}}
-#Reply-To: Debian NM Front Desk &lt;nm@debian.org&gt;
-#{% else %}
-#Cc: Debian Account Managers &lt;da-manager@debian.org&gt;,
-#	{{person.fullname}} &lt;{{person.email}}&gt;,
-#	{{process.archive_email}}
-#Reply-To: Debian Account Managers &lt;da-manager@debian.org&gt;
-#{% endif %}Subject: {{subject}}
-#{% spaceless %}
-#{% if visitor.uid == "joerg" %}
-#Organization: Goliath-BBS
-#Gcc: nnimap+gkar:Sentmail.DAM
-#--text follows this line--
-#<#secure method=pgp mode=sign>
-#{% endif %}
-#{% endspaceless %}
-#{{text}}
-#</textarea>
-#
-#        if only_guest_account:
-#            ctx["mail_to"] = "Debian Sysadmin requests <admin@rt.debian.org>"
-#            ctx["subject"] = "Guest account on porter machines for {}".format(self.person.fullname)
-#        else:
-#            ctx["mail_to"] = "Debian Keyring requests <keyring@rt.debian.org>"
-#            ctx["subject"] = "{} to become {}".format(self.person.fullname, const.ALL_STATUS_DESCS[self.process.applying_for])
-#
-#        ctx["text"] = make_rt_ticket_text(request, self.visitor, self.process)
-#
-#        return ctx
-#
+class ApproveForm(forms.Form):
+    signed = forms.CharField(label="Signed RT text", widget=forms.Textarea(attrs={"rows": 25, "cols": 80}))
+
+
+class Approve(VisitProcessMixin, FormView):
+    template_name = "process/approve.html"
+    form_class = ApproveForm
+
+    def load_objects(self):
+        super().load_objects()
+        self.only_guest_account = only_needs_guest_account(self.process)
+
+        if self.only_guest_account:
+            subject = "Guest account on porter machines for {}".format(self.person.fullname)
+        else:
+            subject = "{} to become {}".format(self.person.fullname, const.ALL_STATUS_DESCS[self.process.applying_for])
+
+        cc = [self.person.email, self.process.archive_email]
+        if self.process.applying_for == "dm":
+            cc.append("nm@debian.org")
+            requestor = "nm@debian.org"
+        else:
+            requestor = "da-manager@debian.org"
+            cc.append("da-manager@debian.org")
+
+        self.rt_content = {
+            "id": "ticket/new",
+            "Queue": "DSA - Incoming" if self.only_guest_account else "Keyring - Incoming",
+            "Requestor": requestor,
+            "Subject": subject,
+            "Cc": ", ".join(cc)
+        }
+
+    def check_permissions(self):
+        super().check_permissions()
+        #if not self.process.frozen:
+        #    raise PermissionDenied
+        #if self.process.approved:
+        #    raise PermissionDenied
+
+    def get_context_data(self, **kw):
+        ctx = super().get_context_data(**kw)
+        ctx["rt_content"] = sorted(self.rt_content.items())
+        ctx["text"] = make_rt_ticket_text(self.request, self.visitor, self.process)
+        return ctx
+
+    def form_valid(self, form):
+        signed = form.cleaned_data["signed"]
+
+        lines = []
+        for key, val in self.rt_content.items():
+            lines.append("{}: {}".format(key, val))
+
+        lines.append("Text:")
+        lines.append(" [DELETE ME, I AM A TEST]")
+        for line in signed.splitlines():
+            lines.append(" " + line)
+
+        args = {"data": { "content": "\n".join(lines) } }
+        bundle="/etc/ssl/ca-debian/ca-certificates.crt"
+        if os.path.exists(bundle):
+            args["verify"] = bundle
+
+        res = requests.post("https://rt.debian.org/REST/1.0/ticket/new", **args)
+        res.raise_for_status()
+        out = http.HttpResponse(content_type="text/plain")
+        res_lines = res.text.splitlines()
+        ver, status, text = res_lines[0].split(None, 2)
+        if int(status) != 200:
+            print("FAIL", file=out)
+        print("status code:", res.status_code, status, file=out)
+        print(res.text, file=out)
+        return out
+

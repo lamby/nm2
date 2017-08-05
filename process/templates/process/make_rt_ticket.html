@@ -32,7 +32,7 @@ Gcc: nnimap+gkar:Sentmail.DAM
 <#secure method=pgp mode=sign>
 {% endif %}
 {% endspaceless %}
-{{text}}
+{{text|safe}}
 </textarea>
 
 {% endblock %}
