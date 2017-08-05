@@ -727,6 +727,7 @@ class Approve(VisitProcessMixin, FormView):
 
         def report_error(msg):
             out = http.HttpResponse(content_type="text/plain")
+            out.status_code = 500
             print("Error:", msg, file=out)
             print("RT response:", file=out)
             for line in res_lines:

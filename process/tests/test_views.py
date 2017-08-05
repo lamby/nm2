@@ -88,7 +88,7 @@ class TestEmailLookup(ProcessFixtureMixin, TestCase):
 
 
 
-class TestRTTicket(ProcessFixtureMixin, TestCase):
+class TestApprovals(ProcessFixtureMixin, TestCase):
     def make_process(self, status, applying_for):
         """
         Create a process with all requirements satisfied
@@ -147,98 +147,47 @@ class TestRTTicket(ProcessFixtureMixin, TestCase):
 
         process.frozen_by = self.persons.dam
         process.frozen_time = now()
-
-        process.approved_by = self.persons.dam
-        process.approved_time = now()
+        process.save()
 
         return process
 
-    def test_dc_dcga(self):
-        client = self.make_test_client(self.persons.dam)
-        process = self.make_process(const.STATUS_DC, const.STATUS_DC_GA)
+    @classmethod
+    def __add_extra_tests__(cls):
+        for visitor in "fd", "dam":
+            cls._add_method(cls._test_success, visitor, const.STATUS_DC, const.STATUS_DC_GA)
+            cls._add_method(cls._test_success, visitor, const.STATUS_DC, const.STATUS_DM)
+            cls._add_method(cls._test_success, visitor, const.STATUS_DC_GA, const.STATUS_DM_GA)
+            cls._add_method(cls._test_success, visitor, const.STATUS_DM, const.STATUS_DM_GA)
+
+        cls._add_method(cls._test_success, "dam", const.STATUS_DC, const.STATUS_DD_NU)
+        cls._add_method(cls._test_success, "dam", const.STATUS_DC, const.STATUS_DD_U)
+        cls._add_method(cls._test_success, "dam", const.STATUS_DC_GA, const.STATUS_DD_NU)
+        cls._add_method(cls._test_success, "dam", const.STATUS_DC_GA, const.STATUS_DD_U)
+        cls._add_method(cls._test_success, "dam", const.STATUS_DM, const.STATUS_DD_NU)
+        cls._add_method(cls._test_success, "dam", const.STATUS_DM, const.STATUS_DD_U)
+        cls._add_method(cls._test_success, "dam", const.STATUS_DM_GA, const.STATUS_DD_NU)
+        cls._add_method(cls._test_success, "dam", const.STATUS_DM_GA, const.STATUS_DD_U)
+        cls._add_method(cls._test_success, "dam", const.STATUS_DD_NU, const.STATUS_DD_U)
+        cls._add_method(cls._test_success, "dam", const.STATUS_EMERITUS_DD, const.STATUS_DD_NU)
+        cls._add_method(cls._test_success, "dam", const.STATUS_EMERITUS_DD, const.STATUS_DD_U)
+
+    def _test_success(self, visitor, current_status, new_status):
+        client = self.make_test_client(visitor)
+        process = self.make_process(current_status, new_status)
         response = client.get(reverse("process_rt_ticket", args=[process.pk]))
         self.assertEqual(response.status_code, 200)
 
-    def test_dc_dm(self):
-        client = self.make_test_client(self.persons.dam)
-        process = self.make_process(const.STATUS_DC, const.STATUS_DM)
-        response = client.get(reverse("process_rt_ticket", args=[process.pk]))
-        self.assertEqual(response.status_code, 200)
+        class MockPost:
+            def raise_for_status(self):
+                pass
+            text = "RT/0.test 200 Ok\n" \
+                   "\n" \
+                   "# Ticket 4242 created.\n"
 
-    def test_dc_ddnu(self):
-        client = self.make_test_client(self.persons.dam)
-        process = self.make_process(const.STATUS_DC, const.STATUS_DD_NU)
-        response = client.get(reverse("process_rt_ticket", args=[process.pk]))
-        self.assertEqual(response.status_code, 200)
-
-    def test_dc_ddu(self):
-        client = self.make_test_client(self.persons.dam)
-        process = self.make_process(const.STATUS_DC, const.STATUS_DD_U)
-        response = client.get(reverse("process_rt_ticket", args=[process.pk]))
-        self.assertEqual(response.status_code, 200)
-
-    def test_dcga_dmga(self):
-        client = self.make_test_client(self.persons.dam)
-        process = self.make_process(const.STATUS_DC_GA, const.STATUS_DM_GA)
-        response = client.get(reverse("process_rt_ticket", args=[process.pk]))
-        self.assertEqual(response.status_code, 200)
-
-    def test_dcga_ddnu(self):
-        client = self.make_test_client(self.persons.dam)
-        process = self.make_process(const.STATUS_DC_GA, const.STATUS_DD_NU)
-        response = client.get(reverse("process_rt_ticket", args=[process.pk]))
-        self.assertEqual(response.status_code, 200)
-
-    def test_dcga_ddu(self):
-        client = self.make_test_client(self.persons.dam)
-        process = self.make_process(const.STATUS_DC_GA, const.STATUS_DD_U)
-        response = client.get(reverse("process_rt_ticket", args=[process.pk]))
-        self.assertEqual(response.status_code, 200)
-
-    def test_dm_dmga(self):
-        client = self.make_test_client(self.persons.dam)
-        process = self.make_process(const.STATUS_DM, const.STATUS_DM_GA)
-        response = client.get(reverse("process_rt_ticket", args=[process.pk]))
-        self.assertEqual(response.status_code, 200)
-
-    def test_dm_dd_nu(self):
-        client = self.make_test_client(self.persons.dam)
-        process = self.make_process(const.STATUS_DM, const.STATUS_DD_NU)
-        response = client.get(reverse("process_rt_ticket", args=[process.pk]))
-        self.assertEqual(response.status_code, 200)
-
-    def test_dm_ddu(self):
-        client = self.make_test_client(self.persons.dam)
-        process = self.make_process(const.STATUS_DM, const.STATUS_DD_U)
-        response = client.get(reverse("process_rt_ticket", args=[process.pk]))
-        self.assertEqual(response.status_code, 200)
-
-    def test_dmga_ddnu(self):
-        client = self.make_test_client(self.persons.dam)
-        process = self.make_process(const.STATUS_DM_GA, const.STATUS_DD_NU)
-        response = client.get(reverse("process_rt_ticket", args=[process.pk]))
-        self.assertEqual(response.status_code, 200)
-
-    def test_dmga_ddu(self):
-        client = self.make_test_client(self.persons.dam)
-        process = self.make_process(const.STATUS_DM_GA, const.STATUS_DD_U)
-        response = client.get(reverse("process_rt_ticket", args=[process.pk]))
-        self.assertEqual(response.status_code, 200)
-
-    def test_ddnu_ddu(self):
-        client = self.make_test_client(self.persons.dam)
-        process = self.make_process(const.STATUS_DD_NU, const.STATUS_DD_U)
-        response = client.get(reverse("process_rt_ticket", args=[process.pk]))
-        self.assertEqual(response.status_code, 200)
-
-    def test_dde_ddnu(self):
-        client = self.make_test_client(self.persons.dam)
-        process = self.make_process(const.STATUS_EMERITUS_DD, const.STATUS_DD_NU)
-        response = client.get(reverse("process_rt_ticket", args=[process.pk]))
-        self.assertEqual(response.status_code, 200)
-
-    def test_dde_ddu(self):
-        client = self.make_test_client(self.persons.dam)
-        process = self.make_process(const.STATUS_EMERITUS_DD, const.STATUS_DD_U)
-        response = client.get(reverse("process_rt_ticket", args=[process.pk]))
-        self.assertEqual(response.status_code, 200)
+        with patch("requests.post") as mock_post:
+            mock_post.return_value = MockPost()
+            response = client.post(reverse("process_approve", args=[process.pk]), data={"signed": "signed text"})
+        self.assertRedirectMatches(response, process.get_absolute_url())
+        process.refresh_from_db()
+        self.assertEquals(process.rt_request, "signed text")
+        self.assertEquals(process.rt_ticket, 4242)
