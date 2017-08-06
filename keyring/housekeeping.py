@@ -1,8 +1,3 @@
-# coding: utf-8
-
-
-
-
 import django_housekeeping as hk
 from django.conf import settings
 from django.utils.timezone import utc, now
