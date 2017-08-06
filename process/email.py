@@ -31,6 +31,8 @@ def _to_django_addr(value):
     from backend.models import Person
     if isinstance(value, six.string_types):
         return value
+    elif isinstance(value, tuple):
+        return email.utils.formataddr(value)
     elif isinstance(value, Person):
         return email.utils.formataddr((value.fullname, value.email))
     else:
