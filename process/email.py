@@ -319,7 +319,7 @@ Debian New Member Front Desk
     body = body.format(process=process, status=const.ALL_STATUS_DESCS[process.applying_for], url=url)
 
     msg = build_django_message(
-        from_email=[("nm.debian.org", "nm@debian.org")]
+        from_email=[("nm.debian.org", "nm@debian.org")],
         to=["leader@debian.org"],
         subject="New {}: {} <{}>".format(const.ALL_STATUS_DESCS[process.applying_for], process.person.fullname, process.person.uid),
         body=body)
