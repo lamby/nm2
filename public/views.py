@@ -215,21 +215,6 @@ class Process(VisitProcessTemplateView):
         return ctx
 
 
-class ProcessUpdateKeycheck(VisitProcessMixin, View):
-    require_visit_perms = "update_keycheck"
-
-    def post(self, request, key, *args, **kw):
-        from keyring.models import Key
-        try:
-            key = Key.objects.get_or_download(self.person.fpr)
-        except RuntimeError as e:
-            key = None
-        if key is not None:
-            key.update_key()
-            key.update_check_sigs()
-        return redirect(self.process.get_absolute_url())
-
-
 SIMPLIFY_STATUS = {
     const.STATUS_DC: "new",
     const.STATUS_DC_GA: "new",
