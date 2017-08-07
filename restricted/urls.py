@@ -1,8 +1,3 @@
-# coding: utf-8
-
-
-
-
 from django.conf.urls import *
 from . import views
 from backend.mixins import VisitorTemplateView
@@ -23,8 +18,6 @@ urlpatterns = [
     url(r'^mail-archive/(?P<key>[^/]+)$', views.MailArchive.as_view(), name="download_mail_archive"),
     # Display mail archive
     url(r'^display-mail-archive/(?P<key>[^/]+)$', views.DisplayMailArchive.as_view(), name="display_mail_archive"),
-    # Assign AMs to NMs
-    url(r'^assign-am/(?P<key>[^/]+)$', views.AssignAM.as_view(), name="assign_am"),
     # Mailbox stats
     url(r'^mailbox-stats$', views.MailboxStats.as_view(), name="mailbox_stats"),
 ]

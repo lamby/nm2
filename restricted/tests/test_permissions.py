@@ -1,8 +1,3 @@
-# coding: utf-8
-
-
-
-
 from django.test import TestCase, TransactionTestCase
 from backend import const
 from backend.test_common import *
@@ -190,43 +185,3 @@ class TestAMProfile(PersonFixtureMixin, TestCase):
         self.assertEqual(visited.am.is_fd, am.is_fd)
         self.assertEqual(visited.am.is_dam, am.is_dam)
         self.assertEqual(visited.am.fd_comment, am.fd_comment)
-
-
-class AssignAMTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
-    def setUp(self):
-        super(AssignAMTestCase, self).setUp()
-        self.app = self.make_user("app", const.STATUS_DC, alioth=True, fd_comment="FD_COMMENTS")
-        self.adv = self.make_user("adv", const.STATUS_DD_NU)
-        self.am = self.make_user("am", const.STATUS_DD_NU)
-        self.am_am = bmodels.AM.objects.create(person=self.am, slots=1, is_am=True)
-        self.proc = self.make_process(self.app, const.STATUS_DD_NU, const.PROGRESS_APP_OK, advocates=[self.adv])
-
-    def test_assign_am(self):
-        class WhenView(NMTestUtilsWhen):
-            url = reverse("assign_am", kwargs={ "key": self.users["app"].lookup_key })
-        allowed = frozenset(("fd", "dam"))
-        self.assertVisit(WhenView(), ThenForbidden())
-        for u in self.users.keys() - allowed:
-            self.assertVisit(WhenView(user=self.users[u]), ThenForbidden())
-        for u in allowed:
-            self.assertVisit(WhenView(user=self.users[u]), ThenSuccess())
-
-        # TODO: post
-
-class AssignAMAgainTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
-    def setUp(self):
-        super(AssignAMAgainTestCase, self).setUp()
-        self.app = self.make_user("app", const.STATUS_DC, alioth=True, fd_comment="FD_COMMENTS")
-        self.adv = self.make_user("adv", const.STATUS_DD_NU)
-        self.am = self.make_user("am", const.STATUS_DD_NU)
-        self.proc = self.make_process(self.app, const.STATUS_DD_NU, const.PROGRESS_AM, manager=self.am, advocates=[self.adv])
-
-    def test_assign_am(self):
-        class WhenView(NMTestUtilsWhen):
-            url = reverse("assign_am", kwargs={ "key": self.users["app"].lookup_key })
-        self.assertVisit(WhenView(), ThenForbidden())
-        for u in self.users.keys():
-            self.assertVisit(WhenView(user=self.users[u]), ThenForbidden())
-
-        # TODO: post
-

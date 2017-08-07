@@ -1,11 +1,6 @@
-# coding: utf-8
 """
 Test permissions
 """
-
-
-
-
 from django.test import TestCase
 from backend import const
 from backend.test_common import *
