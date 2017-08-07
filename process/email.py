@@ -144,10 +144,7 @@ the nm.debian.org housekeeping robot
     body = body.format(applying_for=const.ALL_STATUS_DESCS[process.applying_for], process=process, url=url)
 
     msg = build_django_message(
-        email.utils.formataddr((
-            Header("nm.debian.org", "utf-8").encode(),
-            Header("nm@debian.org", "utf-8").encode()
-        )),
+        from_email=("nm.debian.org", "nm@debian.org"),
         to=process.person,
         cc=process.archive_email,
         subject="New Member process, {}".format(const.ALL_STATUS_DESCS[process.applying_for]),
