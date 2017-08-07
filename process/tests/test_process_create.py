@@ -68,6 +68,7 @@ class TestCreate(ProcessFixtureMixin, TestCase):
         from django.core import mail
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].cc, [p.archive_email])
+        self.assertEqual(mail.outbox[0].from_email, '"nm.debian.org" <nm@debian.org>')
         self.assertIn(const.ALL_STATUS_DESCS[target], mail.outbox[0].subject)
 
     def _test_invalid(self, visitor, visited, target):
