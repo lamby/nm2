@@ -57,8 +57,6 @@ class PersonVisitorPermissions(VisitorPermissions):
         super(PersonVisitorPermissions, self).__init__(visitor)
         # Person being visited
         self.person = person.person
-        # Processes of self.person
-        #self.processes = list(self.person.processes.all())
 
         # If the person is already in LDAP, then nobody can edit their LDAP
         # info, since this database then becomes a read-only mirror of LDAP
@@ -69,19 +67,8 @@ class PersonVisitorPermissions(VisitorPermissions):
 
         # True if there are active processes currently frozen for review
         self.person_has_frozen_processes = False
-        old_frozen_progesses = frozenset((
-            const.PROGRESS_AM_OK,
-            const.PROGRESS_FD_HOLD,
-            const.PROGRESS_FD_OK,
-            const.PROGRESS_DAM_HOLD,
-            const.PROGRESS_DAM_OK,
-            const.PROGRESS_DONE,
-            const.PROGRESS_CANCELLED,
-        ))
         import process.models as pmodels
         if pmodels.Process.objects.filter(person=self.person, frozen_by__isnull=False, closed__isnull=True).exists():
-            self.person_has_frozen_processes = True
-        elif Process.objects.filter(person=self.person, is_active=True, progress__in=old_frozen_progesses).exists():
             self.person_has_frozen_processes = True
 
         if self.visitor is None:

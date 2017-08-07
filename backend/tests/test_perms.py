@@ -157,24 +157,6 @@ class TestVisitApplicant(OldProcessFixtureMixin, TestCase):
     def assertApplicantPerms(self, perms):
         perms.proc.assertMatches(self.processes.app)
 
-    def assertApplicantPermsInitialProcess(self, expected):
-        for p in (const.PROGRESS_APP_NEW, const.PROGRESS_APP_RCVD, const.PROGRESS_APP_HOLD, const.PROGRESS_ADV_RCVD, const.PROGRESS_POLL_SENT):
-            self.processes.app.progress = p
-            self.processes.app.save()
-            self.assertApplicantPerms(expected)
-
-    def assertApplicantPermsHasAdvocate(self, expected):
-        for p in (const.PROGRESS_APP_OK,):
-            self.processes.app.progress = p
-            self.processes.app.save()
-            self.assertApplicantPerms(expected)
-
-    def assertApplicantPermsAMApproved(self, expected):
-        for p in (const.PROGRESS_AM_OK, const.PROGRESS_FD_HOLD, const.PROGRESS_FD_OK, const.PROGRESS_DAM_HOLD, const.PROGRESS_DAM_OK):
-            self.processes.app.progress = p
-            self.processes.app.save()
-            self.assertApplicantPerms(expected)
-
     def assertApplicantPermsFinal(self, expected):
         for p in (const.PROGRESS_DONE, const.PROGRESS_CANCELLED):
             self.processes.app.progress = p
@@ -193,15 +175,9 @@ class TestVisitApplicant(OldProcessFixtureMixin, TestCase):
         expected = ProcExpected(self)
         expected.patch_generic_process_started()
         expected.proc.patch("activeam fd dam app", "+edit_ldap")
-        self.assertApplicantPermsInitialProcess(expected)
-
         self.processes.app.advocates.add(self.persons.adv)
         expected.patch_generic_process_has_advocate()
-        self.assertApplicantPermsHasAdvocate(expected)
-
         expected.patch_generic_process_am_approved()
-        self.assertApplicantPermsAMApproved(expected)
-
         self.persons.app.status = self.processes.app.applying_for
         self.persons.app.save(audit_skip=True)
         expected.patch_generic_process_final()
@@ -217,15 +193,9 @@ class TestVisitApplicant(OldProcessFixtureMixin, TestCase):
 
         expected = ProcExpected(self)
         expected.patch_generic_process_started()
-        self.assertApplicantPermsInitialProcess(expected)
-
         self.processes.app.advocates.add(self.persons.adv)
         expected.patch_generic_process_has_advocate()
-        self.assertApplicantPermsHasAdvocate(expected)
-
         expected.patch_generic_process_am_approved()
-        self.assertApplicantPermsAMApproved(expected)
-
         self.persons.app.status = self.processes.app.applying_for
         self.persons.app.save(audit_skip=True)
         expected.patch_generic_process_final()
@@ -242,15 +212,9 @@ class TestVisitApplicant(OldProcessFixtureMixin, TestCase):
         expected = ProcExpected(self)
         expected.patch_generic_process_started()
         expected.proc.patch("activeam fd dam app", "+edit_ldap")
-        self.assertApplicantPermsInitialProcess(expected)
-
         self.processes.app.advocates.add(self.persons.adv)
         expected.patch_generic_process_has_advocate()
-        self.assertApplicantPermsHasAdvocate(expected)
-
         expected.patch_generic_process_am_approved()
-        self.assertApplicantPermsAMApproved(expected)
-
         self.persons.app.status = self.processes.app.applying_for
         self.persons.app.save(audit_skip=True)
         expected.patch_generic_process_final()
@@ -267,15 +231,9 @@ class TestVisitApplicant(OldProcessFixtureMixin, TestCase):
 
         expected = ProcExpected(self)
         expected.patch_generic_process_started()
-        self.assertApplicantPermsInitialProcess(expected)
-
         self.processes.app.advocates.add(self.persons.adv)
         expected.patch_generic_process_has_advocate()
-        self.assertApplicantPermsHasAdvocate(expected)
-
         expected.patch_generic_process_am_approved()
-        self.assertApplicantPermsAMApproved(expected)
-
         self.persons.app.status = self.processes.app.applying_for
         self.persons.app.save(audit_skip=True)
         expected.patch_generic_process_final()
@@ -293,15 +251,9 @@ class TestVisitApplicant(OldProcessFixtureMixin, TestCase):
         expected = ProcExpected(self)
         expected.patch_generic_process_started()
         expected.proc.patch("activeam fd dam app", "+edit_ldap")
-        self.assertApplicantPermsInitialProcess(expected)
-
         self.processes.app.advocates.add(self.persons.adv)
         expected.patch_generic_process_has_advocate()
-        self.assertApplicantPermsHasAdvocate(expected)
-
         expected.patch_generic_process_am_approved()
-        self.assertApplicantPermsAMApproved(expected)
-
         self.persons.app.status = self.processes.app.applying_for
         self.persons.app.save(audit_skip=True)
         expected.patch_generic_process_final()
@@ -315,19 +267,12 @@ class TestVisitApplicant(OldProcessFixtureMixin, TestCase):
         self.persons.create("app", status=const.STATUS_DM_GA)
         self.persons.create("adv", status=const.STATUS_DD_NU)
         self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DD_U, progress=const.PROGRESS_APP_RCVD)
-
         expected = ProcExpected(self)
         expected.patch_generic_process_started()
         expected.proc.patch("fd dam app", "-request_new_status")
-        self.assertApplicantPermsInitialProcess(expected)
-
         self.processes.app.advocates.add(self.persons.adv)
         expected.patch_generic_process_has_advocate()
-        self.assertApplicantPermsHasAdvocate(expected)
-
         expected.patch_generic_process_am_approved()
-        self.assertApplicantPermsAMApproved(expected)
-
         self.persons.app.status = self.processes.app.applying_for
         self.persons.app.save(audit_skip=True)
         expected.patch_generic_process_final()
