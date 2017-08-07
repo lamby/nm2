@@ -27,7 +27,6 @@
   <thead>
     <tr>
       <th>Key</th>
-      <th>SC/DFSG/DMUP agreement</th>
       <th>Active</th>
       <th>Actions</th>
     </tr>
@@ -36,14 +35,6 @@
   {% for fpr in person.fprs.all %}
   <tr>
       <td>{{fpr.fpr|fingerprint}}</td>
-      <td>
-        {% if "edit_statements" in visit_perms %}
-        <a href="{% url 'fprs_agreement_edit' key=person.lookup_key fpr=fpr.fpr %}">{{fpr.agreement_status}}</a>
-        {% elif "see_statements" in visit_perms %}
-        <a href="{% url 'fprs_agreement_show' key=person.lookup_key fpr=fpr.fpr %}">{{fpr.agreement_status}}</a>
-        {% endif %}
-        </a>
-      </td>
       <td>{{fpr.is_active}}</td>
       <td>
         {% if not fpr_is_active %}
