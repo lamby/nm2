@@ -1,8 +1,3 @@
-# coding: utf-8
-
-
-
-
 from django.views.generic import TemplateView, View
 from django.views.generic.edit import FormView
 from django.core.urlresolvers import reverse

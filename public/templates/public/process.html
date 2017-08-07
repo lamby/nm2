@@ -13,55 +13,6 @@
 {% nm_js_support %}
 
 $(function() {
-    var is_admin = {{visitor.is_admin|yesno:"true,false"}};
-    var is_dam = {{visitor.am.is_dam|yesno:"true,false"}};
-    var cur_progress = "{{process.progress}}";
-    var dam_mail = $("#dam-mail");
-    var am_mail = $("#am-mail");
-    var prog = $("#id_progress");
-    var text = $("#id_logtext");
-
-    function reset_fields() {
-        dam_mail.hide();
-        am_mail.hide();
-        text.val(null);
-    }
-    reset_fields();
-
-    // Define all available shortcuts
-    //
-    // Possible fields:
-    //   label: label to show on the button
-    //   prog_if: only show button when progress is one of these values
-    //   prog_to: button sets progress to this value
-    //   logtext: button sets log text to this value
-    //   hook: function to execute on button press
-    var macros = [
-    {% for w in wizards %}
-      { label: "{{w.label|escapejs}}", prog_to: "{{w.prog_to}}", logtext: "{{w.logtext|escapejs}}", mail_template: "{{w.mail_template}}" },
-    {% endfor %}
-    ];
-
-    // Add available shortcuts to the page
-    var shortcuts = $("#shortcut_buttons");
-    var shortcuts_found = false;
-    $.each(macros, function(idx, m) {
-        // Create button
-        var b = $("<button>").text(m.label);
-        b.click(function(ev) {
-            reset_fields();
-            prog.val(m.prog_to);
-            if (m.logtext) text.val(m.logtext);
-            if (m.mail_template == "am") am_mail.show();
-            if (m.mail_template == "dam") dam_mail.show();
-            ev.preventDefault();
-        });
-
-        shortcuts.append(b);
-        shortcuts_found = true;
-    });
-    $("#shortcuts").toggle(shortcuts_found);
-
     $(".mbox_sparkline").sparkline("html", {
       type: "bar",
       barColor: "#005382",
@@ -77,26 +28,8 @@ $(function() {
 
 <h1>Application status for {{person.fullname}}</h1>
 
-{% if process.applying_for == STATUS_DC_GA or process.applying_for == STATUS_DM_GA %}
-<div id="checklist">
-<h2>Guest account activation checklist</h2>
-<ul>
-    <li>If DM or in NM, no advocate is required</li>
-    <li>If neither DM or in NM, an advocate DD is required</li>
-    <li>List of architectures or machines needed</li>
-    <li>DMUP acceptance in a signed mail</li>
-    <li>DMUP needs to be signed with the key that will go in LDAP</li>
-</ul>
-See: <a href="http://lists.debian.org/debian-project/2010/09/msg00026.html">handling of guest accounts on debian.org machines</a>.
-</div>
-{% endif %}
-
 
 <h2>Personal information</h2>
-
-{% if process.progress == PROGRESS_AM_OK %}
-<div id="checklist">{% include "public/checklist-fd-checks.html" %}</div>
-{% endif %}
 
 <table class="personinfo">
     <tr><th>Applicant</th><td><a href="{{person.get_absolute_url}}">{{person.fullname}} &lt;{{person.preferred_email}}&gt;</a></td></tr>
@@ -119,24 +52,8 @@ See: <a href="http://lists.debian.org/debian-project/2010/09/msg00026.html">hand
         {% if fpr %}
         <small>
         <ul class="packed">
-          <li>
-            SC/DFSG/DMUP agreement:
-            {% if "edit_statements" in visit_perms %}
-              <a href="{% url 'fprs_agreement_edit' key=person.lookup_key fpr=fpr.fpr %}">{{fpr.agreement_status}}</a>
-            {% elif "see_statements" in visit_perms %}
-              <a href="{% url 'fprs_agreement_show' key=person.lookup_key fpr=fpr.fpr %}">{{fpr.agreement_status}}</a>
-            {% else %}
-              {{fpr.agreement_status}}
-            {% endif %}
-          </li>
           {% if keycheck %}
-          <li>Main key: <i>{{keycheck.main.remarks}}</i> (last updated: {{keycheck.updated|date:"Y-m-d H:i T"}})
-            {% if "update_keycheck" in visit_perms %}
-            <form class="inline" action="{% url 'public_process_update_keycheck' key=process.lookup_key %}" method="POST">{% csrf_token %}
-              <button type="submit">Update</button>
-            </form>
-            {% endif %}
-          </li>
+          <li>Main key: <i>{{keycheck.main.remarks}}</i> (last updated: {{keycheck.updated|date:"Y-m-d H:i T"}})</li>
           {% for uid in keycheck.uids %}
           <li>{{uid.name}}: <i>{{uid.remarks}}</i>, <i>{{uid.sigs_ok}}</i> DD sigs, <i>{{uid.sigs_no_key}}</i> non-DD sigs</li>
           {% endfor %}
@@ -149,10 +66,6 @@ See: <a href="http://lists.debian.org/debian-project/2010/09/msg00026.html">hand
     {% endwith %}
     {% if process.manager %}
     <tr><th>Manager</th><td><a href="{{process.manager.get_absolute_url}}">{{process.manager.person.uid}}</a></td></tr>
-    {% elif process.progress == PROGRESS_APP_OK %}
-      {% if visitor.is_admin %}
-      <tr><th>Manager</th><td><a href="{% url 'assign_am' key=process.lookup_key %}">assign AM</a></td></tr>
-      {% endif %}
     {% endif %}
     <tr><th>Process</th><td>{{process.applying_as|desc_status}} → {{process.applying_for|desc_status}}</td></tr>
     <tr><th>Progress</th><td>{% if process.is_active %}<a href="{% url 'public_progress' progress=process.progress %}">{{process.progress|desc_progress}}</a>{% else %}{{process.progress|desc_progress}}{% endif %}</td></tr>
@@ -187,54 +100,6 @@ See: <a href="http://lists.debian.org/debian-project/2010/09/msg00026.html">hand
     {% endif %}
 </table>
 
-{% if form %}
-
-<h2>Progress to become {{ process.applying_for|desc_status }}</h2>
-
-<p>Current progress is: <b>{{ process.progress|desc_progress }}</b>.</p>
-
-<form action="{{ request.build_absolute_uri }}" method="post">{% csrf_token %}
-    {{ form.as_p }}
-    <input type="submit" value="Update" />
-    <input type="reset" value="Reset" />
-</form>
-
-<div id="shortcuts">
-<p>Shortcuts: <span id="shortcut_buttons"></span></p>
-<p>Clicking on a Shortcut button will prefill the "Progress" form field, but will
-not submit the form. That is so that you have a chance to add a log entry if
-you wish to add a note to the progress update.</p>
-</div>
-
-{% if process.applying_for == STATUS_DC_GA or process.applying_for == STATUS_DM_GA %}
-<div id="dam-mail">
-<h2>Draft activation email</h2>
-<textarea rows="25" cols="80">
-{% include "public/process-ga-rt.html" %}
-</textarea>
-</div>
-{% endif %}
-
-{% if process.applying_for == STATUS_DD_U or process.applying_for == STATUS_DD_NU %}
-{% if process.progress == PROGRESS_FD_OK %}
-<div id="dam-mail">
-<h2>Draft activation email</h2>
-<textarea rows="25" cols="80">
-{% include "public/process-damreport.html" %}
-</textarea>
-</div>
-{% endif %}
-
-{% if process.progress == PROGRESS_AM %}
-<div id="am-mail">
-A recommendation mail will be sent to debian-newmaint@lists.debian.org, including the
-applicant's short bio. <b>Ensure they are happy for it to be published before proceeding</b>.
-</div>
-{% endif %}
-{% endif %}
-
-
-{% endif %}
 
 <h2>Process log</h2>
 
@@ -269,26 +134,6 @@ applicant's short bio. <b>Ensure they are happy for it to be published before pr
     </tr>
     {% endfor %}
 </tbody>
-</table>
-
-<h2>Further Steps</h2>
-
-<table>
-    {% for step in steps %}
-    <tr>
-        {% if forloop.counter0 < curstep_idx %}
-        <td>done</td>
-        {% endif %}
-        {% if forloop.counter0 == curstep_idx %}
-        <td>current</td>
-        {% endif %}
-        {% if forloop.counter0 > curstep_idx %}
-        <td>todo</td>
-        {% endif %}
-        </td>
-        <td>{{step|desc_progress}}</td>
-    </tr>
-    {% endfor %}
 </table>
 
 {% endblock %}

@@ -1,8 +1,3 @@
-# coding: utf-8
-
-
-
-
 from django import http, template, forms
 from django.conf import settings
 from django.shortcuts import render, render_to_response, redirect, get_object_or_404
@@ -336,33 +331,6 @@ class Impersonate(View):
         else:
             return redirect(url)
 
-def _assign_am(request, visitor, nm, am):
-    import textwrap
-    nm.manager = am
-    nm.progress = const.PROGRESS_AM_RCVD
-    nm.save()
-
-    if not am.is_am:
-        am.is_am = True
-        am.save()
-
-    # Parameters for the following templates
-    parms = dict(
-        fduid=visitor.uid,
-        fdname=visitor.fullname,
-        amuid=am.person.uid,
-        amname=am.person.fullname,
-        nmname=nm.person.fullname,
-        nmcurstatus=const.ALL_STATUS_DESCS[nm.person.status],
-        nmnewstatus=const.ALL_STATUS_DESCS[nm.applying_for],
-        procurl=request.build_absolute_uri(reverse("public_process", kwargs=dict(key=nm.lookup_key))),
-    )
-    l = bmodels.Log.for_process(nm, changed_by=visitor)
-    l.logtext = "Assigned to %(amuid)s" % parms
-    if 'impersonate' in request.session:
-        l.logtext = "[%s as %s] %s" % (request.user, visitor.lookup_key, l.logtext)
-    l.save()
-
 
 class MailArchive(VisitProcessMixin, View):
     require_visit_perms = "view_mbox"
@@ -407,35 +375,6 @@ class DisplayMailArchive(VisitProcessMixin, TemplateView):
         ctx["mails"] = backend.email.get_mbox_as_dicts(fname)
         ctx["class"] = "clickable"
         return ctx
-
-
-class AssignAM(VisitorTemplateView):
-    template_name = "restricted/assign-am.html"
-    require_visitor = "admin"
-
-    def get_context_data(self, **kw):
-        ctx = super(AssignAM, self).get_context_data(**kw)
-        key = self.kwargs["key"]
-        process = bmodels.Process.lookup_or_404(key)
-        if process.manager is not None:
-            raise PermissionDenied
-
-        # List free AMs
-        ams = bmodels.AM.list_available(free_only=False)
-
-        ctx.update(
-            process=process,
-            person=process.person,
-            ams=ams,
-        )
-        return ctx
-
-    def post(self, request, key, *args, **kw):
-        process = bmodels.Process.lookup_or_404(key)
-        am_key = request.POST.get("am", None)
-        am = bmodels.AM.lookup_or_404(am_key)
-        _assign_am(request, self.visitor, process, am)
-        return redirect(process.get_absolute_url())
 
 
 class MailboxStats(VisitorTemplateView):

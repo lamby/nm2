@@ -1,8 +1,3 @@
-# coding: utf-8
-
-
-
-
 from django.conf.urls import *
 from django.views.generic import RedirectView
 from . import views
@@ -17,7 +12,6 @@ urlpatterns = [
     url(r'^managers$', views.Managers.as_view(), name="managers"),
     url(r'^people(?:/(?P<status>\w+))?$', views.People.as_view(), name="people"),
     url(r'^process/(?P<key>[^/]+)$', views.Process.as_view(), name="public_process"),
-    url(r'^process/(?P<key>[^/]+)/update_keycheck$', views.ProcessUpdateKeycheck.as_view(), name="public_process_update_keycheck"),
     url(r'^progress/(?P<progress>\w+)$', views.Progress.as_view(), name="public_progress"),
     url(r'^stats$', views.Stats.as_view(), name="public_stats"),
     url(r'^stats/latest$', views.StatsLatest.as_view(), name="public_stats_latest"),
