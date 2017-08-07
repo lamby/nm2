@@ -135,7 +135,7 @@ to complete. Some of those you can provide yourself: look at the page for a
 list and some explanation.
 
 I hope you have a smooth process, and if you need anything please mail
-nm@debian.org."
+nm@debian.org.
 
 
 Yours,
