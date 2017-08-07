@@ -44,15 +44,6 @@ class PersonVisitorPermissions(VisitorPermissions):
     """
     Store NM-specific permissions
     """
-    fddam_states = frozenset((const.PROGRESS_AM_OK, const.PROGRESS_FD_HOLD,
-        const.PROGRESS_FD_OK, const.PROGRESS_DAM_HOLD, const.PROGRESS_DAM_OK))
-    pre_dd_statuses = frozenset((const.STATUS_DC, const.STATUS_DC_GA,
-                                    const.STATUS_DM, const.STATUS_DM_GA,
-                                    const.STATUS_EMERITUS_DD,
-                                    const.STATUS_REMOVED_DD))
-    dm_or_dd = frozenset((const.STATUS_DM, const.STATUS_DM_GA, const.STATUS_DD_U, const.STATUS_DD_NU))
-    dd = frozenset((const.STATUS_DD_U, const.STATUS_DD_NU))
-
     def __init__(self, person, visitor):
         super(PersonVisitorPermissions, self).__init__(visitor)
         # Person being visited
@@ -463,7 +454,8 @@ class Person(PermissionsMixin, models.Model):
         const.STATUS_DC_GA: [const.STATUS_DM_GA, const.STATUS_DD_U, const.STATUS_DD_NU],
         const.STATUS_DM: [const.STATUS_DM_GA, const.STATUS_DD_NU, const.STATUS_DD_U],
         const.STATUS_DM_GA: [const.STATUS_DD_NU, const.STATUS_DD_U],
-        const.STATUS_DD_NU: [const.STATUS_DD_U],
+        const.STATUS_DD_NU: [const.STATUS_DD_U, const.STATUS_EMERITUS_DD],
+        const.STATUS_DD_U: [const.STATUS_EMERITUS_DD],
         const.STATUS_EMERITUS_DD: [const.STATUS_DD_U, const.STATUS_DD_NU],
         const.STATUS_REMOVED_DD: [const.STATUS_DD_U, const.STATUS_DD_NU],
     }
@@ -475,18 +467,15 @@ class Person(PermissionsMixin, models.Model):
         person
         """
         if self.pending: return []
-        statuses = list(self._new_status_table.get(self.status, []))
-        # Remove statuses from active processes
-        applying_for = []
-        if statuses:
-            for proc in Process.objects.filter(person=self, is_active=True):
-                applying_for.append(proc.applying_for)
 
+        statuses = list(self._new_status_table.get(self.status, []))
+
+        # Compute statuses one is already applying for in active processes
+        applying_for = []
         if statuses:
             import process.models as pmodels
             for proc in pmodels.Process.objects.filter(person=self, closed__isnull=True):
                 applying_for.append(proc.applying_for)
-
         if const.STATUS_DD_U in applying_for: applying_for.append(const.STATUS_DD_NU)
         if const.STATUS_DD_NU in applying_for: applying_for.append(const.STATUS_DD_U)
 
