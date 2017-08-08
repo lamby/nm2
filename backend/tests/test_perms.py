@@ -86,8 +86,8 @@ class TestVisitPersonNoProcess(OldProcessFixtureMixin, TestCase):
         })
 
         cls._add_method(cls._test_perms, "dd_u", perms={
-            "fd dam": "update_keycheck edit_email edit_bio view_person_audit_log fd_comments",
-            "dd_u": "update_keycheck edit_email edit_bio view_person_audit_log",
+            "fd dam": "update_keycheck edit_email edit_bio view_person_audit_log request_new_status fd_comments",
+            "dd_u": "update_keycheck edit_email edit_bio view_person_audit_log request_new_status",
             "activeam": "update_keycheck edit_bio view_person_audit_log",
             "dd_nu oldam": "view_person_audit_log update_keycheck",
         })
@@ -99,7 +99,7 @@ class TestVisitPersonNoProcess(OldProcessFixtureMixin, TestCase):
         })
 
         cls._add_method(cls._test_perms, "dam", perms={
-            "fd dam": "update_keycheck edit_email edit_bio view_person_audit_log fd_comments",
+            "fd dam": "update_keycheck edit_email edit_bio view_person_audit_log request_new_status fd_comments",
             "activeam": "view_person_audit_log update_keycheck edit_bio",
             "dd_nu dd_u oldam": "view_person_audit_log update_keycheck",
         })
@@ -218,7 +218,6 @@ class TestVisitApplicant(OldProcessFixtureMixin, TestCase):
         self.persons.app.status = self.processes.app.applying_for
         self.persons.app.save(audit_skip=True)
         expected.patch_generic_process_final()
-        expected.proc.patch("fd dam app", "-request_new_status")
         self.assertApplicantPermsFinal(expected)
 
     def test_dcga_ddu(self):
@@ -237,7 +236,6 @@ class TestVisitApplicant(OldProcessFixtureMixin, TestCase):
         self.persons.app.status = self.processes.app.applying_for
         self.persons.app.save(audit_skip=True)
         expected.patch_generic_process_final()
-        expected.proc.patch("fd dam app", "-request_new_status")
         self.assertApplicantPermsFinal(expected)
 
     def test_dm_ddu(self):
@@ -257,7 +255,6 @@ class TestVisitApplicant(OldProcessFixtureMixin, TestCase):
         self.persons.app.status = self.processes.app.applying_for
         self.persons.app.save(audit_skip=True)
         expected.patch_generic_process_final()
-        expected.proc.patch("fd dam app", "-request_new_status")
         self.assertApplicantPermsFinal(expected)
 
     def test_dmga_ddu(self):
@@ -269,7 +266,6 @@ class TestVisitApplicant(OldProcessFixtureMixin, TestCase):
         self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_DD_U, progress=const.PROGRESS_APP_RCVD)
         expected = ProcExpected(self)
         expected.patch_generic_process_started()
-        expected.proc.patch("fd dam app", "-request_new_status")
         self.processes.app.advocates.add(self.persons.adv)
         expected.patch_generic_process_has_advocate()
         expected.patch_generic_process_am_approved()

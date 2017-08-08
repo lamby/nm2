@@ -1,8 +1,3 @@
-# coding: utf-8
-
-
-
-
 from django.test import TestCase
 from django.core.urlresolvers import reverse
 from django.utils.timezone import now
@@ -290,7 +285,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         # Finalize
         self._close_process()
         expected.patch_generic_process_closed()
-        expected.starts.patch("-dc_ga -dm -dd_nu +dd_u ")
+        expected.starts.patch("-dc_ga -dm -dd_nu +dd_u +dd_e")
         expected.proc.patch("fd dam", "-edit_ldap")
         self.assertPerms(expected)
 
@@ -331,7 +326,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         # Finalize
         self._close_process()
         expected.patch_generic_process_closed()
-        expected.starts.patch("-dm_ga -dd_nu +dd_u")
+        expected.starts.patch("-dm_ga -dd_nu +dd_u +dd_e")
         self.assertPerms(expected)
 
     def test_dc_ddu(self):
@@ -372,9 +367,9 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         # Finalize
         self._close_process()
         expected.patch_generic_process_closed()
-        expected.starts.patch("-dc_ga -dm -dd_nu -dd_u")
+        expected.starts.patch("-dc_ga -dm -dd_nu -dd_u +dd_e")
         expected.proc.patch("fd dam", "-edit_ldap")
-        expected.proc.patch("app fd dam", "-edit_ldap -request_new_status")
+        expected.proc.patch("app fd dam", "-edit_ldap")
         self.assertPerms(expected)
 
     def test_dcga_ddu(self):
@@ -415,7 +410,8 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         self._close_process()
         expected.patch_generic_process_closed()
         expected.starts.patch("-dm_ga -dd_nu -dd_u")
-        expected.proc.patch("app fd dam", "-edit_ldap -request_new_status")
+        expected.proc.patch("app fd dam", "-edit_ldap")
+        expected.starts.patch("+dd_e")
         self.assertPerms(expected)
 
     def test_dm_ddu(self):
@@ -458,9 +454,9 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         expected.patch_generic_process_closed()
         expected.starts.patch("-dm_ga -dd_nu -dd_u")
         expected.proc.patch("fd dam", "-edit_ldap")
-        expected.proc.patch("app fd dam", "-edit_ldap -request_new_status")
+        expected.proc.patch("app fd dam", "-edit_ldap")
+        expected.starts.patch("+dd_e")
         self.assertPerms(expected)
-
 
     def test_dmga_ddu(self):
         """
@@ -500,6 +496,8 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         # Finalize
         self._close_process()
         expected.patch_generic_process_closed()
+        expected.proc.patch("app fd dam", "+request_new_status")
+        expected.starts.patch("+dd_e")
         self.assertPerms(expected)
 
 # TODO: process closed but not frozen and approved (aborted)
