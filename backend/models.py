@@ -471,15 +471,17 @@ class Person(PermissionsMixin, models.Model):
         statuses = list(self._new_status_table.get(self.status, []))
 
         # Compute statuses one is already applying for in active processes
-        applying_for = []
+        blacklist = []
         if statuses:
             import process.models as pmodels
             for proc in pmodels.Process.objects.filter(person=self, closed__isnull=True):
-                applying_for.append(proc.applying_for)
-        if const.STATUS_DD_U in applying_for: applying_for.append(const.STATUS_DD_NU)
-        if const.STATUS_DD_NU in applying_for: applying_for.append(const.STATUS_DD_U)
+                blacklist.append(proc.applying_for)
+        if const.STATUS_DD_U in blacklist: blacklist.append(const.STATUS_DD_NU)
+        if const.STATUS_DD_NU in blacklist: blacklist.append(const.STATUS_DD_U)
+        # When a non uploader is becoming emeritus, disable applying for upload rights
+        if const.STATUS_EMERITUS_DD in blacklist: blacklist.append(const.STATUS_DD_U)
 
-        for status in applying_for:
+        for status in blacklist:
             try:
                 statuses.remove(status)
             except ValueError:

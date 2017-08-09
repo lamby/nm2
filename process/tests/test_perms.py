@@ -24,10 +24,12 @@ class ProcExpected(object):
         self.proc.patch("fd dam app", "+request_new_status +edit_email")
         self.proc.patch("fd dam", "+proc_freeze +fd_comments +am_assign +view_private_log")
         self.proc.patch("dc dc_ga dm dm_ga dd_nu dd_u oldam dd_e dd_r activeam fd dam app", "+add_log")
-        self.intent.patch("fd dam app", "+edit_statements")
-        self.intent.patch("activeam fd dam dd_nu dd_u oldam", "+req_approve")
-        self.sc_dmup.patch("fd dam app", "+edit_statements")
-        self.sc_dmup.patch("activeam fd dam dd_nu dd_u oldam", "+req_approve")
+        if self.intent is not None:
+            self.intent.patch("fd dam app", "+edit_statements")
+            self.intent.patch("activeam fd dam dd_nu dd_u oldam", "+req_approve")
+        if self.sc_dmup is not None:
+            self.sc_dmup.patch("fd dam app", "+edit_statements")
+            self.sc_dmup.patch("activeam fd dam dd_nu dd_u oldam", "+req_approve")
         if self.advocate is not None:
             self.advocate.patch("activeam fd dam dd_nu dd_u oldam", "+edit_statements +req_approve")
         if self.keycheck is not None:
@@ -49,10 +51,12 @@ class ProcExpected(object):
     def patch_generic_process_frozen(self):
         self.proc.patch("fd dam", "-proc_freeze +proc_unfreeze +proc_approve -am_assign -am_unassign")
         self.proc.patch("activeam app", "-edit_bio -edit_ldap")
-        self.intent.patch("app", "-edit_statements")
-        self.intent.patch("activeam dd_nu dd_u oldam", "-req_approve")
-        self.sc_dmup.patch("app", "-edit_statements")
-        self.sc_dmup.patch("activeam dd_nu dd_u oldam", "-req_approve")
+        if self.intent is not None:
+            self.intent.patch("app", "-edit_statements")
+            self.intent.patch("activeam dd_nu dd_u oldam", "-req_approve")
+        if self.sc_dmup is not None:
+            self.sc_dmup.patch("app", "-edit_statements")
+            self.sc_dmup.patch("activeam dd_nu dd_u oldam", "-req_approve")
         if self.advocate is not None:
             self.advocate.patch("activeam dd_nu dd_u oldam dm dm_ga", "-edit_statements")
             self.advocate.patch("activeam dd_nu dd_u oldam", "-req_approve")
@@ -73,8 +77,10 @@ class ProcExpected(object):
         self.proc.patch("activeam app", "+edit_bio")
         self.proc.patch("fd dam", "-proc_unapprove")
         self.proc.patch("dc dc_ga dm dm_ga dd_nu dd_u oldam dd_e dd_r activeam fd dam app", "-add_log")
-        self.intent.patch("fd dam", "-edit_statements -req_approve")
-        self.sc_dmup.patch("fd dam", "-edit_statements -req_approve")
+        if self.intent is not None:
+            self.intent.patch("fd dam", "-edit_statements -req_approve")
+        if self.sc_dmup is not None:
+            self.sc_dmup.patch("fd dam", "-edit_statements -req_approve")
         if self.advocate is not None:
             self.advocate.patch("fd dam", "-edit_statements -req_approve")
         if self.keycheck is not None:
@@ -499,5 +505,84 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         expected.proc.patch("app fd dam", "+request_new_status")
         expected.starts.patch("+dd_e")
         self.assertPerms(expected)
+
+    def test_ddnu_dde(self):
+        """
+        Test all visit combinations for an applicant from dd_nu to dd_e
+        """
+        expected = ProcExpected(self)
+        expected.intent = None
+        expected.sc_dmup = None
+        expected.keycheck = None
+        expected.advocate = None
+        expected.am_ok = None
+
+        # Apply
+        self.persons.create("app", status=const.STATUS_DD_NU)
+        expected.starts.set("dd_u dd_e")
+        self.assertPerms(expected)
+        self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_EMERITUS_DD)
+        expected.patch_generic_process_started()
+        expected.starts.patch("-dd_u -dd_e")
+        expected.proc.patch("app activeam fd dam", "-edit_ldap")
+        expected.proc.patch("app fd dam", "-edit_ldap -request_new_status")
+        expected.proc.patch("fd dam", "-am_assign")
+        self.assertPerms(expected)
+
+        # Freeze for review
+        self._freeze_process("fd")
+        expected.patch_generic_process_frozen()
+        self.assertPerms(expected)
+
+        # Approve
+        self._approve_process("dam")
+        expected.patch_generic_process_approved()
+
+        # Finalize
+        self._close_process()
+        expected.patch_generic_process_closed()
+        expected.proc.patch("app fd dam", "+request_new_status")
+        expected.starts.patch("+dd_u +dd_nu")
+        self.assertPerms(expected)
+
+    def test_ddu_dde(self):
+        """
+        Test all visit combinations for an applicant from dd_u to dd_e
+        """
+        expected = ProcExpected(self)
+        expected.intent = None
+        expected.sc_dmup = None
+        expected.keycheck = None
+        expected.advocate = None
+        expected.am_ok = None
+
+        # Apply
+        self.persons.create("app", status=const.STATUS_DD_U)
+        expected.starts.set("dd_e")
+        self.assertPerms(expected)
+        self.processes.create("app", person=self.persons.app, applying_for=const.STATUS_EMERITUS_DD)
+        expected.patch_generic_process_started()
+        expected.starts.patch("-dd_e")
+        expected.proc.patch("app activeam fd dam", "-edit_ldap")
+        expected.proc.patch("app fd dam", "-edit_ldap -request_new_status")
+        expected.proc.patch("fd dam", "-am_assign")
+        self.assertPerms(expected)
+
+        # Freeze for review
+        self._freeze_process("fd")
+        expected.patch_generic_process_frozen()
+        self.assertPerms(expected)
+
+        # Approve
+        self._approve_process("dam")
+        expected.patch_generic_process_approved()
+
+        # Finalize
+        self._close_process()
+        expected.patch_generic_process_closed()
+        expected.proc.patch("app fd dam", "+request_new_status")
+        expected.starts.patch("+dd_u +dd_nu")
+        self.assertPerms(expected)
+
 
 # TODO: process closed but not frozen and approved (aborted)

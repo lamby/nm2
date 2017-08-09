@@ -126,8 +126,6 @@ class ProcessManager(models.Manager):
         """
         if status == applying_for:
             raise RuntimeError("Invalid applying_for value {} for a person with status {}".format(applying_for, status))
-        if status == const.STATUS_DD_U:
-            raise RuntimeError("Invalid applying_for value {} for a person with status {}".format(applying_for, status))
 
         requirements = ["intent", "sc_dmup"]
         if applying_for == const.STATUS_DC_GA:
@@ -150,11 +148,18 @@ class ProcessManager(models.Manager):
             else:
                 raise RuntimeError("Invalid applying_for value {} for a person with status {}".format(applying_for, status))
         elif applying_for in (const.STATUS_DD_U, const.STATUS_DD_NU):
+            if status == const.STATUS_DD_U:
+                raise RuntimeError("Invalid applying_for value {} for a person with status {}".format(applying_for, status))
             if status != const.STATUS_DD_NU:
                 requirements.append("keycheck")
                 requirements.append("am_ok")
             if status not in (const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD):
                 requirements.append("advocate")
+        elif applying_for == const.STATUS_EMERITUS_DD:
+            if status not in (const.STATUS_DD_NU, const.STATUS_DD_U):
+                raise RuntimeError("Invalid applying_for value {} for a person with status {}".format(applying_for, status))
+            # No requirements for this process
+            requirements = []
         else:
             raise RuntimeError("Invalid applying_for value {}".format(applying_for))
 
