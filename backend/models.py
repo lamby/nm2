@@ -6,7 +6,7 @@ from django.utils.timezone import utc, now
 from django.db import models
 from django.conf import settings
 from django.utils.timezone import now
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.contrib.auth.models import BaseUserManager, PermissionsMixin
 from django.forms.models import model_to_dict
 from . import const

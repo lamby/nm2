@@ -1,13 +1,8 @@
-# coding: utf-8
-
-
-
-
 from django.shortcuts import render
 from django.views.generic import TemplateView, View
 from django.views.generic.edit import FormView
 from django.core import signing
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django import forms
 from django.core.exceptions import PermissionDenied
 from backend.mixins import VisitorMixin

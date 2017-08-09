@@ -1,11 +1,6 @@
-# coding: utf-8
-
-
-
-
 from . import models as bmodels
 from . import const
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.test import Client, override_settings
 from django.utils.timezone import now
 import datetime

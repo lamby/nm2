@@ -1,7 +1,7 @@
 from django import http, forms
 from django.conf import settings
 from django.shortcuts import redirect, render, get_object_or_404
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.core.exceptions import PermissionDenied
 from django.utils.translation import ugettext as _
 from django.utils.timezone import now

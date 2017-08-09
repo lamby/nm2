@@ -1,7 +1,7 @@
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
 from django.conf import settings
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.db import models, transaction
 import backend.models as bmodels
 from backend.utils import cached_property

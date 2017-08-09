@@ -1,6 +1,6 @@
 from django.views.generic import TemplateView, View
 from django.views.generic.edit import FormView
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.shortcuts import redirect, get_object_or_404
 from django import forms
 from django.core.exceptions import PermissionDenied
