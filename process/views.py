@@ -362,11 +362,6 @@ class StatementCreate(StatementMixin, FormView):
         statement.uploaded_by = self.visitor
         statement.uploaded_time = now()
         statement.statement, plaintext = form.cleaned_data["statement"]
-
-        if self.blurb is not None:
-            expected = self.normalise_text("\n".join(self.blurb))
-            submitted = self.normalise_text(plaintext)
-
         statement.save()
 
         self.requirement.add_log(self.visitor, "{} a signed statement".format(action), True, action=log_action)
