@@ -158,7 +158,7 @@ the nm.debian.org housekeeping robot
             msg.subject)
 
 
-def notify_new_statement(statement, request=None, cc_nm=True):
+def notify_new_statement(statement, request=None, cc_nm=True, notify_ml="newmaint"):
     """
     Render a notification email template for a newly uploaded statement, then
     send the resulting email.
@@ -186,7 +186,7 @@ def notify_new_statement(statement, request=None, cc_nm=True):
 
     msg = build_django_message(
         statement.uploaded_by,
-        to="debian-newmaint@lists.debian.org",
+        to="debian-{}@lists.debian.org".format(notify_ml),
         cc=cc,
         subject="{}: {}".format(
             process.person.fullname,

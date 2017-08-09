@@ -1,6 +1,7 @@
 from django.test import TestCase
 from django.core.urlresolvers import reverse
 from django.utils.timezone import now
+from django.core import mail
 from backend import const
 from backend import models as bmodels
 from backend.unittest import PersonFixtureMixin
@@ -118,6 +119,30 @@ v85pPGXRppmFCX/Pk+U=
         self.assertEqual(response.status_code, 200)
         self.assertFormErrorMatches(response, "form", "statement", "OpenPGP MIME data not found")
         self.assertEqual(pmodels.Statement.objects.count(), 0)
+
+    def test_description(self):
+        self.fingerprints.create("dam", person=self.persons.dam, fpr=test_fingerprint2, is_active=True, audit_skip=True)
+        client = self.make_test_client("dam")
+        url = reverse("process_statement_create", args=[self.processes.app.pk, "intent"])
+        response = client.get(url)
+        self.assertContains(response, '<a data-ml="newmaint"')
+
+        mail.outbox = []
+        response = client.post(reverse("process_statement_create", args=[self.processes.app.pk, "intent"]), data={"statement": test_fpr2_signed_valid_text})
+        self.assertRedirectMatches(response, self.processes.app.requirements.get(type="intent").get_absolute_url())
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["debian-newmaint@lists.debian.org"])
+
+        self.processes.app.applying_for = const.STATUS_EMERITUS_DD
+        self.processes.app.save()
+        response = client.get(url)
+        self.assertContains(response, '<a data-ml="private"')
+
+        mail.outbox = []
+        response = client.post(reverse("process_statement_create", args=[self.processes.app.pk, "intent"]), data={"statement": test_fpr2_signed_valid_text})
+        self.assertRedirectMatches(response, self.processes.app.requirements.get(type="intent").get_absolute_url())
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["debian-private@lists.debian.org"])
 
 
 class TestProcessStatementDelete(ProcessFixtureMixin, TestCase):

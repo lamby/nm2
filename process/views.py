@@ -309,10 +309,14 @@ class StatementCreate(StatementMixin, FormView):
     template_name = "process/statement_create.html"
 
     def load_objects(self):
-        super(StatementCreate, self).load_objects()
+        super().load_objects()
         self.blurb = self.get_blurb()
         if self.blurb:
             self.blurb = ["For nm.debian.org, at {:%Y-%m-%d}:".format(now())] + self.blurb
+        if self.requirement.process.applying_for == const.STATUS_EMERITUS_DD:
+            self.notify_ml = "private"
+        else:
+            self.notify_ml = "newmaint"
 
     def get_blurb(self):
         """
@@ -342,6 +346,7 @@ class StatementCreate(StatementMixin, FormView):
         ctx = super(StatementCreate, self).get_context_data(**kw)
         ctx["blurb"] = [shlex_quote(x) for x in self.blurb] if self.blurb else None
         ctx["wikihelp"] = "https://wiki.debian.org/nm.debian.org/Statements"
+        ctx["notify_ml"] = self.notify_ml
         return ctx
 
     @transaction.atomic
@@ -388,7 +393,7 @@ class StatementCreate(StatementMixin, FormView):
             msg = statement.rfc3156
             if msg is None:
                 from .email import notify_new_statement
-                notify_new_statement(statement, request=self.request, cc_nm=(self.requirement.type=="am_ok"))
+                notify_new_statement(statement, request=self.request, cc_nm=(self.requirement.type=="am_ok"), notify_ml=self.notify_ml)
 
         return redirect(self.requirement.get_absolute_url())
 
