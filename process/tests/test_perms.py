@@ -511,7 +511,6 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         Test all visit combinations for an applicant from dd_nu to dd_e
         """
         expected = ProcExpected(self)
-        expected.intent = None
         expected.sc_dmup = None
         expected.keycheck = None
         expected.advocate = None
@@ -527,11 +526,13 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         expected.proc.patch("app activeam fd dam", "-edit_ldap")
         expected.proc.patch("app fd dam", "-edit_ldap -request_new_status")
         expected.proc.patch("fd dam", "-am_assign")
+        expected.intent.patch("app", "+req_approve")
         self.assertPerms(expected)
 
         # Freeze for review
         self._freeze_process("fd")
         expected.patch_generic_process_frozen()
+        expected.intent.patch("app", "-req_approve")
         self.assertPerms(expected)
 
         # Approve
@@ -550,7 +551,6 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         Test all visit combinations for an applicant from dd_u to dd_e
         """
         expected = ProcExpected(self)
-        expected.intent = None
         expected.sc_dmup = None
         expected.keycheck = None
         expected.advocate = None
@@ -566,11 +566,13 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         expected.proc.patch("app activeam fd dam", "-edit_ldap")
         expected.proc.patch("app fd dam", "-edit_ldap -request_new_status")
         expected.proc.patch("fd dam", "-am_assign")
+        expected.intent.patch("app", "+req_approve")
         self.assertPerms(expected)
 
         # Freeze for review
         self._freeze_process("fd")
         expected.patch_generic_process_frozen()
+        expected.intent.patch("app", "-req_approve")
         self.assertPerms(expected)
 
         # Approve

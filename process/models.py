@@ -158,8 +158,8 @@ class ProcessManager(models.Manager):
         elif applying_for == const.STATUS_EMERITUS_DD:
             if status not in (const.STATUS_DD_NU, const.STATUS_DD_U):
                 raise RuntimeError("Invalid applying_for value {} for a person with status {}".format(applying_for, status))
-            # No requirements for this process
-            requirements = []
+            # Only intent is required to become emeritus
+            requirements = ["intent"]
         else:
             raise RuntimeError("Invalid applying_for value {}".format(applying_for))
 
