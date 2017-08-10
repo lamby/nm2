@@ -23,14 +23,6 @@ class TestEmeritus(ProcessFixtureMixin, TestCase):
             cls._add_method(cls._test_forbidden, visitor)
             cls._add_method(cls._test_nonsso_forbidden, visitor)
 
-    def _test_success_common(self, client, url):
-        response = client.get(url)
-        self.assertEqual(response.status_code, 200)
-        response = client.post(url, data={"statement": "test statement"})
-        self.assertRedirectMatches(response, r"/process/\d+$")
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(mail.outbox[0].to, ["debian-private@lists.debian.org"])
-
     def _test_success(self, visitor):
         mail.outbox = []
         client = self.make_test_client(visitor)
@@ -42,12 +34,13 @@ class TestEmeritus(ProcessFixtureMixin, TestCase):
         client = self.make_test_client(None)
         self._test_success_common(client, url)
 
-    def _test_forbidden_common(self, client, url):
+    def _test_success_common(self, client, url):
         response = client.get(url)
-        self.assertPermissionDenied(response)
+        self.assertEqual(response.status_code, 200)
         response = client.post(url, data={"statement": "test statement"})
-        self.assertPermissionDenied(response)
-        self.assertEqual(len(mail.outbox), 0)
+        self.assertRedirectMatches(response, r"/process/\d+$")
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["debian-private@lists.debian.org"])
 
     def _test_forbidden(self, visitor):
         mail.outbox = []
@@ -59,3 +52,10 @@ class TestEmeritus(ProcessFixtureMixin, TestCase):
         url = pviews.Emeritus.get_nonauth_url(self.persons[visitor])
         client = self.make_test_client(None)
         self._test_forbidden_common(client, url)
+
+    def _test_forbidden_common(self, client, url):
+        response = client.get(url)
+        self.assertPermissionDenied(response)
+        response = client.post(url, data={"statement": "test statement"})
+        self.assertPermissionDenied(response)
+        self.assertEqual(len(mail.outbox), 0)
