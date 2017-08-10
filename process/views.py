@@ -817,15 +817,14 @@ class Emeritus(VisitorMixin, FormView):
         except pmodels.Process.DoesNotExist:
             process = None
 
-        if process is not None:
-            # TODO: If the process already exists but has no statement of intent, fill that instead
-            return redirect(process.get_absolute_url())
-
         with transaction.atomic():
-            process = pmodels.Process.objects.create(self.visitor, const.STATUS_EMERITUS_DD)
-            process.add_log(self.visitor, "Process created", is_public=True)
+            if process is None:
+                process = pmodels.Process.objects.create(self.visitor, const.STATUS_EMERITUS_DD)
+                process.add_log(self.visitor, "Process created", is_public=True)
 
             requirement = process.requirements.get(type="intent")
+            if requirement.statements.exists():
+                return redirect(process.get_absolute_url())
 
             statement = pmodels.Statement(requirement=requirement)
             statement.uploaded_by = self.visitor
