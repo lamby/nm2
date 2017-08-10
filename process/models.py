@@ -400,7 +400,9 @@ class Requirement(models.Model):
         for s in self.statements.all().select_related("uploaded_by"):
             if s.uploaded_by != self.process.person:
                 notes.append(("warn", "statement of intent uploaded by {} instead of the applicant".format(s.uploaded_by.lookup_key)))
-            if s.fpr.person != self.process.person:
+            if not s.fpr:
+                notes.append(("warn", "statement of intent not signed"))
+            elif s.fpr.person != self.process.person:
                 notes.append(("warn", "statement of intent signed by {} instead of the applicant".format(s.fpr.person.lookup_key)))
             elif not s.fpr.is_active:
                 notes.append(("warn", "statement of intent signed with key {} instead of the current active key".format(s.fpr.fpr)))
@@ -546,7 +548,7 @@ class Statement(models.Model):
     A signed statement
     """
     requirement = models.ForeignKey(Requirement, related_name="statements")
-    fpr = models.ForeignKey(bmodels.Fingerprint, related_name="+", help_text=_("Fingerprint used to verify the statement"))
+    fpr = models.ForeignKey(bmodels.Fingerprint, related_name="+", null=True, help_text=_("Fingerprint used to verify the statement"))
     statement = models.TextField(verbose_name=_("Signed statement"), blank=True)
     uploaded_by = models.ForeignKey(bmodels.Person, related_name="+", help_text=_("Person who uploaded the statement"))
     uploaded_time = models.DateTimeField(help_text=_("When the statement has been uploaded"))
@@ -582,7 +584,10 @@ class Statement(models.Model):
             return None
 
         from keyring.openpgp import RFC3156
-        return RFC3156(self.statement)
+        res = RFC3156(self.statement.encode("utf-8"))
+        if not res.parsed:
+            return None
+        return res
 
 
 class Log(models.Model):

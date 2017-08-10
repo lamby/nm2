@@ -1,0 +1,18 @@
+{% extends "process/base.html" %}
+{% load nm %}
+
+{% block content %}
+
+<h1>Emeritus Debian Member</h1>
+
+<form action="{{request.get_absolute_uri}}" method="POST">{% csrf_token %}
+{{form.non_field_errors}}
+  <p>
+  {{form.statement.errors}}
+  {{form.statement}}
+  </p>
+  <button type="submit">Submit</button>
+</form>
+
+{% endblock %}
+

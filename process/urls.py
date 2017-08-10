@@ -24,4 +24,5 @@ urlpatterns = [
     url(r'^(?P<pk>\d+)/rt_ticket$', views.MakeRTTicket.as_view(), name="process_rt_ticket"),
     url(r'^(?P<pk>\d+)/approve$', views.Approve.as_view(), name="process_approve"),
     url(r'^(?P<pk>\d+)/email_lookup$', views.EmailLookup.as_view(), name="process_email_lookup"), # TODO: test
+    url(r'^emeritus$', views.Emeritus.as_view(), name="process_emeritus"), # TODO: test
 ]

@@ -354,43 +354,52 @@ class StatementCreate(StatementMixin, FormView):
         statement = self.statement
         if statement is None:
             statement = pmodels.Statement(requirement=self.requirement, fpr=self.visitor.fingerprint)
-            action = "Added"
-            log_action = "add_statement"
+            repace = False
         else:
-            action = "Updated"
-            log_action = "update_statement"
+            replace = True
         statement.uploaded_by = self.visitor
         statement.uploaded_time = now()
         statement.statement, plaintext = form.cleaned_data["statement"]
         statement.save()
 
-        self.requirement.add_log(self.visitor, "{} a signed statement".format(action), True, action=log_action)
-
-        # Check if the requirement considers itself satisfied now, and
-        # auto-mark approved accordingly
-        status = self.requirement.compute_status()
-        if status["satisfied"]:
-            try:
-                robot = bmodels.Person.objects.get(username="__housekeeping__")
-            except bmodels.Person.DoesNotExist:
-                robot = self.visitor
-            self.requirement.approved_by = robot
-            self.requirement.approved_time = now()
-        else:
-            self.requirement.approved_by = None
-            self.requirement.approved_time = None
-        self.requirement.save()
-
-        if self.requirement.approved_by:
-            self.requirement.add_log(self.requirement.approved_by, "New statement received, the requirement seems satisfied", True, action="req_approve")
-
-        if self.requirement.type in ("intent", "advocate", "am_ok"):
-            msg = statement.rfc3156
-            if msg is None:
-                from .email import notify_new_statement
-                notify_new_statement(statement, request=self.request, cc_nm=(self.requirement.type=="am_ok"), notify_ml=self.notify_ml)
+        file_statement(self.request, self.visitor, self.requirement, statement, replace=replace, notify_ml=self.notify_ml)
 
         return redirect(self.requirement.get_absolute_url())
+
+
+def file_statement(request, visitor, requirement, statement, replace=False, notify_ml="newmaint"):
+    if replace:
+        action = "Updated"
+        log_action = "update_statement"
+    else:
+        action = "Added"
+        log_action = "add_statement"
+
+    requirement.add_log(visitor, "{} a signed statement".format(action), True, action=log_action)
+
+    # Check if the requirement considers itself satisfied now, and
+    # auto-mark approved accordingly
+    status = requirement.compute_status()
+    if status["satisfied"]:
+        try:
+            robot = bmodels.Person.objects.get(username="__housekeeping__")
+        except bmodels.Person.DoesNotExist:
+            robot = visitor
+        requirement.approved_by = robot
+        requirement.approved_time = now()
+    else:
+        requirement.approved_by = None
+        requirement.approved_time = None
+    requirement.save()
+
+    if requirement.approved_by:
+        requirement.add_log(requirement.approved_by, "New statement received, the requirement seems satisfied", True, action="req_approve")
+
+    if requirement.type in ("intent", "advocate", "am_ok"):
+        msg = statement.rfc3156
+        if msg is None:
+            from .email import notify_new_statement
+            notify_new_statement(statement, request=request, cc_nm=(requirement.type=="am_ok"), notify_ml=notify_ml)
 
 
 class StatementDelete(StatementMixin, TemplateView):
@@ -748,3 +757,43 @@ class Approve(VisitProcessMixin, FormView):
         self.process.save()
         self.process.add_log(self.visitor, "Process approved", action="proc_approve", is_public=True)
         return redirect(self.process.get_absolute_url())
+
+
+class EmeritusForm(forms.Form):
+    statement = forms.CharField(
+        required=True,
+        label=_("Statement"),
+        widget=forms.Textarea(attrs=dict(rows=25, cols=80, placeholder="Enter your leave message here"))
+    )
+
+
+class Emeritus(VisitorMixin, FormView):
+    require_visitor = "dd"
+    template_name = "process/emeritus.html"
+    form_class = EmeritusForm
+
+    def form_valid(self, form):
+        text = form.cleaned_data["statement"]
+
+        try:
+            process = pmodels.Process.objects.get(person=self.visitor, applying_for=const.STATUS_EMERITUS_DD)
+        except pmodels.Process.DoesNotExist:
+            process = None
+
+        if process is not None:
+            return redirect(process.get_absolute_url())
+
+        with transaction.atomic():
+            process = pmodels.Process.objects.create(self.visitor, const.STATUS_EMERITUS_DD)
+            process.add_log(self.visitor, "Process created", is_public=True)
+
+            requirement = process.requirements.get(type="intent")
+
+            statement = pmodels.Statement(requirement=requirement)
+            statement.uploaded_by = self.visitor
+            statement.uploaded_time = now()
+            statement.statement, plaintext = text, text
+            statement.save()
+            file_statement(self.request, self.visitor, requirement, statement, replace=False, notify_ml="private")
+
+        return redirect(process.get_absolute_url())
