@@ -12,10 +12,6 @@ from .common import (ProcessFixtureMixin,
 
 class TestEmeritus(ProcessFixtureMixin, TestCase):
     @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-
-    @classmethod
     def __add_extra_tests__(cls):
         for visitor in "dd_nu", "dd_u", "fd", "dam":
             cls._add_method(cls._test_success, visitor)

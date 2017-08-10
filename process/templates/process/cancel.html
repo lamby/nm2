@@ -3,21 +3,28 @@
 
 {% block content %}
 
-<h1>Emeritus Debian Member</h1>
+<h1>Cancel process</h1>
 
 TODO: explain
 
+{% if request.is_anonymous %}
+TODO: log into SSO
+{% else %}
 <form action="{{request.build_absolute_uri}}" method="POST">{% csrf_token %}
 {{form.non_field_errors}}
   <p>
-  {{form.statement.errors}}
-  {{form.statement.label}}
+  {{form.is_public.errors}}
+  {{form.is_public.label}}
+  {{form.is_public}}
   </p>
   <p>
+  {{form.statement.errors}}
+  {{form.statement.label}}
   {{form.statement}}
   </p>
   <button type="submit">Submit</button>
 </form>
+{% endif %}
 
 {% endblock %}
 

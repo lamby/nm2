@@ -8,7 +8,7 @@ from django import forms, http
 from django.core import signing
 from django.core.exceptions import PermissionDenied
 from django.conf import settings
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from backend.mixins import VisitorMixin, VisitPersonMixin
 from backend import const
 import backend.models as bmodels
@@ -761,6 +761,44 @@ class Approve(VisitProcessMixin, FormView):
         return redirect(self.process.get_absolute_url())
 
 
+class TokenAuthMixin:
+    # Domain used for this token
+    token_domain = None
+    # Max age in seconds
+    token_max_age = 15 * 3600 * 24
+
+    @classmethod
+    def make_token(cls, uid, **kw):
+        from django.utils.http import urlencode
+        kw.update(u=uid, d=cls.token_domain)
+        return urlencode({"t": signing.dumps(kw)})
+
+    def verify_token(self, decoded):
+        # Extend to verify extra components of the token
+        pass
+
+    def load_objects(self):
+        token = self.request.GET.get("t")
+        if token is not None:
+            try:
+                decoded = signing.loads(token, max_age=self.token_max_age)
+            except signing.BadSignature:
+                raise PermissionDenied
+            uid = decoded.get("u")
+            if uid is None:
+                raise PermissionDenied
+            if decoded.get("d") != self.token_domain:
+                raise PermissionDenied
+            self.verify_token(decoded)
+            try:
+                u = bmodels.Person.objects.get(uid=uid)
+            except bmodels.Person.DoesNotExist:
+                u = None
+            if u is not None:
+                self.request.user = u
+        super().load_objects()
+
+
 class EmeritusForm(forms.Form):
     statement = forms.CharField(
         required=True,
@@ -769,7 +807,8 @@ class EmeritusForm(forms.Form):
     )
 
 
-class Emeritus(VisitorMixin, FormView):
+class Emeritus(TokenAuthMixin, VisitorMixin, FormView):
+    token_domain = "emeritus"
     require_visitor = "dd"
     template_name = "process/emeritus.html"
     form_class = EmeritusForm
@@ -779,35 +818,9 @@ class Emeritus(VisitorMixin, FormView):
         from django.utils.http import urlencode
         if person.uid is None:
             raise RuntimeError("cannot generate an Emeritus url for a user without uid")
-        url =  reverse("process_emeritus") + "?" + urlencode({
-            "t": signing.dumps({
-                "u": person.uid,
-                "d": "emeritus",
-            })
-        })
-        if not request:
-            return url
+        url = reverse("process_emeritus") + "?" + cls.make_token(person.uid)
+        if not request: return url
         return request.build_absolute_uri(url)
-
-    def load_objects(self):
-        token = self.request.GET.get("t")
-        if token is not None:
-            try:
-                decoded = signing.loads(token, max_age=15)
-            except signing.BadSignature:
-                raise PermissionDenied
-            uid = decoded.get("u")
-            if uid is None:
-                raise PermissionDenied
-            if decoded.get("d") != "emeritus":
-                raise PermissionDenied
-            try:
-                u = bmodels.Person.objects.get(uid=uid)
-            except bmodels.Person.DoesNotExist:
-                u = None
-            if u is not None:
-                self.request.user = u
-        super().load_objects()
 
     def form_valid(self, form):
         text = form.cleaned_data["statement"]
@@ -834,3 +847,37 @@ class Emeritus(VisitorMixin, FormView):
             file_statement(self.request, self.visitor, requirement, statement, replace=False, notify_ml="private")
 
         return redirect(process.get_absolute_url())
+
+
+class CancelForm(forms.Form):
+    statement = forms.CharField(
+        required=True,
+        label=_("Statement"),
+        widget=forms.Textarea(attrs=dict(rows=25, cols=80, placeholder="Enter your reason for canceling"))
+    )
+    is_public = forms.BooleanField(
+        required=False,
+        label=_("Message is public"),
+    )
+
+
+class Cancel(VisitProcessMixin, FormView):
+    template_name = "process/cancel.html"
+    form_class = CancelForm
+
+    def check_permissions(self):
+        super().check_permissions()
+        # Visible by anonymous or by who can close the procses
+        if self.request.user.is_anonymous:
+            return
+        if "proc_close" not in self.visit_perms:
+            raise PermissionDenied
+
+    def form_valid(self, form):
+        text = form.cleaned_data["statement"]
+        with transaction.atomic():
+            self.process.add_log(self.visitor, text, action="proc_close", is_public=form.cleaned_data["is_public"])
+            self.process.closed = now()
+            self.process.save()
+
+        return redirect(self.process.get_absolute_url())

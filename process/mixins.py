@@ -1,8 +1,3 @@
-# coding: utf-8
-
-
-
-
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect, get_object_or_404
 from backend.mixins import VisitPersonMixin
