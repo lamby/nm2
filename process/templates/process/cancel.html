@@ -7,10 +7,10 @@
 
 TODO: explain
 
-{% if request.is_anonymous %}
+{% if request.user.is_anonymous %}
 TODO: log into SSO
 {% else %}
-<form action="{{request.build_absolute_uri}}" method="POST">{% csrf_token %}
+<form id="cancel" action="{{request.build_absolute_uri}}" method="POST">{% csrf_token %}
 {{form.non_field_errors}}
   <p>
   {{form.is_public.errors}}

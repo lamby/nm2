@@ -869,7 +869,10 @@ class Cancel(VisitProcessMixin, FormView):
         super().check_permissions()
         # Visible by anonymous or by who can close the procses
         if self.request.user.is_anonymous:
-            return
+            if self.request.method == "GET":
+                return
+            else:
+                raise PermissionDenied
         if "proc_close" not in self.visit_perms:
             raise PermissionDenied
 

@@ -20,7 +20,7 @@ class TestCancel(ProcessFixtureMixin, TestCase):
         client = self.make_test_client(None)
         response = client.get(reverse("process_cancel", args=[self.processes.proc.pk]))
         self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, "<form")
+        self.assertNotContains(response, '<form id="cancel"')
 
         response = client.post(reverse("process_cancel", args=[self.processes.proc.pk]), data={
             "statement": "test statement",
@@ -45,7 +45,7 @@ class TestCancel(ProcessFixtureMixin, TestCase):
         with patch.object(pmodels.Process, "permissions_of", return_value=set(["proc_close"])):
             response = client.get(reverse("process_cancel", args=[self.processes.proc.pk]))
             self.assertEqual(response.status_code, 200)
-            self.assertContains(response, "<form")
+            self.assertContains(response, '<form id="cancel"')
 
             response = client.post(reverse("process_cancel", args=[self.processes.proc.pk]), data={
                 "statement": "test statement",
