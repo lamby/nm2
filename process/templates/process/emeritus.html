@@ -7,7 +7,7 @@
 
 TODO: explain
 
-<form action="{{request.get_absolute_uri}}" method="POST">{% csrf_token %}
+<form action="{{request.build_absolute_uri}}" method="POST">{% csrf_token %}
 {{form.non_field_errors}}
   <p>
   {{form.statement.errors}}

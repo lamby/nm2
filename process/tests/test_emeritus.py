@@ -54,6 +54,7 @@ class TestEmeritus(ProcessFixtureMixin, TestCase):
     def _test_success_common(self, visitor, client, url):
         response = client.get(url)
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, url)
         response = client.post(url, data={"statement": "test statement"})
         self.assertRedirectMatches(response, r"/process/\d+$")
         visitor = self.persons[visitor]
