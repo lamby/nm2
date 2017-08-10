@@ -209,7 +209,7 @@ class Process(models.Model):
     closed = models.DateTimeField(null=True, blank=True, help_text=_("Date the process was closed, or NULL if still open"))
     fd_comment = models.TextField("Front Desk comments", blank=True, default="")
     rt_request = models.TextField("RT request text", blank=True, default="")
-    rt_ticket =  models.IntegerField("RT request ticket", null=True)
+    rt_ticket =  models.IntegerField("RT request ticket", null=True, blank=True)
 
     objects = ProcessManager()
 
