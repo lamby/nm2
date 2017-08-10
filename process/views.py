@@ -5,6 +5,7 @@ from django.views.generic.edit import FormView
 from django.utils.timezone import now
 from django.db import transaction
 from django import forms, http
+from django.core import signing
 from django.core.exceptions import PermissionDenied
 from django.conf import settings
 from django.urls import reverse
@@ -779,20 +780,33 @@ class Emeritus(VisitorMixin, FormView):
         if person.uid is None:
             raise RuntimeError("cannot generate an Emeritus url for a user without uid")
         url =  reverse("process_emeritus") + "?" + urlencode({
-            "user": person.uid,
+            "t": signing.dumps({
+                "u": person.uid,
+                "d": "emeritus",
+            })
         })
         if not request:
             return url
         return request.build_absolute_uri(url)
 
     def load_objects(self):
-        user = self.request.GET.get("user")
-        try:
-            u = bmodels.Person.objects.get(uid=user)
-        except bmodels.Person.DoesNotExist:
-            u = None
-        if u is not None:
-            self.request.user = u
+        token = self.request.GET.get("t")
+        if token is not None:
+            try:
+                decoded = signing.loads(token, max_age=15)
+            except signing.BadSignature:
+                raise PermissionDenied
+            uid = decoded.get("u")
+            if uid is None:
+                raise PermissionDenied
+            if decoded.get("d") != "emeritus":
+                raise PermissionDenied
+            try:
+                u = bmodels.Person.objects.get(uid=uid)
+            except bmodels.Person.DoesNotExist:
+                u = None
+            if u is not None:
+                self.request.user = u
         super().load_objects()
 
     def form_valid(self, form):
@@ -804,6 +818,7 @@ class Emeritus(VisitorMixin, FormView):
             process = None
 
         if process is not None:
+            # TODO: If the process already exists but has no statement of intent, fill that instead
             return redirect(process.get_absolute_url())
 
         with transaction.atomic():
