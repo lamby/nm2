@@ -7,6 +7,7 @@ from django.db import transaction
 from django import forms, http
 from django.core.exceptions import PermissionDenied
 from django.conf import settings
+from django.urls import reverse
 from backend.mixins import VisitorMixin, VisitPersonMixin
 from backend import const
 import backend.models as bmodels
@@ -771,6 +772,28 @@ class Emeritus(VisitorMixin, FormView):
     require_visitor = "dd"
     template_name = "process/emeritus.html"
     form_class = EmeritusForm
+
+    @classmethod
+    def get_nonauth_url(cls, person, request=None):
+        from django.utils.http import urlencode
+        if person.uid is None:
+            raise RuntimeError("cannot generate an Emeritus url for a user without uid")
+        url =  reverse("process_emeritus") + "?" + urlencode({
+            "user": person.uid,
+        })
+        if not request:
+            return url
+        return request.build_absolute_uri(url)
+
+    def load_objects(self):
+        user = self.request.GET.get("user")
+        try:
+            u = bmodels.Person.objects.get(uid=user)
+        except bmodels.Person.DoesNotExist:
+            u = None
+        if u is not None:
+            self.request.user = u
+        super().load_objects()
 
     def form_valid(self, form):
         text = form.cleaned_data["statement"]
