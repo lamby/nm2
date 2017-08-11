@@ -429,7 +429,7 @@ class MailArchive(VisitProcessMixin, View):
         # The last mtime argument seems to only be supported in python 2.7
         outfd = GzipFile(user_fname, "wb", 9, res) #, os.path.getmtime(fname))
         try:
-            with open(fname) as infd:
+            with open(fname, "rb") as infd:
                 shutil.copyfileobj(infd, outfd)
             outfd.write(b"\n")
             outfd.write(self.process.get_statements_as_mbox())
