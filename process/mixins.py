@@ -39,7 +39,9 @@ def compute_process_status(process, visitor, visit_perms=None):
 
     am_assignment = process.current_am_assignment
 
-    if process.frozen_by:
+    if process.closed:
+        summary = "Closed"
+    elif process.frozen_by:
         if process.approved_by:
             summary = "Approved"
         else:

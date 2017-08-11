@@ -3,15 +3,24 @@
 
 {% block content %}
 
-<h1>Emeritus Debian Member</h1>
+<h1>Retiring from Debian</h1>
 
-TODO: explain
+<p>You can use this page to
+<a href="https://www.debian.org/doc/manuals/developers-reference/developer-duties.html#s3.7">retire from Debian</a>.
+
+<p>Use the form below to enter a goodbye message that will be sent to
+<a href="https://lists.debian.org/debian-private/">the debian-private mailing list</a>.
+A default text is provided for your convenience, feel free to change it as
+you wish.
+
+<p>The email will be sent as <tt>{{person.fullname}} &lt;{{person.email}}&gt;</tt>.
+You can change the address <a href="{% url 'person_edit_email' key=person.lookup_key %}">here</a>
+(requires <a href="https://wiki.debian.org/DebianSingleSignOn#Documentation_for_Users">Debian Single SignOn</a> access).</p>
 
 <form action="{{request.build_absolute_uri}}" method="POST">{% csrf_token %}
 {{form.non_field_errors}}
   <p>
   {{form.statement.errors}}
-  {{form.statement.label}}
   </p>
   <p>
   {{form.statement}}

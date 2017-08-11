@@ -2,8 +2,10 @@
 Dear {{person.fullname}},
 
 this mail is a "Where art thou" (WAT) ping by Front Desk / Missing In
-Action team. We are currently in the process of checking the activity of
-accounts in the Debian LDAP, after the MIA team has contacted you already.
+Action team.
+
+{{text}}
+
 The process is tracked at [1].
 
 If you consider yourself still active in Debian, please visit [2] to let

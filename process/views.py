@@ -806,7 +806,7 @@ class EmeritusForm(forms.Form):
     statement = forms.CharField(
         required=True,
         label=_("Statement"),
-        widget=forms.Textarea(attrs=dict(rows=25, cols=80, placeholder="Enter your leave message here"))
+        widget=forms.Textarea(attrs=dict(rows=10, cols=80)),
     )
 
 
@@ -815,6 +815,16 @@ class Emeritus(TokenAuthMixin, VisitPersonMixin, FormView):
     require_visitor = "dd"
     template_name = "process/emeritus.html"
     form_class = EmeritusForm
+    initial = {
+        "statement": """
+Dear fellow developers,
+
+As I am not currently active in Debian, I request to move to the Emeritus
+status.
+
+So long, and thanks for all the fish.
+""".strip()
+    }
 
     @classmethod
     def get_nonauth_url(cls, person, request=None):
@@ -856,11 +866,11 @@ class CancelForm(forms.Form):
     statement = forms.CharField(
         required=True,
         label=_("Statement"),
-        widget=forms.Textarea(attrs=dict(rows=25, cols=80, placeholder="Enter your reason for canceling"))
+        widget=forms.Textarea(attrs=dict(rows=25, cols=80, placeholder="Enter here details of your activity in Debian"))
     )
     is_public = forms.BooleanField(
         required=False,
-        label=_("Message is public"),
+        label=_("Make the message public"),
     )
 
 
@@ -888,12 +898,17 @@ class Cancel(VisitProcessMixin, FormView):
 
         return redirect(self.process.get_absolute_url())
 
+    def get_context_data(self, **kw):
+        ctx = super().get_context_data(**kw)
+        ctx["start_date"] = self.process.log.order_by("logdate")[0].logdate
+        return ctx
+
 
 class MIAPingForm(forms.Form):
     email = forms.CharField(
         required=True,
-        label=_("Email"),
-        widget=forms.Textarea(attrs=dict(rows=25, cols=80))
+        label=_("Email introduction"),
+        widget=forms.Textarea(attrs=dict(rows=10, cols=80))
     )
 
 
@@ -904,7 +919,10 @@ class MIAPing(VisitPersonMixin, FormView):
 
     def get_initial(self):
         initial = super().get_initial()
-        initial["email"] = "TODO"
+        initial["email"] = """
+We are currently in the process of checking the activity of accounts
+in the Debian LDAP, after the MIA team has contacted you already.
+""".strip()
         return initial
 
     def form_valid(self, form):
@@ -921,17 +939,21 @@ class MIAPing(VisitPersonMixin, FormView):
             "emeritus_url": Emeritus.get_nonauth_url(process.person, self.request),
             "cancel_url": self.request.build_absolute_uri(reverse("process_cancel", args=[process.pk])),
             "deadline": now() + datetime.timedelta(days=30),
+            "text": text,
         }
 
         from django.template.loader import render_to_string
         body = render_to_string("process/mia_ping_email.txt", ctx).strip()
 
+        mia_addr = "mia-{}@debian.org".format(self.person.uid)
+
         from .email import build_django_message
         msg = build_django_message(
-            from_email=("nm.debian.org", "nm@debian.org"),
+            from_email=("Debian MIA team", mia_addr),
             to=[self.person.email],
-            cc=["nm@debian.org", process.archive_email],
-            subject="TODO: ping",
+            cc=[mia_addr, process.archive_email],
+            subject="WAT: Are you still active in Debian? ({})".format(self.person.uid),
+            # TODO: X-MIA-Summary: out; WAT by nm.d.o
             body=body)
         msg.send()
 

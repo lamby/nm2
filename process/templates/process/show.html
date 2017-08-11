@@ -30,6 +30,9 @@
   <tr>
     <th>Status</th>
     <td>
+      {% if process.closed %}
+         Closed.
+      {% else %}
       {% if process.frozen_by %}
         {% if process.approved_by %}
           Approved by {{process.approved_by.a_link}} on {{process.approved_time|date:"Y-m-d"}}.
@@ -45,6 +48,7 @@
         {% else %}
           Collecting requirements.
         {% endif %}
+      {% endif %}
       {% endif %}
     </td>
   </tr>

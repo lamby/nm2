@@ -5,22 +5,44 @@
 
 <h1>Cancel process</h1>
 
-TODO: explain
+<p>On {{start_date|date:"F d, Y"}} the <a href="https://wiki.debian.org/qa.debian.org/MIATeam">Missing In Action</a>
+team sent a "Where Art Thou?" ping message to <tt>{{process.person.uid}}</tt>
+communicating the intention of closing the account after some time.</p>
+
+<p>If you are {{process.person.fullname}} and consider yourself still active, you
+can use this page to let the MIA team know.</p>
 
 {% if request.user.is_anonymous %}
-TODO: log into SSO
+
+To access the page you need to authenticate yourself with the 
+<a href="https://wiki.debian.org/DebianSingleSignOn#Documentation_for_Users">Debian Single SignOn</a>
+system. Follow the link for instructions.
+
 {% else %}
+
+{% if not process.person.fpr %}
+
+<p>You do not seem to have a valid OpenPGP key at the moment, please contact
+<a href="https://keyring.debian.org/">the Keyring team</a> to have again a key
+in the Debian keyring.</p>
+
+{% endif %}
+
+<p>Please type below a message for the MIA team describing what you do or are
+going to do in Debian. The text will only be visible to Front Desk / MIA team
+unless you tick the box to make it public.</p>
+
 <form id="cancel" action="{{request.build_absolute_uri}}" method="POST">{% csrf_token %}
 {{form.non_field_errors}}
   <p>
-  {{form.is_public.errors}}
-  {{form.is_public.label}}
-  {{form.is_public}}
+  {{form.statement.errors}}
+  {{form.statement.label_tag}}<br>
+  {{form.statement}}
   </p>
   <p>
-  {{form.statement.errors}}
-  {{form.statement.label}}
-  {{form.statement}}
+  {{form.is_public.errors}}
+  {{form.is_public.label_tag}}
+  {{form.is_public}}
   </p>
   <button type="submit">Submit</button>
 </form>

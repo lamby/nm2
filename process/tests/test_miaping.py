@@ -48,6 +48,7 @@ class TestMiaPing(PersonFixtureMixin, TestCase):
         self.assertEquals(log.logtext, "Sent ping email")
 
         self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].from_email, ["Debian MIA team <mia-foo@debian.org>"])
         self.assertEqual(mail.outbox[0].to, [self.persons[visited].email])
         self.assertEqual(mail.outbox[0].cc, ["nm@debian.org", "archive-{}@nm.debian.org".format(process.pk)])
         self.assertIn(reverse("process_emeritus") + "?t=", mail.outbox[0].body)
