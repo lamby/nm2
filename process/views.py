@@ -920,6 +920,7 @@ class MIAPing(VisitPersonMixin, FormView):
             "process_url": self.request.build_absolute_uri(process.get_absolute_url()),
             "emeritus_url": Emeritus.get_nonauth_url(process.person, self.request),
             "cancel_url": self.request.build_absolute_uri(reverse("process_cancel", args=[process.pk])),
+            "deadline": now() + datetime.timedelta(days=30),
         }
 
         from django.template.loader import render_to_string

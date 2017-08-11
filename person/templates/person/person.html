@@ -8,6 +8,14 @@
   {% jsinclude "tables" %}
 {% endblock %}
 
+{% block relatedpages %}
+  {{block.super}}
+  <br>
+{% if person.is_dd %}
+  {% if visitor.is_admin %}<a href="{% url 'process_mia_ping' key=person.lookup_key %}">WAT ping</a>{% endif %}
+{% endif %}
+{% endblock %}
+
 {% block head %}
 {{block.super}}
 <script type="text/javascript">

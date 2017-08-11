@@ -1,14 +1,33 @@
 {% load nm %}
-Hello,
+Dear {{person.fullname}},
 
-FIXME FIXME
+this mail is a "Where art thou" (WAT) ping by Front Desk / Missing In
+Action team. We are currently in the process of checking the activity of
+accounts in the Debian LDAP, after the MIA team has contacted you already.
+The process is tracked at [1].
 
-{{emeritus_url}}
+If you consider yourself still active in Debian, please visit [2] to let
+us know about that. A few words about where you are active will help us to
+exclude you from future WAT pings in case our heuristics are too strict.
 
-{{cancel_url}}
+If you want to retire instead, you can visit [3] to do it with just one
+click using nm.debian.org. Retiring has the advantage of the "emeritus"
+status that allows you to return to Debian more easily [4]. Also, your
+@debian.org mail address will continue to work for 6 months to allow you
+to migrate to a different address.
 
-{{process_url}}
+If you fail to respond, we will shut down your Debian account after
+{{deadline|date:"F d, Y"}}, and have your OpenPGP key removed from the
+Debian keyring, without the benefits of the emeritus status.
 
--- 
-Thank you,
-{{visitor.fullname}} (as Front Desk / MIA team)
+We are happy to hear back from you. In any case, thanks for your work in
+Debian.
+
+
+For Front Desk / MIA team,
+{{visitor.fullname}}
+
+[1] {{process_url}}
+[2] {{cancel_url}}
+[3] {{emeritus_url}}
+[4] http://lists.debian.org/debian-devel-announce/2005/02/msg00003.html
