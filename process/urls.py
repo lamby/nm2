@@ -26,4 +26,5 @@ urlpatterns = [
     url(r'^(?P<pk>\d+)/email_lookup$', views.EmailLookup.as_view(), name="process_email_lookup"), # TODO: test
     url(r'^emeritus(?:/(?P<key>[^/]+))?$', views.Emeritus.as_view(), name="process_emeritus"),
     url(r'^(?P<pk>\d+)/cancel$', views.Cancel.as_view(), name="process_cancel"),
+    url(r'^mia/ping/(?P<key>[^/]+)?$', views.MIAPing.as_view(), name="process_mia_ping"),
 ]

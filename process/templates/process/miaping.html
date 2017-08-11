@@ -1,0 +1,30 @@
+{% extends "process/base.html" %}
+{% load nm %}
+
+{% block content %}
+
+<h1>Cancel process</h1>
+
+TODO: explain
+
+{% if request.user.is_anonymous %}
+TODO: log into SSO
+{% else %}
+<form id="cancel" action="{{request.build_absolute_uri}}" method="POST">{% csrf_token %}
+{{form.non_field_errors}}
+  <p>
+  {{form.is_public.errors}}
+  {{form.is_public.label}}
+  {{form.is_public}}
+  </p>
+  <p>
+  {{form.statement.errors}}
+  {{form.statement.label}}
+  {{form.statement}}
+  </p>
+  <button type="submit">Submit</button>
+</form>
+{% endif %}
+
+{% endblock %}
+

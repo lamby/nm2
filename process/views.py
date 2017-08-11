@@ -887,3 +887,25 @@ class Cancel(VisitProcessMixin, FormView):
             self.process.save()
 
         return redirect(self.process.get_absolute_url())
+
+
+class MIAPingForm(forms.Form):
+    email = forms.CharField(
+        required=True,
+        label=_("Email"),
+        widget=forms.Textarea(attrs=dict(rows=25, cols=80))
+    )
+
+
+class MIAPing(VisitPersonMixin, FormView):
+    require_visitor = "admin"
+    template_name = "process/miaping.html"
+    form_class = MIAPingForm
+
+    def get_initial(self):
+        initial = super().get_initial()
+        initial["email"] = "TODO"
+        return initial
+
+    def form_valid(self, form):
+        pass
