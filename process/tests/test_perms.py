@@ -21,7 +21,7 @@ class ProcExpected(object):
     def patch_generic_process_started(self):
         self.proc.set("app dd_nu dd_u oldam activeam fd dam", "update_keycheck view_person_audit_log")
         self.proc.patch("activeam fd dam app", "+edit_bio +edit_ldap +view_mbox")
-        self.proc.patch("fd dam app", "+request_new_status +edit_email")
+        self.proc.patch("fd dam app", "+request_new_status +edit_email +proc_close")
         self.proc.patch("fd dam", "+proc_freeze +fd_comments +am_assign +view_private_log")
         self.proc.patch("dc dc_ga dm dm_ga dd_nu dd_u oldam dd_e dd_r activeam fd dam app", "+add_log")
         if self.intent is not None:
@@ -74,6 +74,7 @@ class ProcExpected(object):
         self.proc.patch("fd dam", "-proc_unfreeze -proc_approve +proc_unapprove")
 
     def patch_generic_process_closed(self):
+        self.proc.patch("fd dam app", "-proc_close")
         self.proc.patch("activeam app", "+edit_bio")
         self.proc.patch("fd dam", "-proc_unapprove")
         self.proc.patch("dc dc_ga dm dm_ga dd_nu dd_u oldam dd_e dd_r activeam fd dam app", "-add_log")

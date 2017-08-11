@@ -356,7 +356,7 @@ class StatementCreate(StatementMixin, FormView):
         statement = self.statement
         if statement is None:
             statement = pmodels.Statement(requirement=self.requirement, fpr=self.visitor.fingerprint)
-            repace = False
+            replace = False
         else:
             replace = True
         statement.uploaded_by = self.visitor
