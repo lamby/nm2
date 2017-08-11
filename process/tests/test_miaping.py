@@ -30,13 +30,29 @@ class TestMiaPing(PersonFixtureMixin, TestCase):
         self.assertEqual(response.status_code, 200)
 
         # get the mail from context form initial value
-        email = response.context["form"].fields["email"].value
-        print(email)
-        # check that the mail contains the right urls
+        email = response.context["form"].fields["email"].initial
 
         response = client.post(reverse("process_mia_ping", args=[self.persons[visited].lookup_key]), data={"email": email})
         self.assertRedirectMatches(response, r"/process/\d+$")
-        # fetch the process and test that it has been filled correctly
+
+        process = pmodels.Process.objects.get(person=self.persons[visited], applying_for=const.STATUS_EMERITUS_DD, closed__isnull=True)
+        self.assertIsNone(process.frozen_by)
+        self.assertIsNone(process.approved_by)
+        self.assertIsNone(process.closed)
+        log = process.log.order_by("-logdate")[0]
+        self.assertEqual(log.changed_by, self.persons[visitor])
+        self.assertEqual(log.process, process)
+        self.assertIsNone(log.requirement)
+        self.assertTrue(log.is_public)
+        self.assertEqual(log.action, "")
+        self.assertEquals(log.logtext, "Sent ping email")
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [self.persons[visited].email])
+        self.assertEqual(mail.outbox[0].cc, ["nm@debian.org", "archive-{}@nm.debian.org".format(process.pk)])
+        self.assertIn(reverse("process_emeritus") + "?t=", mail.outbox[0].body)
+        self.assertIn(reverse("process_cancel", args=[process.pk]), mail.outbox[0].body)
+        self.assertIn(process.get_absolute_url(), mail.outbox[0].body)
 
     #def _test_success_common(self, visitor, client, url):
     #    response = client.get(url)

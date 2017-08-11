@@ -1,0 +1,14 @@
+{% load nm %}
+Hello,
+
+FIXME FIXME
+
+{{emeritus_url}}
+
+{{cancel_url}}
+
+{{process_url}}
+
+-- 
+Thank you,
+{{visitor.fullname}} (as Front Desk / MIA team)

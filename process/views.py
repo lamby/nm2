@@ -908,4 +908,30 @@ class MIAPing(VisitPersonMixin, FormView):
         return initial
 
     def form_valid(self, form):
-        pass
+        text = form.cleaned_data["email"]
+
+        process = pmodels.Process.objects.create(self.person, const.STATUS_EMERITUS_DD)
+        process.add_log(self.visitor, "Sent ping email", is_public=True)
+
+        ctx = {
+            "visitor": self.visitor,
+            "person": process.person,
+            "process": process,
+            "process_url": self.request.build_absolute_uri(process.get_absolute_url()),
+            "emeritus_url": Emeritus.get_nonauth_url(process.person, self.request),
+            "cancel_url": self.request.build_absolute_uri(reverse("process_cancel", args=[process.pk])),
+        }
+
+        from django.template.loader import render_to_string
+        body = render_to_string("process/mia_ping_email.txt", ctx).strip()
+
+        from .email import build_django_message
+        msg = build_django_message(
+            from_email=("nm.debian.org", "nm@debian.org"),
+            to=[self.person.email],
+            cc=["nm@debian.org", process.archive_email],
+            subject="TODO: ping",
+            body=body)
+        msg.send()
+
+        return redirect(process.get_absolute_url())
