@@ -953,7 +953,9 @@ in the Debian LDAP, after the MIA team has contacted you already.
             to=[self.person.email],
             cc=[mia_addr, process.archive_email],
             subject="WAT: Are you still active in Debian? ({})".format(self.person.uid),
-            # TODO: X-MIA-Summary: out; WAT by nm.d.o
+            headers={
+                "X-MIA-Summary": "out; WAT by nm.d.o",
+            },
             body=body)
         msg.send()
 
