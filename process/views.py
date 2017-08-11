@@ -63,6 +63,9 @@ class Create(VisitPersonMixin, FormView):
 
     def form_valid(self, form):
         applying_for = form.cleaned_data["applying_for"]
+        if applying_for == const.STATUS_EMERITUS_DD:
+            return redirect(reverse("process_emeritus", args=[self.person.lookup_key]))
+
         with transaction.atomic():
             p = pmodels.Process.objects.create(self.person, applying_for)
             p.add_log(self.visitor, "Process created", is_public=True)
@@ -807,7 +810,7 @@ class EmeritusForm(forms.Form):
     )
 
 
-class Emeritus(TokenAuthMixin, VisitorMixin, FormView):
+class Emeritus(TokenAuthMixin, VisitPersonMixin, FormView):
     token_domain = "emeritus"
     require_visitor = "dd"
     template_name = "process/emeritus.html"
@@ -826,13 +829,13 @@ class Emeritus(TokenAuthMixin, VisitorMixin, FormView):
         text = form.cleaned_data["statement"]
 
         try:
-            process = pmodels.Process.objects.get(person=self.visitor, applying_for=const.STATUS_EMERITUS_DD)
+            process = pmodels.Process.objects.get(person=self.person, applying_for=const.STATUS_EMERITUS_DD)
         except pmodels.Process.DoesNotExist:
             process = None
 
         with transaction.atomic():
             if process is None:
-                process = pmodels.Process.objects.create(self.visitor, const.STATUS_EMERITUS_DD)
+                process = pmodels.Process.objects.create(self.person, const.STATUS_EMERITUS_DD)
                 process.add_log(self.visitor, "Process created", is_public=True)
 
             requirement = process.requirements.get(type="intent")
