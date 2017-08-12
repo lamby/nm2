@@ -211,6 +211,7 @@ class ProcessManager(models.Manager):
 class Process(models.Model):
     person = models.ForeignKey(bmodels.Person, related_name="+")
     applying_for = models.CharField("target status", max_length=20, null=False, choices=[x[1:3] for x in const.ALL_STATUS])
+    started = models.DateTimeField(auto_now_add=True, verbose_name='process started')
     frozen_by = models.ForeignKey(bmodels.Person, related_name="+", blank=True, null=True, help_text=_("Person that froze this process for review, or NULL if it is still being worked on"))
     frozen_time = models.DateTimeField(null=True, blank=True, help_text=_("Date the process was frozen for review, or NULL if it is still being worked on"))
     approved_by = models.ForeignKey(bmodels.Person, related_name="+", blank=True, null=True, help_text=_("Person that reviewed this process and considered it complete, or NULL if not yet reviewed"))
