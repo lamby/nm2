@@ -858,7 +858,8 @@ So long, and thanks for all the fish.
             statement.uploaded_time = now()
             statement.statement, plaintext = text, text
             statement.save()
-            file_statement(self.request, self.visitor, requirement, statement, replace=False, notify_ml="private", mia="out; emeritus via nm.d.o")
+            # See /srv/qa.debian.org/mia/README
+            file_statement(self.request, self.visitor, requirement, statement, replace=False, notify_ml="private", mia="in, retired; emeritus via nm.d.o")
 
         return redirect(process.get_absolute_url())
 
@@ -893,9 +894,13 @@ class Cancel(VisitProcessMixin, FormView):
     def form_valid(self, form):
         text = form.cleaned_data["statement"]
         with transaction.atomic():
-            self.process.add_log(self.visitor, text, action="proc_close", is_public=form.cleaned_data["is_public"])
+            entry = self.process.add_log(self.visitor, text, action="proc_close", is_public=form.cleaned_data["is_public"])
             self.process.closed = now()
             self.process.save()
+
+            from .email import notify_new_log_entry
+            # See /srv/qa.debian.org/mia/README
+            notify_new_log_entry(entry, self.request, mia="in, ok; still active via nm.d.o")
 
         return redirect(self.process.get_absolute_url())
 

@@ -1,5 +1,6 @@
 from django.test import TestCase
 from django.urls import reverse
+from django.core import mail
 from unittest.mock import patch
 from backend.unittest import PersonFixtureMixin
 from backend import const
@@ -41,6 +42,8 @@ class TestCancel(ProcessFixtureMixin, TestCase):
             self.assertPermissionDenied(response)
 
     def test_proc_close(self):
+        mail.outbox = []
+
         client = self.make_test_client(self.persons.dc)
         with patch.object(pmodels.Process, "permissions_of", return_value=set(["proc_close"])):
             response = client.get(reverse("process_cancel", args=[self.processes.proc.pk]))
@@ -62,3 +65,8 @@ class TestCancel(ProcessFixtureMixin, TestCase):
         self.assertTrue(log.is_public)
         self.assertEqual(log.action, "proc_close")
         self.assertEqual(log.logtext, "test statement")
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["nm@debian.org"])
+        self.assertCountEqual(mail.outbox[0].cc, ["{} <{}>".format(proc.person.fullname, proc.person.email), proc.archive_email, "mia-{}@debian.org".format(proc.person.uid)])
+        self.assertEqual(mail.outbox[0].extra_headers["X-MIA-Summary"], "in, ok; still active via nm.d.o")

@@ -207,7 +207,7 @@ def notify_new_statement(statement, request=None, cc_nm=True, notify_ml="newmain
             msg.subject)
 
 
-def notify_new_log_entry(entry, request=None):
+def notify_new_log_entry(entry, request=None, mia=None):
     """
     Render a notification email template for a newly uploaded process log
     entry, then send the resulting email.
@@ -236,11 +236,17 @@ def notify_new_log_entry(entry, request=None):
         cc = []
         subject = "{}: new private log entry".format(process.person.fullname)
 
+    headers = {}
+    if mia is not None:
+        headers["X-MIA-Summary"] = mia
+        cc.append("mia-{}@debian.org".format(process.person.uid))
+
     msg = build_django_message(
         entry.changed_by,
         to="nm@debian.org",
         cc=cc,
         subject=subject,
+        headers=headers,
         body=body)
     msg.send()
     log.debug("sent mail from %s to %s cc %s bcc %s subject %s",
