@@ -857,6 +857,7 @@ So long, and thanks for all the fish.
             statement.uploaded_time = now()
             statement.statement, plaintext = text, text
             statement.save()
+            # TODO: use X-MIA-Summary
             file_statement(self.request, self.visitor, requirement, statement, replace=False, notify_ml="private")
 
         return redirect(process.get_absolute_url())
@@ -900,7 +901,10 @@ class Cancel(VisitProcessMixin, FormView):
 
     def get_context_data(self, **kw):
         ctx = super().get_context_data(**kw)
-        ctx["start_date"] = self.process.log.order_by("logdate")[0].logdate
+        try:
+            ctx["start_date"] = self.process.log.order_by("logdate")[0].logdate
+        except IndexError:
+            ctx["start_date"] = None
         return ctx
 
 
@@ -954,7 +958,7 @@ in the Debian LDAP, after the MIA team has contacted you already.
             cc=[mia_addr, process.archive_email],
             subject="WAT: Are you still active in Debian? ({})".format(self.person.uid),
             headers={
-                "X-MIA-Summary": "out; WAT by nm.d.o",
+                "X-MIA-Summary": "out, wat; WAT by nm.d.o",
             },
             body=body)
         msg.send()

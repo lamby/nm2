@@ -52,7 +52,7 @@ class TestMiaPing(PersonFixtureMixin, TestCase):
         self.assertEqual(mail.outbox[0].from_email, "Debian MIA team <{}>".format(mia_addr))
         self.assertEqual(mail.outbox[0].to, [self.persons[visited].email])
         self.assertEqual(mail.outbox[0].cc, [mia_addr, "archive-{}@nm.debian.org".format(process.pk)])
-        self.assertEqual(mail.outbox[0].extra_headers["X-MIA-Summary"], "out; WAT by nm.d.o")
+        self.assertEqual(mail.outbox[0].extra_headers["X-MIA-Summary"], "out, wat; WAT by nm.d.o")
         self.assertIn(reverse("process_emeritus") + "?t=", mail.outbox[0].body)
         self.assertIn(reverse("process_cancel", args=[process.pk]), mail.outbox[0].body)
         self.assertIn(process.get_absolute_url(), mail.outbox[0].body)
