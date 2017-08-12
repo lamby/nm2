@@ -1,8 +1,3 @@
-# coding: utf-8
-
-
-
-
 from django.views.generic import TemplateView
 from django.core.exceptions import PermissionDenied
 from . import models as bmodels

@@ -5,8 +5,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import utc, now
 from django.db import models
 from django.conf import settings
-from django.utils.timezone import now
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.contrib.auth.models import BaseUserManager, PermissionsMixin
 from django.forms.models import model_to_dict
 from . import const
@@ -44,21 +43,10 @@ class PersonVisitorPermissions(VisitorPermissions):
     """
     Store NM-specific permissions
     """
-    fddam_states = frozenset((const.PROGRESS_AM_OK, const.PROGRESS_FD_HOLD,
-        const.PROGRESS_FD_OK, const.PROGRESS_DAM_HOLD, const.PROGRESS_DAM_OK))
-    pre_dd_statuses = frozenset((const.STATUS_DC, const.STATUS_DC_GA,
-                                    const.STATUS_DM, const.STATUS_DM_GA,
-                                    const.STATUS_EMERITUS_DD,
-                                    const.STATUS_REMOVED_DD))
-    dm_or_dd = frozenset((const.STATUS_DM, const.STATUS_DM_GA, const.STATUS_DD_U, const.STATUS_DD_NU))
-    dd = frozenset((const.STATUS_DD_U, const.STATUS_DD_NU))
-
     def __init__(self, person, visitor):
         super(PersonVisitorPermissions, self).__init__(visitor)
         # Person being visited
         self.person = person.person
-        # Processes of self.person
-        #self.processes = list(self.person.processes.all())
 
         # If the person is already in LDAP, then nobody can edit their LDAP
         # info, since this database then becomes a read-only mirror of LDAP
@@ -69,19 +57,8 @@ class PersonVisitorPermissions(VisitorPermissions):
 
         # True if there are active processes currently frozen for review
         self.person_has_frozen_processes = False
-        old_frozen_progesses = frozenset((
-            const.PROGRESS_AM_OK,
-            const.PROGRESS_FD_HOLD,
-            const.PROGRESS_FD_OK,
-            const.PROGRESS_DAM_HOLD,
-            const.PROGRESS_DAM_OK,
-            const.PROGRESS_DONE,
-            const.PROGRESS_CANCELLED,
-        ))
         import process.models as pmodels
         if pmodels.Process.objects.filter(person=self.person, frozen_by__isnull=False, closed__isnull=True).exists():
-            self.person_has_frozen_processes = True
-        elif Process.objects.filter(person=self.person, is_active=True, progress__in=old_frozen_progesses).exists():
             self.person_has_frozen_processes = True
 
         if self.visitor is None:
@@ -476,7 +453,8 @@ class Person(PermissionsMixin, models.Model):
         const.STATUS_DC_GA: [const.STATUS_DM_GA, const.STATUS_DD_U, const.STATUS_DD_NU],
         const.STATUS_DM: [const.STATUS_DM_GA, const.STATUS_DD_NU, const.STATUS_DD_U],
         const.STATUS_DM_GA: [const.STATUS_DD_NU, const.STATUS_DD_U],
-        const.STATUS_DD_NU: [const.STATUS_DD_U],
+        const.STATUS_DD_NU: [const.STATUS_DD_U, const.STATUS_EMERITUS_DD],
+        const.STATUS_DD_U: [const.STATUS_EMERITUS_DD],
         const.STATUS_EMERITUS_DD: [const.STATUS_DD_U, const.STATUS_DD_NU],
         const.STATUS_REMOVED_DD: [const.STATUS_DD_U, const.STATUS_DD_NU],
     }
@@ -488,22 +466,21 @@ class Person(PermissionsMixin, models.Model):
         person
         """
         if self.pending: return []
-        statuses = list(self._new_status_table.get(self.status, []))
-        # Remove statuses from active processes
-        applying_for = []
-        if statuses:
-            for proc in Process.objects.filter(person=self, is_active=True):
-                applying_for.append(proc.applying_for)
 
+        statuses = list(self._new_status_table.get(self.status, []))
+
+        # Compute statuses one is already applying for in active processes
+        blacklist = []
         if statuses:
             import process.models as pmodels
             for proc in pmodels.Process.objects.filter(person=self, closed__isnull=True):
-                applying_for.append(proc.applying_for)
+                blacklist.append(proc.applying_for)
+        if const.STATUS_DD_U in blacklist: blacklist.append(const.STATUS_DD_NU)
+        if const.STATUS_DD_NU in blacklist: blacklist.append(const.STATUS_DD_U)
+        # When a non uploader is becoming emeritus, disable applying for upload rights
+        if const.STATUS_EMERITUS_DD in blacklist: blacklist.append(const.STATUS_DD_U)
 
-        if const.STATUS_DD_U in applying_for: applying_for.append(const.STATUS_DD_NU)
-        if const.STATUS_DD_NU in applying_for: applying_for.append(const.STATUS_DD_U)
-
-        for status in applying_for:
+        for status in blacklist:
             try:
                 statuses.remove(status)
             except ValueError:

@@ -1,8 +1,3 @@
-# coding: utf-8
-
-
-
-
 from django.utils.timezone import now, utc
 from backend import const
 from process.email import notify_new_dd

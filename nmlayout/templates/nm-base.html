@@ -41,6 +41,7 @@
 {% endif %}
 {% if process %}
   {% if visitor.is_admin %}<a href="{{process.get_admin_url}}">admin process</a>{% endif %}
+  {% if "proc_close" in visit_perms %}<a href="{% url 'process_cancel' pk=process.pk %}">cancel process</a>{% endif %}
 {% endif %}
 {% if person %}
   <a href="{{person.get_ddpo_url}}">DDPO</a>

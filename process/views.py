@@ -5,8 +5,10 @@ from django.views.generic.edit import FormView
 from django.utils.timezone import now
 from django.db import transaction
 from django import forms, http
+from django.core import signing
 from django.core.exceptions import PermissionDenied
 from django.conf import settings
+from django.urls import reverse, reverse_lazy
 from backend.mixins import VisitorMixin, VisitPersonMixin
 from backend import const
 import backend.models as bmodels
@@ -61,6 +63,9 @@ class Create(VisitPersonMixin, FormView):
 
     def form_valid(self, form):
         applying_for = form.cleaned_data["applying_for"]
+        if applying_for == const.STATUS_EMERITUS_DD:
+            return redirect(reverse("process_emeritus", args=[self.person.lookup_key]))
+
         with transaction.atomic():
             p = pmodels.Process.objects.create(self.person, applying_for)
             p.add_log(self.visitor, "Process created", is_public=True)
@@ -309,10 +314,14 @@ class StatementCreate(StatementMixin, FormView):
     template_name = "process/statement_create.html"
 
     def load_objects(self):
-        super(StatementCreate, self).load_objects()
+        super().load_objects()
         self.blurb = self.get_blurb()
         if self.blurb:
             self.blurb = ["For nm.debian.org, at {:%Y-%m-%d}:".format(now())] + self.blurb
+        if self.requirement.process.applying_for == const.STATUS_EMERITUS_DD:
+            self.notify_ml = "private"
+        else:
+            self.notify_ml = "newmaint"
 
     def get_blurb(self):
         """
@@ -342,6 +351,7 @@ class StatementCreate(StatementMixin, FormView):
         ctx = super(StatementCreate, self).get_context_data(**kw)
         ctx["blurb"] = [shlex_quote(x) for x in self.blurb] if self.blurb else None
         ctx["wikihelp"] = "https://wiki.debian.org/nm.debian.org/Statements"
+        ctx["notify_ml"] = self.notify_ml
         return ctx
 
     @transaction.atomic
@@ -349,48 +359,53 @@ class StatementCreate(StatementMixin, FormView):
         statement = self.statement
         if statement is None:
             statement = pmodels.Statement(requirement=self.requirement, fpr=self.visitor.fingerprint)
-            action = "Added"
-            log_action = "add_statement"
+            replace = False
         else:
-            action = "Updated"
-            log_action = "update_statement"
+            replace = True
         statement.uploaded_by = self.visitor
         statement.uploaded_time = now()
         statement.statement, plaintext = form.cleaned_data["statement"]
-
-        if self.blurb is not None:
-            expected = self.normalise_text("\n".join(self.blurb))
-            submitted = self.normalise_text(plaintext)
-
         statement.save()
 
-        self.requirement.add_log(self.visitor, "{} a signed statement".format(action), True, action=log_action)
-
-        # Check if the requirement considers itself satisfied now, and
-        # auto-mark approved accordingly
-        status = self.requirement.compute_status()
-        if status["satisfied"]:
-            try:
-                robot = bmodels.Person.objects.get(username="__housekeeping__")
-            except bmodels.Person.DoesNotExist:
-                robot = self.visitor
-            self.requirement.approved_by = robot
-            self.requirement.approved_time = now()
-        else:
-            self.requirement.approved_by = None
-            self.requirement.approved_time = None
-        self.requirement.save()
-
-        if self.requirement.approved_by:
-            self.requirement.add_log(self.requirement.approved_by, "New statement received, the requirement seems satisfied", True, action="req_approve")
-
-        if self.requirement.type in ("intent", "advocate", "am_ok"):
-            msg = statement.rfc3156
-            if msg is None:
-                from .email import notify_new_statement
-                notify_new_statement(statement, request=self.request, cc_nm=(self.requirement.type=="am_ok"))
+        file_statement(self.request, self.visitor, self.requirement, statement, replace=replace, notify_ml=self.notify_ml)
 
         return redirect(self.requirement.get_absolute_url())
+
+
+def file_statement(request, visitor, requirement, statement, replace=False, notify_ml="newmaint", mia=None):
+    if replace:
+        action = "Updated"
+        log_action = "update_statement"
+    else:
+        action = "Added"
+        log_action = "add_statement"
+
+    requirement.add_log(visitor, "{} a signed statement".format(action), True, action=log_action)
+
+    # Check if the requirement considers itself satisfied now, and
+    # auto-mark approved accordingly
+    status = requirement.compute_status()
+    if status["satisfied"]:
+        try:
+            robot = bmodels.Person.objects.get(username="__housekeeping__")
+        except bmodels.Person.DoesNotExist:
+            robot = visitor
+        requirement.approved_by = robot
+        requirement.approved_time = now()
+    else:
+        requirement.approved_by = None
+        requirement.approved_time = None
+    requirement.save()
+
+    if requirement.approved_by:
+        requirement.add_log(requirement.approved_by, "New statement received, the requirement seems satisfied", True, action="req_approve")
+
+    if requirement.type in ("intent", "advocate", "am_ok"):
+        msg = statement.rfc3156
+        if msg is None:
+            from .email import notify_new_statement
+            return notify_new_statement(statement, request=request, cc_nm=(requirement.type=="am_ok"), notify_ml=notify_ml, mia=mia)
+    return None
 
 
 class StatementDelete(StatementMixin, TemplateView):
@@ -748,3 +763,209 @@ class Approve(VisitProcessMixin, FormView):
         self.process.save()
         self.process.add_log(self.visitor, "Process approved", action="proc_approve", is_public=True)
         return redirect(self.process.get_absolute_url())
+
+
+class TokenAuthMixin:
+    # Domain used for this token
+    token_domain = None
+    # Max age in seconds
+    token_max_age = 15 * 3600 * 24
+
+    @classmethod
+    def make_token(cls, uid, **kw):
+        from django.utils.http import urlencode
+        kw.update(u=uid, d=cls.token_domain)
+        return urlencode({"t": signing.dumps(kw)})
+
+    def verify_token(self, decoded):
+        # Extend to verify extra components of the token
+        pass
+
+    def load_objects(self):
+        token = self.request.GET.get("t")
+        if token is not None:
+            try:
+                decoded = signing.loads(token, max_age=self.token_max_age)
+            except signing.BadSignature:
+                raise PermissionDenied
+            uid = decoded.get("u")
+            if uid is None:
+                raise PermissionDenied
+            if decoded.get("d") != self.token_domain:
+                raise PermissionDenied
+            self.verify_token(decoded)
+            try:
+                u = bmodels.Person.objects.get(uid=uid)
+            except bmodels.Person.DoesNotExist:
+                u = None
+            if u is not None:
+                self.request.user = u
+        super().load_objects()
+
+
+class EmeritusForm(forms.Form):
+    statement = forms.CharField(
+        required=True,
+        label=_("Statement"),
+        widget=forms.Textarea(attrs=dict(rows=10, cols=80)),
+    )
+
+
+class Emeritus(TokenAuthMixin, VisitPersonMixin, FormView):
+    token_domain = "emeritus"
+    require_visitor = "dd"
+    template_name = "process/emeritus.html"
+    form_class = EmeritusForm
+    initial = {
+        "statement": """
+Dear fellow developers,
+
+As I am not currently active in Debian, I request to move to the Emeritus
+status.
+
+So long, and thanks for all the fish.
+""".strip()
+    }
+
+    @classmethod
+    def get_nonauth_url(cls, person, request=None):
+        from django.utils.http import urlencode
+        if person.uid is None:
+            raise RuntimeError("cannot generate an Emeritus url for a user without uid")
+        url = reverse("process_emeritus") + "?" + cls.make_token(person.uid)
+        if not request: return url
+        return request.build_absolute_uri(url)
+
+    def form_valid(self, form):
+        text = form.cleaned_data["statement"]
+
+        try:
+            process = pmodels.Process.objects.get(person=self.person, applying_for=const.STATUS_EMERITUS_DD)
+        except pmodels.Process.DoesNotExist:
+            process = None
+
+        with transaction.atomic():
+            if process is None:
+                process = pmodels.Process.objects.create(self.person, const.STATUS_EMERITUS_DD)
+                process.add_log(self.visitor, "Process created", is_public=True)
+
+            requirement = process.requirements.get(type="intent")
+            if requirement.statements.exists():
+                return redirect(process.get_absolute_url())
+
+            statement = pmodels.Statement(requirement=requirement)
+            statement.uploaded_by = self.visitor
+            statement.uploaded_time = now()
+            statement.statement, plaintext = text, text
+            statement.save()
+            # See /srv/qa.debian.org/mia/README
+            file_statement(self.request, self.visitor, requirement, statement, replace=False, notify_ml="private", mia="in, retired; emeritus via nm.d.o")
+
+        return redirect(process.get_absolute_url())
+
+
+class CancelForm(forms.Form):
+    statement = forms.CharField(
+        required=True,
+        label=_("Statement"),
+        widget=forms.Textarea(attrs=dict(rows=25, cols=80, placeholder="Enter here details of your activity in Debian"))
+    )
+    is_public = forms.BooleanField(
+        required=False,
+        label=_("Make the message public"),
+    )
+
+
+class Cancel(VisitProcessMixin, FormView):
+    template_name = "process/cancel.html"
+    form_class = CancelForm
+
+    def check_permissions(self):
+        super().check_permissions()
+        # Visible by anonymous or by who can close the procses
+        if self.request.user.is_anonymous:
+            if self.request.method == "GET":
+                return
+            else:
+                raise PermissionDenied
+        if "proc_close" not in self.visit_perms:
+            raise PermissionDenied
+
+    def form_valid(self, form):
+        text = form.cleaned_data["statement"]
+        with transaction.atomic():
+            entry = self.process.add_log(self.visitor, text, action="proc_close", is_public=form.cleaned_data["is_public"])
+            self.process.closed = now()
+            self.process.save()
+
+            from .email import notify_new_log_entry
+            # See /srv/qa.debian.org/mia/README
+            notify_new_log_entry(entry, self.request, mia="in, ok; still active via nm.d.o")
+
+        return redirect(self.process.get_absolute_url())
+
+    def get_context_data(self, **kw):
+        ctx = super().get_context_data(**kw)
+        try:
+            ctx["start_date"] = self.process.log.order_by("logdate")[0].logdate
+        except IndexError:
+            ctx["start_date"] = None
+        return ctx
+
+
+class MIAPingForm(forms.Form):
+    email = forms.CharField(
+        required=True,
+        label=_("Email introduction"),
+        widget=forms.Textarea(attrs=dict(rows=10, cols=80))
+    )
+
+
+class MIAPing(VisitPersonMixin, FormView):
+    require_visitor = "admin"
+    template_name = "process/miaping.html"
+    form_class = MIAPingForm
+
+    def get_initial(self):
+        initial = super().get_initial()
+        initial["email"] = """
+We are currently in the process of checking the activity of accounts
+in the Debian LDAP, after the MIA team has contacted you already.
+""".strip()
+        return initial
+
+    def form_valid(self, form):
+        text = form.cleaned_data["email"]
+
+        process = pmodels.Process.objects.create(self.person, const.STATUS_EMERITUS_DD)
+        process.add_log(self.visitor, "Sent ping email", is_public=True)
+
+        ctx = {
+            "visitor": self.visitor,
+            "person": process.person,
+            "process": process,
+            "process_url": self.request.build_absolute_uri(process.get_absolute_url()),
+            "emeritus_url": Emeritus.get_nonauth_url(process.person, self.request),
+            "cancel_url": self.request.build_absolute_uri(reverse("process_cancel", args=[process.pk])),
+            "deadline": now() + datetime.timedelta(days=30),
+            "text": text,
+        }
+
+        from django.template.loader import render_to_string
+        body = render_to_string("process/mia_ping_email.txt", ctx).strip()
+
+        mia_addr = "mia-{}@debian.org".format(self.person.uid)
+
+        from .email import build_django_message
+        msg = build_django_message(
+            from_email=("Debian MIA team", mia_addr),
+            to=[self.person.email],
+            cc=[mia_addr, process.archive_email],
+            subject="WAT: Are you still active in Debian? ({})".format(self.person.uid),
+            headers={
+                "X-MIA-Summary": "out, wat; WAT by nm.d.o",
+            },
+            body=body)
+        msg.send()
+
+        return redirect(process.get_absolute_url())

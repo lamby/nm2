@@ -1,8 +1,3 @@
-# coding: utf-8
-
-
-
-
 from backend import const
 import backend.models as bmodels
 import backend.ops as bops

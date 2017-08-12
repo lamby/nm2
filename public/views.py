@@ -1,7 +1,7 @@
 from django import http, forms
 from django.conf import settings
 from django.shortcuts import redirect, render, get_object_or_404
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.core.exceptions import PermissionDenied
 from django.utils.translation import ugettext as _
 from django.utils.timezone import now
@@ -441,7 +441,7 @@ class StatsLatest(VisitorTemplateView):
         from django.db.models import Count, Min, Max
 
         days = int(self.request.GET.get("days", "7"))
-        threshold = now().replace(hour=0, minute=0, second=0, microsecond=0).date() - datetime.timedelta(days=days)
+        threshold = now().replace(hour=0, minute=0, second=0, microsecond=0) - datetime.timedelta(days=days)
 
         raw_counts = dict((x.tag, 0) for x in const.ALL_PROGRESS)
         for p in bmodels.Process.objects.values("progress").annotate(count=Count("id")).filter(is_active=True):

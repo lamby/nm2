@@ -79,7 +79,7 @@ def build_python_message(from_email=None, to=None, cc=None, reply_to=None, subje
     return msg
 
 
-def build_django_message(from_email=None, to=None, cc=None, reply_to=None, subject=None, date=None, body=""):
+def build_django_message(from_email=None, to=None, cc=None, reply_to=None, subject=None, date=None, headers=None, body=""):
     """
     Build a Django EmailMessage from common arguments.
 
@@ -99,14 +99,14 @@ def build_django_message(from_email=None, to=None, cc=None, reply_to=None, subje
     if to is not None: kw["to"] = _to_django_addrlist(to)
     if cc is not None: kw["cc"] = _to_django_addrlist(cc)
     if reply_to is not None: kw["reply_to"] = _to_django_addrlist(reply_to)
+    if headers is None: headers = {}
+    headers.update(date=email.utils.formatdate(time.mktime(date.timetuple())))
 
     msg = EmailMessage(
         from_email=_to_django_addr(from_email),
         subject=subject,
         body=body,
-        headers={
-            "date": email.utils.formatdate(time.mktime(date.timetuple())),
-        },
+        headers=headers,
         **kw
     )
     return msg
@@ -158,7 +158,7 @@ the nm.debian.org housekeeping robot
             msg.subject)
 
 
-def notify_new_statement(statement, request=None, cc_nm=True):
+def notify_new_statement(statement, request=None, cc_nm=True, notify_ml="newmaint", mia=None):
     """
     Render a notification email template for a newly uploaded statement, then
     send the resulting email.
@@ -175,6 +175,8 @@ def notify_new_statement(statement, request=None, cc_nm=True):
     body = """{statement.statement}
 
 {statement.uploaded_by.fullname} (via nm.debian.org)
+
+For details and to comment, visit {url}
 """
     body += "-- \n"
     body += "{url}\n"
@@ -184,13 +186,19 @@ def notify_new_statement(statement, request=None, cc_nm=True):
     if cc_nm:
         cc.append("nm@debian.org")
 
+    headers = {}
+    if mia is not None:
+        headers["X-MIA-Summary"] = mia
+        cc.append("mia-{}@debian.org".format(process.person.uid))
+
     msg = build_django_message(
         statement.uploaded_by,
-        to="debian-newmaint@lists.debian.org",
+        to="debian-{}@lists.debian.org".format(notify_ml),
         cc=cc,
         subject="{}: {}".format(
             process.person.fullname,
             statement.requirement.type_desc),
+        headers=headers,
         body=body)
     msg.send()
     log.debug("sent mail from %s to %s cc %s bcc %s subject %s",
@@ -201,7 +209,7 @@ def notify_new_statement(statement, request=None, cc_nm=True):
             msg.subject)
 
 
-def notify_new_log_entry(entry, request=None):
+def notify_new_log_entry(entry, request=None, mia=None):
     """
     Render a notification email template for a newly uploaded process log
     entry, then send the resulting email.
@@ -230,11 +238,17 @@ def notify_new_log_entry(entry, request=None):
         cc = []
         subject = "{}: new private log entry".format(process.person.fullname)
 
+    headers = {}
+    if mia is not None:
+        headers["X-MIA-Summary"] = mia
+        cc.append("mia-{}@debian.org".format(process.person.uid))
+
     msg = build_django_message(
         entry.changed_by,
         to="nm@debian.org",
         cc=cc,
         subject=subject,
+        headers=headers,
         body=body)
     msg.send()
     log.debug("sent mail from %s to %s cc %s bcc %s subject %s",

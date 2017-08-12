@@ -1,13 +1,5 @@
-# coding: utf-8
-"""
-Test DM claim interface
-"""
-
-
-
-
 from django.test import TestCase
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from backend.models import Person, Fingerprint
 from backend import const
 from backend.unittest import PersonFixtureMixin
