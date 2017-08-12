@@ -904,14 +904,6 @@ class Cancel(VisitProcessMixin, FormView):
 
         return redirect(self.process.get_absolute_url())
 
-    def get_context_data(self, **kw):
-        ctx = super().get_context_data(**kw)
-        try:
-            ctx["start_date"] = self.process.log.order_by("logdate")[0].logdate
-        except IndexError:
-            ctx["start_date"] = None
-        return ctx
-
 
 class MIAPingForm(forms.Form):
     email = forms.CharField(
