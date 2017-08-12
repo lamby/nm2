@@ -372,7 +372,7 @@ class StatementCreate(StatementMixin, FormView):
         return redirect(self.requirement.get_absolute_url())
 
 
-def file_statement(request, visitor, requirement, statement, replace=False, notify_ml="newmaint"):
+def file_statement(request, visitor, requirement, statement, replace=False, notify_ml="newmaint", mia=None):
     if replace:
         action = "Updated"
         log_action = "update_statement"
@@ -404,7 +404,8 @@ def file_statement(request, visitor, requirement, statement, replace=False, noti
         msg = statement.rfc3156
         if msg is None:
             from .email import notify_new_statement
-            notify_new_statement(statement, request=request, cc_nm=(requirement.type=="am_ok"), notify_ml=notify_ml)
+            return notify_new_statement(statement, request=request, cc_nm=(requirement.type=="am_ok"), notify_ml=notify_ml, mia=mia)
+    return None
 
 
 class StatementDelete(StatementMixin, TemplateView):
@@ -857,8 +858,7 @@ So long, and thanks for all the fish.
             statement.uploaded_time = now()
             statement.statement, plaintext = text, text
             statement.save()
-            # TODO: use X-MIA-Summary
-            file_statement(self.request, self.visitor, requirement, statement, replace=False, notify_ml="private")
+            file_statement(self.request, self.visitor, requirement, statement, replace=False, notify_ml="private", mia="out; emeritus via nm.d.o")
 
         return redirect(process.get_absolute_url())
 

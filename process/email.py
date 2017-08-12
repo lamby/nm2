@@ -158,7 +158,7 @@ the nm.debian.org housekeeping robot
             msg.subject)
 
 
-def notify_new_statement(statement, request=None, cc_nm=True, notify_ml="newmaint"):
+def notify_new_statement(statement, request=None, cc_nm=True, notify_ml="newmaint", mia=None):
     """
     Render a notification email template for a newly uploaded statement, then
     send the resulting email.
@@ -184,6 +184,11 @@ def notify_new_statement(statement, request=None, cc_nm=True, notify_ml="newmain
     if cc_nm:
         cc.append("nm@debian.org")
 
+    headers = {}
+    if mia is not None:
+        headers["X-MIA-Summary"] = mia
+        cc.append("mia-{}@debian.org".format(process.person.uid))
+
     msg = build_django_message(
         statement.uploaded_by,
         to="debian-{}@lists.debian.org".format(notify_ml),
@@ -191,6 +196,7 @@ def notify_new_statement(statement, request=None, cc_nm=True, notify_ml="newmain
         subject="{}: {}".format(
             process.person.fullname,
             statement.requirement.type_desc),
+        headers=headers,
         body=body)
     msg.send()
     log.debug("sent mail from %s to %s cc %s bcc %s subject %s",
