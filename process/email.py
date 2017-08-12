@@ -175,6 +175,8 @@ def notify_new_statement(statement, request=None, cc_nm=True, notify_ml="newmain
     body = """{statement.statement}
 
 {statement.uploaded_by.fullname} (via nm.debian.org)
+
+For details and to comment, visit {url}
 """
     body += "-- \n"
     body += "{url}\n"
