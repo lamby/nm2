@@ -47,7 +47,7 @@ class TestMiaPing(PersonFixtureMixin, TestCase):
         self.assertEqual(log.action, "")
         self.assertEquals(log.logtext, "Sent ping email")
 
-        mia_addr = "mia-{}@debian.org".format(self.persons[visited].uid)
+        mia_addr = "mia-{}@qa.debian.org".format(self.persons[visited].uid)
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].from_email, "Debian MIA team <{}>".format(mia_addr))
         self.assertEqual(mail.outbox[0].to, [self.persons[visited].email])

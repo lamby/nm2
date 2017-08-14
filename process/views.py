@@ -946,7 +946,7 @@ in the Debian LDAP, after the MIA team has contacted you already.
         from django.template.loader import render_to_string
         body = render_to_string("process/mia_ping_email.txt", ctx).strip()
 
-        mia_addr = "mia-{}@debian.org".format(self.person.uid)
+        mia_addr = "mia-{}@qa.debian.org".format(self.person.uid)
 
         from .email import build_django_message
         msg = build_django_message(

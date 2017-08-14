@@ -66,7 +66,7 @@ class TestEmeritus(ProcessFixtureMixin, TestCase):
         self.assertEqual(stm.uploaded_by, visitor)
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, ["debian-private@lists.debian.org"])
-        self.assertCountEqual(mail.outbox[0].cc, ["{} <{}>".format(process.person.fullname, process.person.email), process.archive_email, "mia-{}@debian.org".format(process.person.uid)])
+        self.assertCountEqual(mail.outbox[0].cc, ["{} <{}>".format(process.person.fullname, process.person.email), process.archive_email, "mia-{}@qa.debian.org".format(process.person.uid)])
         self.assertEqual(mail.outbox[0].extra_headers["X-MIA-Summary"], "in, retired; emeritus via nm.d.o")
 
         # Submit again, no statement is added/posted

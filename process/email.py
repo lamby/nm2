@@ -189,7 +189,7 @@ For details and to comment, visit {url}
     headers = {}
     if mia is not None:
         headers["X-MIA-Summary"] = mia
-        cc.append("mia-{}@debian.org".format(process.person.uid))
+        cc.append("mia-{}@qa.debian.org".format(process.person.uid))
 
     msg = build_django_message(
         statement.uploaded_by,
@@ -241,7 +241,7 @@ def notify_new_log_entry(entry, request=None, mia=None):
     headers = {}
     if mia is not None:
         headers["X-MIA-Summary"] = mia
-        cc.append("mia-{}@debian.org".format(process.person.uid))
+        cc.append("mia-{}@qa.debian.org".format(process.person.uid))
 
     msg = build_django_message(
         entry.changed_by,

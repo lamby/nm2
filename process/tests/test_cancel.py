@@ -68,5 +68,5 @@ class TestCancel(ProcessFixtureMixin, TestCase):
 
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, ["nm@debian.org"])
-        self.assertCountEqual(mail.outbox[0].cc, ["{} <{}>".format(proc.person.fullname, proc.person.email), proc.archive_email, "mia-{}@debian.org".format(proc.person.uid)])
+        self.assertCountEqual(mail.outbox[0].cc, ["{} <{}>".format(proc.person.fullname, proc.person.email), proc.archive_email, "mia-{}@qa.debian.org".format(proc.person.uid)])
         self.assertEqual(mail.outbox[0].extra_headers["X-MIA-Summary"], "in, ok; still active via nm.d.o")
