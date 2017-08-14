@@ -1,7 +1,26 @@
 {% load nm %}
 <p>The most important requirement for changing status in Debian is to make sure
 that a person actually intends to.</p>
+
 {% if edit %}
+
+{% if process.applying_for == dd_e %}
+<p>Paste a signed statement of intent in the form below, and it will get
+automatically posted to <a href="https://lists.debian.org/debian-private/">debian-private</a>.</p>
+
+<p>An example statement of intent can be something like this:
+<pre>
+Dear fellow developers,
+
+As I am not currently active in Debian, I request to move to the Emeritus
+status.
+
+So long, and thanks for all the fish.
+</pre>
+<p>
+
+{% else %}
+
 <p>Paste a signed statement of intent in the form below, and it will get
 automatically posted to <a href="https://lists.debian.org/debian-newmaint/">debian-newmaint</a>.</p>
 
@@ -12,4 +31,6 @@ I would like to apply to change my status in Debian to {{process.applying_for|de
 I have worked on X and Y for a while and I would like to be able to Z.
 </pre>
 <p>
+{% endif %}
+
 {% endif %}
