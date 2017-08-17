@@ -9,6 +9,7 @@ from django.core import signing
 from django.core.exceptions import PermissionDenied
 from django.conf import settings
 from django.urls import reverse, reverse_lazy
+from rest_framework import viewsets
 from backend.mixins import VisitorMixin, VisitPersonMixin
 from backend import const
 import backend.models as bmodels
@@ -21,6 +22,15 @@ import requests
 from six.moves import shlex_quote
 from . import models as pmodels
 from .forms import StatementForm
+from .serializers import ProcessSerializer
+
+
+class ProcessViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Export process information
+    """
+    queryset = pmodels.Process.objects.filter(closed__isnull=True).order_by("started")
+    serializer_class = ProcessSerializer
 
 
 class List(VisitorMixin, TemplateView):

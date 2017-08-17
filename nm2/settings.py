@@ -119,6 +119,7 @@ INSTALLED_APPS = [
     'django.contrib.admindocs',
     # https://github.com/spanezz/django-housekeeping
     'django_housekeeping',
+    'rest_framework',
     'keyring',
     'dsa',
     'deblayout',
@@ -162,6 +163,12 @@ TEMPLATES = [
         },
     },
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAdminUser',
+    ),
+}
 
 # A sample logging configuration. The only tangible logging
 # performed by this configuration is to send an email to
