@@ -6,7 +6,7 @@ import json
 
 class PersonFieldsMixin:
     PERSON_ANON_FIELDS = (
-        'cn', 'mn', 'sn', 'fullname',
+        'id', 'cn', 'mn', 'sn', 'fullname',
         'bio', 'uid',
         'status', 'status_changed',
         'fpr'
@@ -14,21 +14,28 @@ class PersonFieldsMixin:
     PERSON_DD_FIELDS = ('username', 'is_staff', 'email')
     PERSON_ADMIN_FIELDS = ('email_ldap', 'fd_comment')
 
+    def assertAllPersonFieldsAccountedFor(self, record):
+        all_fields = frozenset(self.PERSON_ANON_FIELDS + self.PERSON_DD_FIELDS + self.PERSON_ADMIN_FIELDS)
+        self.assertFalse(record.keys() - all_fields)
+
     def assertPersonAnonFields(self, record):
         for field in self.PERSON_ANON_FIELDS:
             self.assertIn(field, record)
         for field in self.PERSON_DD_FIELDS + self.PERSON_ADMIN_FIELDS:
             self.assertNotIn(field, record)
+        self.assertAllPersonFieldsAccountedFor(record)
 
     def assertPersonDDFields(self, record):
         for field in self.PERSON_ANON_FIELDS + self.PERSON_DD_FIELDS:
             self.assertIn(field, record)
         for field in self.PERSON_ADMIN_FIELDS:
             self.assertNotIn(field, record)
+        self.assertAllPersonFieldsAccountedFor(record)
 
     def assertPersonAdminFields(self, record):
         for field in self.PERSON_ANON_FIELDS + self.PERSON_DD_FIELDS + self.PERSON_ADMIN_FIELDS:
             self.assertIn(field, record)
+        self.assertAllPersonFieldsAccountedFor(record)
 
 
 class RestPersonTestCase(PersonFixtureMixin, PersonFieldsMixin, TestCase):

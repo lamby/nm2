@@ -8,12 +8,16 @@ import json
 
 class ProcessFieldsMixin(PersonFieldsMixin):
     PROCESS_ANON_FIELDS = (
-        'person', 'applying_for', 'started',
+        'id', 'person', 'applying_for', 'started',
         'frozen_by', 'frozen_time',
         'approved_by', 'approved_time',
         'closed', 'rt_ticket',
     )
     PROCESS_ADMIN_FIELDS = ('fd_comment', 'rt_request')
+
+    def assertAllProcessFieldsAccountedFor(self, record):
+        all_fields = frozenset(self.PROCESS_ANON_FIELDS + self.PROCESS_ADMIN_FIELDS)
+        self.assertFalse(record.keys() - all_fields)
 
     def assertProcessAnonFields(self, record):
         for field in self.PROCESS_ANON_FIELDS:
@@ -21,6 +25,7 @@ class ProcessFieldsMixin(PersonFieldsMixin):
         for field in self.PROCESS_ADMIN_FIELDS:
             self.assertNotIn(field, record)
         self.assertPersonAnonFields(record["person"])
+        self.assertAllProcessFieldsAccountedFor(record)
 
     def assertProcessDDFields(self, record):
         for field in self.PROCESS_ANON_FIELDS:
@@ -28,11 +33,13 @@ class ProcessFieldsMixin(PersonFieldsMixin):
         for field in self.PROCESS_ADMIN_FIELDS:
             self.assertNotIn(field, record)
         self.assertPersonDDFields(record["person"])
+        self.assertAllProcessFieldsAccountedFor(record)
 
     def assertProcessAdminFields(self, record):
         for field in self.PROCESS_ANON_FIELDS + self.PROCESS_ADMIN_FIELDS:
             self.assertIn(field, record)
         self.assertPersonAdminFields(record["person"])
+        self.assertAllProcessFieldsAccountedFor(record)
 
 
 class RestPersonTestCase(PersonFixtureMixin, ProcessFieldsMixin, TestCase):

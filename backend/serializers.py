@@ -5,7 +5,7 @@ class PersonSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = bmodels.Person
         fields = (
-            'username', 'is_staff',
+            'id', 'username', 'is_staff',
             'cn', 'mn', 'sn', 'fullname',
             'email', 'email_ldap',
             'bio',
@@ -21,7 +21,7 @@ class PersonSerializer(serializers.HyperlinkedModelSerializer):
 
         # See https://stackoverflow.com/questions/33459501/django-rest-framework-change-serializer-or-add-field-based-on-authentication
         fields = set((
-            'cn', 'mn', 'sn', 'fullname',
+            'id', 'cn', 'mn', 'sn', 'fullname',
             'bio', 'uid',
             'status', 'status_changed',
             'fpr'))

@@ -9,7 +9,7 @@ class ProcessSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = pmodels.Process
         fields = (
-            'person', 'applying_for', 'started',
+            'id', 'person', 'applying_for', 'started',
             'frozen_by', 'frozen_time',
             'approved_by', 'approved_time',
             'closed',
@@ -24,7 +24,7 @@ class ProcessSerializer(serializers.HyperlinkedModelSerializer):
 
         # See https://stackoverflow.com/questions/33459501/django-rest-framework-change-serializer-or-add-field-based-on-authentication
         fields = set((
-            'person', 'applying_for', 'started',
+            'id', 'person', 'applying_for', 'started',
             'frozen_by', 'frozen_time',
             'approved_by', 'approved_time',
             'closed', 'rt_ticket'))
