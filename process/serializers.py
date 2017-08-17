@@ -20,6 +20,7 @@ class ProcessSerializer(serializers.HyperlinkedModelSerializer):
     def __init__(self, *args, **kw):
         super().__init__(*args, **kw)
 
+        # See https://github.com/encode/django-rest-framework/issues/2555
         self.fields['person'] = bserializers.PersonSerializer(context=self.context)
 
         # See https://stackoverflow.com/questions/33459501/django-rest-framework-change-serializer-or-add-field-based-on-authentication
