@@ -3,7 +3,6 @@ import backend.serializers as bserializers
 import process.models as pmodels
 
 class ProcessSerializer(serializers.HyperlinkedModelSerializer):
-    person = serializers.HyperlinkedRelatedField(read_only=True, view_name="persons-detail")
     frozen_by = serializers.HyperlinkedRelatedField(read_only=True, view_name="persons-detail")
     approved_by = serializers.HyperlinkedRelatedField(read_only=True, view_name="persons-detail")
 
@@ -20,6 +19,8 @@ class ProcessSerializer(serializers.HyperlinkedModelSerializer):
 
     def __init__(self, *args, **kw):
         super().__init__(*args, **kw)
+
+        self.fields['person'] = bserializers.PersonSerializer(context=self.context)
 
         # See https://stackoverflow.com/questions/33459501/django-rest-framework-change-serializer-or-add-field-based-on-authentication
         fields = set((
