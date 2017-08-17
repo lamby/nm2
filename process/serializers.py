@@ -16,3 +16,22 @@ class ProcessSerializer(serializers.HyperlinkedModelSerializer):
             'closed',
             'fd_comment',
             'rt_request', 'rt_ticket')
+
+
+    def __init__(self, *args, **kw):
+        super().__init__(*args, **kw)
+
+        # See https://stackoverflow.com/questions/33459501/django-rest-framework-change-serializer-or-add-field-based-on-authentication
+        fields = set((
+            'person', 'applying_for', 'started',
+            'frozen_by', 'frozen_time',
+            'approved_by', 'approved_time',
+            'closed', 'rt_ticket'))
+
+        request = kw["context"].get("request")
+        if request is not None and not request.user.is_anonymous:
+            if request.user.is_admin:
+                fields.update(('fd_comment', 'rt_request'))
+
+        for field_name in self.fields.keys() - fields:
+            self.fields.pop(field_name)

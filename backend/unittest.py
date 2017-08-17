@@ -3,6 +3,7 @@ from backend.models import Person, Process, AM, Fingerprint
 from backend import const
 from django.utils.timezone import now
 from django.test import Client
+from rest_framework.test import APIClient
 from collections import defaultdict
 import datetime
 import os
@@ -15,10 +16,11 @@ class NamedObjects(dict):
     """
     Container for fixture model objects.
     """
-    def __init__(self, model, **defaults):
+    def __init__(self, model, skip_delete_all=False, **defaults):
         super(NamedObjects, self).__init__()
         self._model = model
         self._defaults = defaults
+        self._skip_delete_all = skip_delete_all
 
     def __getitem__(self, key):
         """
@@ -45,7 +47,7 @@ class NamedObjects(dict):
         If self._defaults for an argument is a string, then calls .format() on
         it passing _name and self._defaults as format arguments.
         """
-        for k, v in list(self._defaults.items()):
+        for k, v in self._defaults.items():
             if isinstance(v, six.string_types):
                 kw.setdefault(k, v.format(_name=_name, **self._defaults))
             elif hasattr(v, "__call__"):
@@ -66,13 +68,8 @@ class NamedObjects(dict):
         database after a test, the data stored in memory in the objects stored
         in NamedObjects repositories is not automatically refreshed.
         """
-        # FIXME: when we get Django 1.8, we can just do
-        # for o in self.values(): o.refresh_from_db()
-        for name, o in list(self.items()):
-            try:
-                self[name] = self._model.objects.get(pk=o.pk)
-            except self._model.DoesNotExist:
-                del self[name]
+        for o in self.values():
+            o.refresh_from_db()
 
     def delete_all(self):
         """
@@ -81,7 +78,8 @@ class NamedObjects(dict):
         This can be used in methods like tearDownClass to remove objects common
         to all tests.
         """
-        for o in list(self.values()):
+        if self._skip_delete_all: return
+        for o in self.values():
             o.delete()
 
 
@@ -139,6 +137,28 @@ class TestBase(object):
         name = re.sub(r"[^0-9A-Za-z_]", "_", "{}_{}".format(meth.__name__.lstrip("_"), "_".join(str(x) for x in args)))
         setattr(cls, name, lambda self: meth(self, *args, **kw))
 
+    @classmethod
+    def setUpClass(cls):
+        super(TestBase, cls).setUpClass()
+        cls._object_repos = []
+
+    @classmethod
+    def tearDownClass(cls):
+        super(TestBase, cls).tearDownClass()
+        for r in cls._object_repos[::-1]:
+            r.delete_all()
+
+    def setUp(self):
+        super(TestBase, self).setUp()
+        for r in self._object_repos:
+            r.refresh()
+
+    @classmethod
+    def add_named_objects(cls, **kw):
+        for name, repo in kw.items():
+            cls._object_repos.append(repo)
+            setattr(cls, name, repo)
+
     def make_test_client(self, person, sso_username=None, **kw):
         """
         Instantiate a test client, logging in the given person.
@@ -153,6 +173,23 @@ class TestBase(object):
         elif sso_username is not None:
             kw["SSL_CLIENT_S_DN_CN"] = sso_username
         client = Client(**kw)
+        client.visitor = person
+        return client
+
+    def make_test_apiclient(self, person, sso_username=None, **kw):
+        """
+        Instantiate a test client, logging in the given person.
+
+        If person is None, visit anonymously. If person is None but
+        sso_username is not None, authenticate as the given sso_username even
+        if a Person record does not exist.
+        """
+        person = self.persons[person]
+        if person is not None:
+            kw["SSL_CLIENT_S_DN_CN"] = person.username
+        elif sso_username is not None:
+            kw["SSL_CLIENT_S_DN_CN"] = sso_username
+        client = APIClient(**kw)
         client.visitor = person
         return client
 
@@ -188,7 +225,7 @@ class TestBase(object):
         should_have = []
         should_not_have = []
         content = response.content.decode("utf-8")
-        for name, regex in list(elements.items()):
+        for name, regex in elements.items():
             if name in want:
                 if not regex.search(content):
                     should_have.append(name)
@@ -200,6 +237,7 @@ class TestBase(object):
             if should_have: msg.append("should have element(s) {}".format(", ".join(should_have)))
             if should_not_have: msg.append("should not have element(s) {}".format(", ".join(should_not_have)))
             self.fail("page " + " and ".join(msg))
+
 
 class BaseFixtureMixin(TestBase):
     @classmethod
@@ -213,33 +251,18 @@ class BaseFixtureMixin(TestBase):
     def setUpClass(cls):
         import process.models as pmodels
         super(BaseFixtureMixin, cls).setUpClass()
-        cls.persons = TestPersons(**cls.get_persons_defaults())
-        cls.fingerprints = NamedObjects(Fingerprint)
-        cls.ams = NamedObjects(AM)
-        cls.processes = NamedObjects(pmodels.Process)
-        cls.keys = TestKeys()
+        cls.add_named_objects(
+            persons=TestPersons(**cls.get_persons_defaults()),
+            fingerprints=NamedObjects(Fingerprint),
+            ams=NamedObjects(AM),
+            processes=NamedObjects(pmodels.Process),
+            keys=TestKeys()
+        )
 
         # Preload keys
         cls.keys.create("66B4DFB68CB24EBBD8650BC4F4B4B0CC797EBFAB")
         cls.keys.create("1793D6AB75663E6BF104953A634F4BD1E7AD5568")
         cls.keys.create("0EED77DC41D760FDE44035FF5556A34E04A3610B")
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.keys.delete_all()
-        cls.processes.delete_all()
-        cls.ams.delete_all()
-        cls.fingerprints.delete_all()
-        cls.persons.delete_all()
-        super(BaseFixtureMixin, cls).tearDownClass()
-
-    def setUp(self):
-        super(BaseFixtureMixin, self).setUp()
-        self.persons.refresh();
-        self.fingerprints.refresh();
-        self.ams.refresh();
-        self.processes.refresh()
-        self.keys.refresh();
 
 
 class PersonFixtureMixin(BaseFixtureMixin):
@@ -453,7 +476,7 @@ class PageElements(dict):
 
     def clone(self):
         res = PageElements()
-        res.update(list(self.items()))
+        res.update(self.items())
         return res
 
 

@@ -1,8 +1,3 @@
-# coding: utf-8
-
-
-
-
 from backend.unittest import NamedObjects, PersonFixtureMixin
 import backend.models as bmodels
 import process.models as pmodels
