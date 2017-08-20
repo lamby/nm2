@@ -4,6 +4,13 @@
    <a href="{{person.get_absolute_url}}">{{person}}</a>
    to become <i>{{process.applying_for|desc_status}}</i>.</p>
 
+{% if not request.user.is_authenticated %}
+<p>You must be logged in to submit a statement of advocacy. See the
+  <a href="https://wiki.debian.org/DebianSingleSignOn">Single Sign-On page</a>
+  for details and <a href="https://sso.debian.org/">https://sso.debian.org/</a>
+  to obtain a suitable client certificate.</p>
+{% endif %}
+
 {% if process.applying_for == "dc_ga" %}
 <p>TODO: guest account</p>
 {% elif process.applying_for == "dm" %}
