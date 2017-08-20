@@ -12,11 +12,19 @@
 {% endif %}
 
 {% if process.applying_for == "dc_ga" %}
-<p>TODO: guest account</p>
+<p>Advocating a Debian Contributor to have a guest account requires they have
+a track record of contributing to Debian. You should read the
+<a href="https://dsa.debian.org/doc/guest-account/">DSA guidelines</a> on guest
+account access.</p>
 {% elif process.applying_for == "dm" %}
-<p>TODO: DM</p>
+<p>See <a href="https://wiki.debian.org/DebianMaintainer#Advocating_a_Debian_Maintainer">here</a>
+for details about advocating someone to be a Debian Maintainer. You should be familiar with their
+existing work within Debian and believe it to be of a sufficient standard that they can be
+trusted with upload rights to the packages they maintain.</p>
 {% elif process.applying_for == "dm_ga" %}
-<p>TODO: guest account</p>
+<p>Debian Maintainers do not require advocacy for guest accounts, but should
+read the <a href="https://dsa.debian.org/doc/guest-account/">DSA guidelines</a>
+and ensure that all the appropriate information has been provided.</p>
 {% elif process.applying_for == "dd_u" or process.applying_for == "dd_nu" %}
 <p>See <a href="http://wiki.debian.org/FrontDesk/AdvocacyTips">here</a> for advocacy tips, and
 <a href="https://lists.debian.org/debian-devel-announce/2010/05/msg00003.html">here</a>
