@@ -92,7 +92,7 @@ class TestEmeritus(ProcessFixtureMixin, TestCase):
         # check that if the process is turned into REMOVED_DD, the visitor can
         # no longer insert statements
         process.closed = None
-        process.applying_for(const.STATUS_REMOVED_DD)
+        process.applying_for = const.STATUS_REMOVED_DD
         process.save()
         self._text_blocked(client, url)
         # check for closed REMOVED_DD process
@@ -103,6 +103,7 @@ class TestEmeritus(ProcessFixtureMixin, TestCase):
     def _text_blocked(self, client, url):
         response = client.get(url)
         self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["expired"])
         self.assertContains(response, "expired")  # XXX
         self.assertNotContains(response, "<textarea")
         response = client.post(url, data={"statement": "test statement"})

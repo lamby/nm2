@@ -849,16 +849,18 @@ So long, and thanks for all the fish.
     def load_objects(self):
         super().load_objects()
         try:
-            self.process = pmodels.Process.objects.get(person=self.person, applying_for=const.STATUS_EMERITUS_DD)
+            self.process = pmodels.Process.objects.get(person=self.person, applying_for__in=(const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD))
         except pmodels.Process.DoesNotExist:
             self.process = None
 
-    def get_context_data(self, **kw):
-        ctx = super().get_context_data(**kw)
-        ctx["expired"] = self.process is not None and (
+        self.expired = self.process is not None and (
                 self.process.applying_for == const.STATUS_REMOVED_DD
                 or self.process.closed is not None
         )
+
+    def get_context_data(self, **kw):
+        ctx = super().get_context_data(**kw)
+        ctx["expired"] = self.expired
         return ctx
 
     @classmethod
@@ -871,6 +873,9 @@ So long, and thanks for all the fish.
         return request.build_absolute_uri(url)
 
     def form_valid(self, form):
+        if self.expired:
+            raise PermissionDenied
+
         text = form.cleaned_data["statement"]
 
         with transaction.atomic():
