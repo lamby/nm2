@@ -17,9 +17,11 @@ class Entry(object):
         """
         Init entry to point at these attributes
         """
-        if hasattr(entry, "entry_get_dn"):
+        # FIXME: remove post-stretch, it seems that python3-ldap3 changed API
+        # from stretch to buster
+        try:
             self.dn = entry.entry_get_dn()
-        else:
+        except ldap3.core.exceptions.LDAPCursorError:
             self.dn = entry.entry_dn
         self.attrs = entry
         self.uid = entry["uid"][0]
