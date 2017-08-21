@@ -4,26 +4,9 @@ Debian NM Front Desk web application
 ## Running this code on your own machine
 ### Dependencies
 
-    apt-get install python-markdown python-ldap python-psycopg2 python-xapian \
-     python-django python-django-housekeeping \
-     python-debian python-debiancontributors
-
-#### django-housekeeping
-
-The ‘python-django-housekeeping’ package is not available in Debian
-earlier than Debian Stretch. If you are deploying to a machine running
-Debian earlier than Stretch, use the following procedure:
-
-    # https://github.com/spanezz/django-housekeeping
-    git clone https://github.com/spanezz/django-housekeeping
-      (you can either build the package from it or symlink the module directory
-      into the contributors.debian.org sources)
-
-    # build the package
-    fakeroot debian/rules clean binary
-
-    # install the package
-    dpkg -i  ../python-django-housekeeping_0.1-1_all.deb
+    apt-get install python3-markdown python3-ldap python3-psycopg2 python3-xapian \
+     python3-django python3-django-housekeeping \
+     python3-debian python3-debiancontributors
 
 ### Configuration
 
