@@ -6,7 +6,6 @@ from backend.unittest import PersonFixtureMixin
 from backend import const
 from unittest.mock import patch
 import time
-import datetime
 import process.models as pmodels
 import process.views as pviews
 from .common import (ProcessFixtureMixin,
@@ -129,7 +128,7 @@ class TestEmeritus(ProcessFixtureMixin, TestCase):
         self.assertEqual(len(mail.outbox), 0)
 
     def _test_expired_token_common(self, visitor, client, url):
-        expired = time.time() + datetime.timedelta(weeks=4).total_seconds()
+        expired = time.time() + 92 * 3600 * 24
         with patch('time.time', return_value=expired) as mock_time:
             assert time.time() == expired
             response = client.get(url)
