@@ -64,8 +64,7 @@ class TestEmeritus(ProcessFixtureMixin, TestCase):
         status = req.compute_status()
         self.assertTrue(status["satisfied"])
         self.assertEqual(req.statements.count(), 1)
-        stm = req.statements.all()[0]
-        self.assertEqual(stm.requirement, req)
+        stm = req.statements.get()
         self.assertIsNone(stm.fpr)
         self.assertEqual(stm.statement, "test statement")
         self.assertEqual(stm.uploaded_by, visitor)
@@ -80,7 +79,7 @@ class TestEmeritus(ProcessFixtureMixin, TestCase):
         self.assertRedirectMatches(response, r"/process/\d+$")
         req.refresh_from_db()
         self.assertEqual(req.statements.count(), 1)
-        stm = req.statements.all()[0]
+        stm = req.statements.get()
         self.assertEqual(stm.statement, "test statement")
         self.assertEqual(len(mail.outbox), 0)
 
