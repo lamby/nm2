@@ -20,6 +20,7 @@ def deploy():
     with cd(deploy_dir):
         sudo("git fetch", user="nm")
         sudo("test `git show-ref -s origin/master` = " + current_commit, user="nm")
+        sudo("git rebase origin/master", user="nm")
         sudo("./manage.py collectstatic --noinput", user="nm")
         sudo("./manage.py migrate", user="nm")
         sudo("psql service=nm -c 'grant select,insert,update,delete on all tables in schema public to nmweb'",
