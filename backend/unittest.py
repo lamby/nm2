@@ -68,8 +68,12 @@ class NamedObjects(dict):
         database after a test, the data stored in memory in the objects stored
         in NamedObjects repositories is not automatically refreshed.
         """
-        for o in self.values():
-            o.refresh_from_db()
+        for name, o in list(self.items()):
+            try:
+                self[name].refresh_from_db()
+            except self._model.DoesNotExist:
+                del self[name]
+
 
     def delete_all(self):
         """
