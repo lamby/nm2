@@ -31,7 +31,8 @@ class TestMiaRemove(ProcessFixtureMixin, TestCase):
         self.assertEqual(response.status_code, 200)
 
         # get the mail from context form initial value
-        email = response.context["form"].fields["email"].initial
+        email = response.context["form"].initial["email"]
+        self.assertIsNotNone(email)
 
         response = client.post(reverse("process_mia_remove", args=[self.processes.proc.pk]), data={"email": email})
         self.assertRedirectMatches(response, r"/process/\d+$")
@@ -50,8 +51,8 @@ class TestMiaRemove(ProcessFixtureMixin, TestCase):
         self.assertEqual(log.process, process)
         self.assertEqual(log.requirement, intent)
         self.assertTrue(log.is_public)
-        self.assertEqual(log.action, "req_approve")
-        self.assertEquals(log.logtext, "Notifying intention to remove the account")
+        self.assertEqual(log.action, "add_statement")
+        self.assertEquals(log.logtext, "Added intent to remove")
 
         log = process.log.order_by("pk")[1]
         self.assertEqual(log.changed_by, self.persons[visitor])
@@ -65,10 +66,10 @@ class TestMiaRemove(ProcessFixtureMixin, TestCase):
         self.assertEqual(intent.statements.count(), 1)
         stm = intent.statements.get()
         self.assertIsNone(stm.fpr)
-        self.assertIn(email, fpr.statement)
+        self.assertIn(email, stm.statement)
         self.assertEqual(stm.uploaded_by, self.persons[visitor])
 
-        mia_addr = "mia-{}@qa.debian.org".format(self.persons[visited].uid)
+        mia_addr = "mia-{}@qa.debian.org".format(process.person.uid)
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].from_email, "Debian MIA team <wat@debian.org>")
         self.assertEqual(mail.outbox[0].to, ["debian-private@lists.debian.org"])
