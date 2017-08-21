@@ -6,7 +6,8 @@ Debian NM Front Desk web application
 
     apt-get install python3-markdown python3-ldap3 python3-psycopg2 python3-xapian \
      python3-django python3-django-housekeeping \
-     python3-debian python3-debiancontributors
+     python3-debian python3-debiancontributors \
+     python3-djangorestframework
 
 ### Configuration
 
