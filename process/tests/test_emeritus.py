@@ -3,6 +3,9 @@ from django.urls import reverse
 from django.core import mail
 from backend.unittest import PersonFixtureMixin
 from backend import const
+from unittest.mock import patch
+import time
+import datetime
 import process.models as pmodels
 import process.views as pviews
 from .common import (ProcessFixtureMixin,
@@ -39,6 +42,7 @@ class TestEmeritus(ProcessFixtureMixin, TestCase):
         url = pviews.Emeritus.get_nonauth_url(self.persons[visitor])
         client = self.make_test_client(None)
         self._test_success_common(visitor, client, url)
+        self._test_expired_token_common(visitor, client, url)
 
     def _test_existing_nonsso_success(self, visitor):
         mail.outbox = []
@@ -46,6 +50,7 @@ class TestEmeritus(ProcessFixtureMixin, TestCase):
         client = self.make_test_client(None)
         self.processes.create("dd_u", person=self.persons[visitor], applying_for=const.STATUS_EMERITUS_DD, fd_comment="test")
         self._test_success_common(visitor, client, url)
+        self._test_expired_token_common(visitor, client, url)
 
     def _test_success_common(self, visitor, client, url):
         response = client.get(url)
@@ -89,6 +94,7 @@ class TestEmeritus(ProcessFixtureMixin, TestCase):
         url = pviews.Emeritus.get_nonauth_url(self.persons[visitor])
         client = self.make_test_client(None)
         self._test_forbidden_common(visitor, client, url)
+        self._test_expired_token_common(visitor, client, url)
 
     def _test_forbidden_common(self, visitor, client, url):
         response = client.get(url)
@@ -96,3 +102,10 @@ class TestEmeritus(ProcessFixtureMixin, TestCase):
         response = client.post(url, data={"statement": "test statement"})
         self.assertPermissionDenied(response)
         self.assertEqual(len(mail.outbox), 0)
+
+    def _test_expired_token_common(self, visitor, client, url):
+        expired = time.time() + datetime.timedelta(weeks=4).total_seconds()
+        with patch('time.time', return_value=expired) as mock_time:
+            assert time.time() == expired
+            response = client.get(url)
+            self.assertPermissionDenied(response)
