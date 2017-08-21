@@ -73,11 +73,10 @@ class TestMiaRemove(ProcessFixtureMixin, TestCase):
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].from_email, "Debian MIA team <wat@debian.org>")
         self.assertEqual(mail.outbox[0].to, ["debian-private@lists.debian.org"])
-        self.assertEqual(mail.outbox[0].cc, [self.persons[visited].email, "archive-{}@nm.debian.org".format(process.pk)])
+        self.assertEqual(mail.outbox[0].cc, [process.person.email, "archive-{}@nm.debian.org".format(process.pk)])
         self.assertEqual(mail.outbox[0].bcc, [mia_addr, "wat@debian.org"])
-        self.assertEqual(mail.outbox[0].extra_headers["X-MIA-Summary"], "out, wat; WAT by nm.d.o TODO") # FIXME: ask mapreri
-        self.assertIn(reverse("process_emeritus") + "\n", mail.outbox[0].body)
-        self.assertIn(reverse("process_cancel", args=[process.pk]), mail.outbox[0].body)
+        self.assertEqual(mail.outbox[0].extra_headers["X-MIA-Summary"], "out; public removal pre-announcement")
+        self.assertIn('{:%Y-%m-%d}'.format(process.started), mail.outbox[0].body)
         self.assertIn(process.get_absolute_url(), mail.outbox[0].body)
 
     def _test_forbidden(self, visitor):

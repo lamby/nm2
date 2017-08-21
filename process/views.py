@@ -1009,8 +1009,8 @@ class MIARemove(VisitProcessMixin, FormView):
     def get_initial(self):
         initial = super().get_initial()
         initial["email"] = """
-TODO: Sent mail on $DATE, had no response
-""".strip()
+We've sent the last warning email on {:%Y-%m-%d}, with no response.
+""".format(self.process.started).strip()
         return initial
 
     def form_valid(self, form):
@@ -1054,12 +1054,14 @@ TODO: Sent mail on $DATE, had no response
             from .email import build_django_message
             msg = build_django_message(
                 from_email=("Debian MIA team", "wat@debian.org"),
-                to=[self.person.email],
-                cc=[self.process.archive_email],
+                to=["debian-private@lists.debian.org"],
+                cc=[self.person.email, self.process.archive_email],
                 bcc=[mia_addr, "wat@debian.org"],
-                subject="WAT: Are you still active in Debian? ({})".format(self.person.uid),
+                subject="Debian Project member MIA: {} ({})".format(
+                    self.person.fullname, self.person.uid
+                ),
                 headers={
-                    "X-MIA-Summary": "out, wat; WAT by nm.d.o",
+                    "X-MIA-Summary": "out; public removal pre-announcement",
                 },
                 body=body)
             msg.send()

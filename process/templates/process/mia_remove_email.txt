@@ -1,35 +1,23 @@
 {% load nm %}
-Dear {{person.fullname}},
 
-this mail is a "Where art thou" (WAT) ping by Front Desk / Missing In
-Action team.
+Dear debian-private,
 
-{{text}}
+this mail is a notice for the removal of {{person.fullname}} ({{person.uid}}, in CC)
+after failed contact attempts by the Front Desk and Missing In Action teams.
+
+{{text|safe}}
 
 The process is tracked at [1].
 
-If you consider yourself still active in Debian, please visit [2] to let
-us know about that. A few words about where you are active will help us to
-exclude you from future WAT pings in case our heuristics are too strict.
+The account will be shut down after {{deadline|date:"F d, Y"}}.
 
-If you want to retire instead, you can visit [3] to do it with just one
-click using nm.debian.org. Retiring has the advantage of the "emeritus"
-status that allows you to return to Debian more easily [4]. Also, your
-@debian.org mail address will continue to work for 6 months to allow you
-to migrate to a different address.
-
-If you fail to respond, we will shut down your Debian account after
-{{deadline|date:"F d, Y"}}, and have your OpenPGP key removed from the
-Debian keyring, without the benefits of the emeritus status.
-
-We are happy to hear back from you. In any case, thanks for your work in
-Debian.
-
+If you know something about the situation of {{person.fullname}} please
+rise your voice now by replying to this email or, for a more confidential
+channel, replace debian-private with wat@debian.org.  Please keep the archive
+address in CC in both cases.
 
 For Front Desk / MIA team,
 {{visitor.fullname}}
 
+
 [1] {{process_url}}
-[2] {{cancel_url}}
-[3] {{emeritus_url}}
-[4] http://lists.debian.org/debian-devel-announce/2005/02/msg00003.html
