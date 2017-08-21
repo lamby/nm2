@@ -13,7 +13,7 @@ Hi
 
 {% if not retiring %}{{person.fullname}} has accepted the DMUP in a signed statement.{% endif %}
 
-Details from {{person.uid}}:
+Details from {{intents_from}}:
 
 {{intents}}
 

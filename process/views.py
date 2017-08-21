@@ -591,12 +591,15 @@ def make_rt_ticket_text(request, visitor, process):
 
     wrapper = textwrap.TextWrapper(width=75, initial_indent="  ", subsequent_indent="  ")
     wrapped = []
+    intents_from = set()
     for intent in pmodels.Statement.objects.filter(requirement__process=process, requirement__type="intent"):
+        intents_from.add(intent.uploaded_by)
         for paragraph in intent.statement_clean.splitlines():
             for line in wrapper.wrap(paragraph):
                 wrapped.append(line)
         wrapped.append("")
     ctx["intents"] = "\n".join(wrapped)
+    ctx["intents_from"] = ", ".join(x.uid for x in sorted(intents_from))
 
     ctx["process_url"] = request.build_absolute_uri(process.get_absolute_url())
 
@@ -832,6 +835,9 @@ class Emeritus(TokenAuthMixin, VisitPersonMixin, FormView):
     require_visitor = "dd"
     template_name = "process/emeritus.html"
     form_class = EmeritusForm
+    # Make the token last 3 months, so that one has plenty of time to use it
+    # even if MIA lags triggering removal
+    token_max_age = 90 * 3600 * 24
     initial = {
         "statement": """
 Dear fellow developers,
@@ -843,6 +849,23 @@ So long, and thanks for all the fish.
 """.strip()
     }
 
+    def load_objects(self):
+        super().load_objects()
+        try:
+            self.process = pmodels.Process.objects.get(person=self.person, applying_for__in=(const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD))
+        except pmodels.Process.DoesNotExist:
+            self.process = None
+
+        self.expired = self.process is not None and (
+                self.process.applying_for == const.STATUS_REMOVED_DD
+                or self.process.closed is not None
+        )
+
+    def get_context_data(self, **kw):
+        ctx = super().get_context_data(**kw)
+        ctx["expired"] = self.expired
+        return ctx
+
     @classmethod
     def get_nonauth_url(cls, person, request=None):
         from django.utils.http import urlencode
@@ -853,31 +876,29 @@ So long, and thanks for all the fish.
         return request.build_absolute_uri(url)
 
     def form_valid(self, form):
+        if self.expired:
+            raise PermissionDenied
+
         text = form.cleaned_data["statement"]
 
-        try:
-            process = pmodels.Process.objects.get(person=self.person, applying_for=const.STATUS_EMERITUS_DD)
-        except pmodels.Process.DoesNotExist:
-            process = None
-
         with transaction.atomic():
-            if process is None:
-                process = pmodels.Process.objects.create(self.person, const.STATUS_EMERITUS_DD)
-                process.add_log(self.visitor, "Process created", is_public=True)
+            if self.process is None:
+                self.process = pmodels.Process.objects.create(self.person, const.STATUS_EMERITUS_DD)
+                self.process.add_log(self.visitor, "Process created", is_public=True)
 
-            requirement = process.requirements.get(type="intent")
+            requirement = self.process.requirements.get(type="intent")
             if requirement.statements.exists():
-                return redirect(process.get_absolute_url())
+                return redirect(self.process.get_absolute_url())
 
             statement = pmodels.Statement(requirement=requirement)
             statement.uploaded_by = self.visitor
             statement.uploaded_time = now()
-            statement.statement, plaintext = text, text
+            statement.statement = text
             statement.save()
             # See /srv/qa.debian.org/mia/README
             file_statement(self.request, self.visitor, requirement, statement, replace=False, notify_ml="private", mia="in, retired; emeritus via nm.d.o")
 
-        return redirect(process.get_absolute_url())
+        return redirect(self.process.get_absolute_url())
 
 
 class CancelForm(forms.Form):
@@ -978,3 +999,84 @@ in the Debian LDAP, after the MIA team has contacted you already.
         msg.send()
 
         return redirect(process.get_absolute_url())
+
+
+class MIARemoveForm(forms.Form):
+    email = forms.CharField(
+        required=True,
+        label=_("Email introduction"),
+        widget=forms.Textarea(attrs=dict(rows=10, cols=80))
+    )
+
+
+class MIARemove(VisitProcessMixin, FormView):
+    require_visitor = "admin"
+    template_name = "process/miaremove.html"
+    form_class = MIARemoveForm
+
+    def get_context_data(self, **kw):
+        ctx = super().get_context_data(**kw)
+        ctx["status"] = self.compute_process_status()
+        return ctx
+
+    def get_initial(self):
+        initial = super().get_initial()
+        initial["email"] = """
+We've sent the last warning email on {:%Y-%m-%d}, with no response.
+""".format(self.process.started).strip()
+        return initial
+
+    def form_valid(self, form):
+        text = form.cleaned_data["email"]
+
+        with transaction.atomic():
+            self.process.applying_for = const.STATUS_REMOVED_DD
+            self.process.save()
+
+            requirement = self.process.requirements.get(type="intent")
+
+            statement = pmodels.Statement(requirement=requirement)
+            statement.uploaded_by = self.visitor
+            statement.uploaded_time = now()
+            statement.statement = text
+            statement.save()
+
+            requirement.add_log(self.visitor, "Added intent to remove", True, action="add_statement")
+            requirement.approved_by = self.visitor
+            requirement.approved_time = now()
+            requirement.save()
+
+            requirement.add_log(self.visitor, "Requirement satisfied with intent to remove", True, action="req_approve")
+
+            ctx = {
+                "visitor": self.visitor,
+                "person": self.process.person,
+                "process": self.process,
+                "process_url": self.request.build_absolute_uri(self.process.get_absolute_url()),
+                "emeritus_url": Emeritus.get_nonauth_url(self.process.person, self.request),
+                "cancel_url": self.request.build_absolute_uri(reverse("process_cancel", args=[self.process.pk])),
+                "deadline": now() + datetime.timedelta(days=15),
+                "text": text,
+            }
+
+            from django.template.loader import render_to_string
+            body = render_to_string("process/mia_remove_email.txt", ctx).strip()
+
+            mia_addr = "mia-{}@qa.debian.org".format(self.person.uid)
+
+            from .email import build_django_message
+            msg = build_django_message(
+                from_email=("Debian MIA team", "wat@debian.org"),
+                to=["debian-private@lists.debian.org"],
+                cc=[self.person.email, self.process.archive_email],
+                bcc=[mia_addr, "wat@debian.org"],
+                subject="Debian Project member MIA: {} ({})".format(
+                    self.person.fullname, self.person.uid
+                ),
+                headers={
+                    "X-MIA-Summary": "out; public removal pre-announcement",
+                },
+                body=body)
+            msg.send()
+
+        return redirect(self.process.get_absolute_url())

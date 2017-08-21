@@ -8,11 +8,15 @@
 
 {% block content %}
 
-<h1>Where Art Thou?</h1>
+<h1>Removal notice</h1>
 
-<p>This sends out the last ping regarding the <tt>{{person.uid}}</tt> account
-of <i>{{person.fullname}}</i>. The mail will contain links for becoming
-emeritus or notifying that one is still active.</p>
+<p>This sends out a public notice to <i>debian-private</i> regarding the removal
+of the <tt>{{person.uid}}</tt> account of <i>{{person.fullname}}</i>.  The mail
+will contain instruction for stopping the removal procedure if anybody know
+something about <i>{{person.fullname}}</i>'s situation.</p>
+
+<p>After submitting this form, the process will become a process for applying
+for <i>Debian Developer, removed</i>.</p>
 
 <p>It is possible to customize the email introduction in the text below.</p>
 
@@ -23,6 +27,11 @@ emeritus or notifying that one is still active.</p>
 {{form.email}}</p>
 <button type="submit">Send mail</button>
 </form>
+
+
+<h2>Process log</h2>
+
+{% include "process/log_widget.html" with entries=status.log readonly=True %}
 
 {% endblock %}
 

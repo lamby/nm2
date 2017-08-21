@@ -4,7 +4,7 @@ Dear {{person.fullname}},
 this mail is a "Where art thou" (WAT) ping by Front Desk / Missing In
 Action team.
 
-{{text}}
+{{text|safe}}
 
 The process is tracked at [1].
 

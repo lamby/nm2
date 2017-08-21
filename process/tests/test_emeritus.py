@@ -1,8 +1,11 @@
 from django.test import TestCase
 from django.urls import reverse
 from django.core import mail
+from django.utils.timezone import now
 from backend.unittest import PersonFixtureMixin
 from backend import const
+from unittest.mock import patch
+import time
 import process.models as pmodels
 import process.views as pviews
 from .common import (ProcessFixtureMixin,
@@ -39,6 +42,7 @@ class TestEmeritus(ProcessFixtureMixin, TestCase):
         url = pviews.Emeritus.get_nonauth_url(self.persons[visitor])
         client = self.make_test_client(None)
         self._test_success_common(visitor, client, url)
+        self._test_expired_token_common(visitor, client, url)
 
     def _test_existing_nonsso_success(self, visitor):
         mail.outbox = []
@@ -46,6 +50,7 @@ class TestEmeritus(ProcessFixtureMixin, TestCase):
         client = self.make_test_client(None)
         self.processes.create("dd_u", person=self.persons[visitor], applying_for=const.STATUS_EMERITUS_DD, fd_comment="test")
         self._test_success_common(visitor, client, url)
+        self._test_expired_token_common(visitor, client, url)
 
     def _test_success_common(self, visitor, client, url):
         response = client.get(url)
@@ -59,8 +64,7 @@ class TestEmeritus(ProcessFixtureMixin, TestCase):
         status = req.compute_status()
         self.assertTrue(status["satisfied"])
         self.assertEqual(req.statements.count(), 1)
-        stm = req.statements.all()[0]
-        self.assertEqual(stm.requirement, req)
+        stm = req.statements.get()
         self.assertIsNone(stm.fpr)
         self.assertEqual(stm.statement, "test statement")
         self.assertEqual(stm.uploaded_by, visitor)
@@ -75,9 +79,34 @@ class TestEmeritus(ProcessFixtureMixin, TestCase):
         self.assertRedirectMatches(response, r"/process/\d+$")
         req.refresh_from_db()
         self.assertEqual(req.statements.count(), 1)
-        stm = req.statements.all()[0]
+        stm = req.statements.get()
         self.assertEqual(stm.statement, "test statement")
         self.assertEqual(len(mail.outbox), 0)
+
+
+        # check for closed EMERITUS_DD process
+        process.closed = now()
+        process.save()
+        self._text_blocked(client, url)
+        # check that if the process is turned into REMOVED_DD, the visitor can
+        # no longer insert statements
+        process.closed = None
+        process.applying_for = const.STATUS_REMOVED_DD
+        process.save()
+        self._text_blocked(client, url)
+        # check for closed REMOVED_DD process
+        process.closed = now()
+        process.save()
+        self._text_blocked(client, url)
+
+    def _text_blocked(self, client, url):
+        response = client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["expired"])
+        self.assertContains(response, "expired")  # XXX
+        self.assertNotContains(response, "<textarea")
+        response = client.post(url, data={"statement": "test statement"})
+        self.assertPermissionDenied(response)
 
     def _test_forbidden(self, visitor):
         mail.outbox = []
@@ -89,6 +118,7 @@ class TestEmeritus(ProcessFixtureMixin, TestCase):
         url = pviews.Emeritus.get_nonauth_url(self.persons[visitor])
         client = self.make_test_client(None)
         self._test_forbidden_common(visitor, client, url)
+        self._test_expired_token_common(visitor, client, url)
 
     def _test_forbidden_common(self, visitor, client, url):
         response = client.get(url)
@@ -96,3 +126,10 @@ class TestEmeritus(ProcessFixtureMixin, TestCase):
         response = client.post(url, data={"statement": "test statement"})
         self.assertPermissionDenied(response)
         self.assertEqual(len(mail.outbox), 0)
+
+    def _test_expired_token_common(self, visitor, client, url):
+        expired = time.time() + 92 * 3600 * 24
+        with patch('time.time', return_value=expired) as mock_time:
+            assert time.time() == expired
+            response = client.get(url)
+            self.assertPermissionDenied(response)

@@ -1,4 +1,4 @@
-{% if "add_log" in visit_perms %}
+{% if "add_log" in visit_perms and not readonly %}
 <p>
 <form id="log_form" method="POST" action="{% url 'process_add_log' pk=process.pk %}">{% csrf_token %}
   {% if requirement %}

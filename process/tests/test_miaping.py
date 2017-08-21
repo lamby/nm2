@@ -30,7 +30,8 @@ class TestMiaPing(PersonFixtureMixin, TestCase):
         self.assertEqual(response.status_code, 200)
 
         # get the mail from context form initial value
-        email = response.context["form"].fields["email"].initial
+        email = response.context["form"].initial["email"]
+        self.assertIsNotNone(email)
 
         response = client.post(reverse("process_mia_ping", args=[self.persons[visited].lookup_key]), data={"email": email})
         self.assertRedirectMatches(response, r"/process/\d+$")
