@@ -11,7 +11,7 @@ Hi
   Forward email:    {{person.email}}
   Details:          {{process_url}}
 
-{{person.fullname}} has accepted the DMUP in a signed statement.
+{% if not retiring %}{{person.fullname}} has accepted the DMUP in a signed statement.{% endif %}
 
 Details from {{person.uid}}:
 

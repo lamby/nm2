@@ -79,7 +79,7 @@ def build_python_message(from_email=None, to=None, cc=None, reply_to=None, subje
     return msg
 
 
-def build_django_message(from_email=None, to=None, cc=None, reply_to=None, subject=None, date=None, headers=None, body=""):
+def build_django_message(from_email=None, to=None, cc=None, bcc=None, reply_to=None, subject=None, date=None, headers=None, body=""):
     """
     Build a Django EmailMessage from common arguments.
 
@@ -98,6 +98,7 @@ def build_django_message(from_email=None, to=None, cc=None, reply_to=None, subje
     kw = {}
     if to is not None: kw["to"] = _to_django_addrlist(to)
     if cc is not None: kw["cc"] = _to_django_addrlist(cc)
+    if bcc is not None: kw["bcc"] = _to_django_addrlist(bcc)
     if reply_to is not None: kw["reply_to"] = _to_django_addrlist(reply_to)
     if headers is None: headers = {}
     headers.update(date=email.utils.formatdate(time.mktime(date.timetuple())))

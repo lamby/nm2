@@ -513,10 +513,12 @@ def only_needs_guest_account(process):
 
 
 def make_rt_ticket_text(request, visitor, process):
+    retiring = process.applying_for in (const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD)
     ctx = {
         "visitor": visitor,
         "person": process.person,
         "process": process,
+        "retiring": retiring,
     }
 
     ## Build request text
@@ -541,7 +543,9 @@ def make_rt_ticket_text(request, visitor, process):
 
     only_guest_account = only_needs_guest_account(process)
 
-    if not only_guest_account:
+    if retiring:
+        req.append("Please make {person.fullname} (currently '{status}') a '{applying_for}'.")
+    elif not only_guest_account:
         req.append("Please make {person.fullname} (currently '{status}') a '{applying_for}' (advocated by {sponsors}).")
 
     if not only_guest_account:
@@ -550,7 +554,9 @@ def make_rt_ticket_text(request, visitor, process):
         else:
             req.append("Key {person.fpr} should be moved from the '{status}' to the '{applying_for}' keyring.")
 
-    if process.person.status not in (const.STATUS_DC, const.STATUS_DM):
+    if retiring:
+        req.append("Please also disable the {person.uid} LDAP account.")
+    elif process.person.status not in (const.STATUS_DC, const.STATUS_DM):
         req.append("Note that {person.fullname} already has an account in LDAP.")
 
     sponsors = set()
@@ -960,9 +966,10 @@ in the Debian LDAP, after the MIA team has contacted you already.
 
         from .email import build_django_message
         msg = build_django_message(
-            from_email=("Debian MIA team", mia_addr),
+            from_email=("Debian MIA team", "wat@debian.org"),
             to=[self.person.email],
-            cc=[mia_addr, process.archive_email],
+            cc=[process.archive_email],
+            bcc=[mia_addr, "wat@debian.org"],
             subject="WAT: Are you still active in Debian? ({})".format(self.person.uid),
             headers={
                 "X-MIA-Summary": "out, wat; WAT by nm.d.o",
