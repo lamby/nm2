@@ -2,6 +2,18 @@ from django.views.generic import TemplateView
 from django.core.exceptions import PermissionDenied
 from . import models as bmodels
 
+class OverrideView(Exception):
+    """
+    Allow to override the current view using a different view function in
+    load_objects, check_permissions and pre_dispatch.
+
+    This can be used to show nice error messages when special cases are
+    detected.
+    """
+    def __init__(self, method):
+        self.method = method
+
+
 class VisitorMixin(object):
     """
     Add self.visitor and self.impersonator to the View for the person visiting
@@ -49,9 +61,13 @@ class VisitorMixin(object):
         pass
 
     def dispatch(self, request, *args, **kwargs):
-        self.load_objects()
-        self.check_permissions()
-        self.pre_dispatch()
+        try:
+            self.load_objects()
+            self.check_permissions()
+            self.pre_dispatch()
+        except OverrideView as e:
+            return e.method(request, *args, **kw)
+
         return super(VisitorMixin, self).dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kw):
@@ -60,8 +76,10 @@ class VisitorMixin(object):
         ctx["impersonator"] = self.impersonator
         return ctx
 
+
 class VisitorTemplateView(VisitorMixin, TemplateView):
     pass
+
 
 class VisitPersonMixin(VisitorMixin):
     """
