@@ -17,7 +17,10 @@ class Entry(object):
         """
         Init entry to point at these attributes
         """
-        self.dn = entry.entry_get_dn()
+        if hasattr(entry, "entry_get_dn"):
+            self.dn = entry.entry_get_dn()
+        else:
+            self.dn = entry.entry_dn
         self.attrs = entry
         self.uid = entry["uid"][0]
 
