@@ -4,7 +4,7 @@ Debian NM Front Desk web application
 ## Running this code on your own machine
 ### Dependencies
 
-    apt-get install python3-markdown python3-ldap python3-psycopg2 python3-xapian \
+    apt-get install python3-markdown python3-ldap3 python3-psycopg2 python3-xapian \
      python3-django python3-django-housekeeping \
      python3-debian python3-debiancontributors
 
