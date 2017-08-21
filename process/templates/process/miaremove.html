@@ -1,0 +1,28 @@
+{% extends "process/base.html" %}
+{% load nm %}
+
+{% block relatedpages %}
+<a href="https://wiki.debian.org/qa.debian.org/MIATeam">MIA Team wiki page</a>
+{{block.super}}
+{% endblock %}
+
+{% block content %}
+
+<h1>Were Art Thou?</h1>
+
+<p>This sends out the last ping regarding the <tt>{{person.uid}}</tt> account
+of <i>{{person.fullname}}</i>. The mail will contain links for becoming
+emeritus or notifying that one is still active.</p>
+
+<p>It is possible to customize the email introduction in the text below.</p>
+
+<form id="cancel" action="{{request.build_absolute_uri}}" method="POST">{% csrf_token %}
+{{form.non_field_errors}}
+<p>{{form.email.errors}}</p>
+<p>{{form.email.label_tag}}:<br>
+{{form.email}}</p>
+<button type="submit">Send mail</button>
+</form>
+
+{% endblock %}
+

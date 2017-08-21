@@ -832,6 +832,9 @@ class Emeritus(TokenAuthMixin, VisitPersonMixin, FormView):
     require_visitor = "dd"
     template_name = "process/emeritus.html"
     form_class = EmeritusForm
+    # Make the token last 3 months, so that one has plenty of time to use it
+    # even if MIA lags triggering removal
+    token_max_age = 90 * 3600 * 24
     initial = {
         "statement": """
 Dear fellow developers,
@@ -872,7 +875,7 @@ So long, and thanks for all the fish.
             statement = pmodels.Statement(requirement=requirement)
             statement.uploaded_by = self.visitor
             statement.uploaded_time = now()
-            statement.statement, plaintext = text, text
+            statement.statement = text
             statement.save()
             # See /srv/qa.debian.org/mia/README
             file_statement(self.request, self.visitor, requirement, statement, replace=False, notify_ml="private", mia="in, retired; emeritus via nm.d.o")
@@ -978,3 +981,77 @@ in the Debian LDAP, after the MIA team has contacted you already.
         msg.send()
 
         return redirect(process.get_absolute_url())
+
+
+class MIARemoveForm(forms.Form):
+    email = forms.CharField(
+        required=True,
+        label=_("Email introduction"),
+        widget=forms.Textarea(attrs=dict(rows=10, cols=80))
+    )
+
+
+class MIARemove(VisitProcessMixin, FormView):
+    require_visitor = "admin"
+    template_name = "process/miaremove.html"
+    form_class = MIARemoveForm
+
+    def get_initial(self):
+        initial = super().get_initial()
+        initial["email"] = """
+TODO: Sent mail on $DATE, had no response
+""".strip()
+        return initial
+
+    def form_valid(self, form):
+        text = form.cleaned_data["email"]
+
+        with transaction.atomic():
+            self.process.applying_for = const.STATUS_REMOVED_DD
+            self.process.save()
+
+            requirement = self.process.requirements.get(type="intent")
+
+            statement = pmodels.Statement(requirement=requirement)
+            statement.uploaded_by = self.visitor
+            statement.uploaded_time = now()
+            statement.statement = text
+            statement.save()
+
+            requirement.add_log(self.visitor, "Added intent to remove", True, action="add_statement")
+            requirement.approved_by = self.visitor
+            requirement.approved_time = now()
+            requirement.save()
+
+            requirement.add_log(self.visitor, "Requirement satisfied with intent to remove", True, action="req_approve")
+
+            ctx = {
+                "visitor": self.visitor,
+                "person": self.process.person,
+                "process": self.process,
+                "process_url": self.request.build_absolute_uri(self.process.get_absolute_url()),
+                "emeritus_url": Emeritus.get_nonauth_url(self.process.person, self.request),
+                "cancel_url": self.request.build_absolute_uri(reverse("process_cancel", args=[self.process.pk])),
+                "deadline": now() + datetime.timedelta(days=30),
+                "text": text,
+            }
+
+            from django.template.loader import render_to_string
+            body = render_to_string("process/mia_remove_email.txt", ctx).strip()
+
+            mia_addr = "mia-{}@qa.debian.org".format(self.person.uid)
+
+            from .email import build_django_message
+            msg = build_django_message(
+                from_email=("Debian MIA team", "wat@debian.org"),
+                to=[self.person.email],
+                cc=[self.process.archive_email],
+                bcc=[mia_addr, "wat@debian.org"],
+                subject="WAT: Are you still active in Debian? ({})".format(self.person.uid),
+                headers={
+                    "X-MIA-Summary": "out, wat; WAT by nm.d.o",
+                },
+                body=body)
+            msg.send()
+
+        return redirect(self.process.get_absolute_url())
