@@ -35,6 +35,7 @@ KEYSERVER = getattr(settings, "KEYSERVER", "pgp.mit.edu")
 
 @contextmanager
 def tempdir_gpg():
+    os.makedirs(KEYRINGS_TMPDIR, exist_ok=True)
     homedir = tempfile.mkdtemp(dir=KEYRINGS_TMPDIR)
     try:
         gpg = GPG(homedir=homedir, use_default_keyring=True)

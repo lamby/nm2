@@ -19,8 +19,6 @@ import logging
 
 log = logging.getLogger(__name__)
 
-KEYRINGS_TMPDIR = getattr(settings, "KEYRINGS_TMPDIR", "/srv/keyring.debian.org/data/tmp_keyrings")
-
 class Keyrings(hk.Task):
     """
     Load keyrings
