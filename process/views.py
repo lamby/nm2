@@ -846,6 +846,21 @@ So long, and thanks for all the fish.
 """.strip()
     }
 
+    def load_objects(self):
+        super().load_objects()
+        try:
+            self.process = pmodels.Process.objects.get(person=self.person, applying_for=const.STATUS_EMERITUS_DD)
+        except pmodels.Process.DoesNotExist:
+            self.process = None
+
+    def get_context_data(self, **kw):
+        ctx = super().get_context_data(**kw)
+        ctx["expired"] = self.process is not None and (
+                self.process.applying_for == const.STATUS_REMOVED_DD
+                or self.process.closed is not None
+        )
+        return ctx
+
     @classmethod
     def get_nonauth_url(cls, person, request=None):
         from django.utils.http import urlencode
@@ -858,19 +873,14 @@ So long, and thanks for all the fish.
     def form_valid(self, form):
         text = form.cleaned_data["statement"]
 
-        try:
-            process = pmodels.Process.objects.get(person=self.person, applying_for=const.STATUS_EMERITUS_DD)
-        except pmodels.Process.DoesNotExist:
-            process = None
-
         with transaction.atomic():
-            if process is None:
-                process = pmodels.Process.objects.create(self.person, const.STATUS_EMERITUS_DD)
-                process.add_log(self.visitor, "Process created", is_public=True)
+            if self.process is None:
+                self.process = pmodels.Process.objects.create(self.person, const.STATUS_EMERITUS_DD)
+                self.process.add_log(self.visitor, "Process created", is_public=True)
 
-            requirement = process.requirements.get(type="intent")
+            requirement = self.process.requirements.get(type="intent")
             if requirement.statements.exists():
-                return redirect(process.get_absolute_url())
+                return redirect(self.process.get_absolute_url())
 
             statement = pmodels.Statement(requirement=requirement)
             statement.uploaded_by = self.visitor
@@ -880,7 +890,7 @@ So long, and thanks for all the fish.
             # See /srv/qa.debian.org/mia/README
             file_statement(self.request, self.visitor, requirement, statement, replace=False, notify_ml="private", mia="in, retired; emeritus via nm.d.o")
 
-        return redirect(process.get_absolute_url())
+        return redirect(self.process.get_absolute_url())
 
 
 class CancelForm(forms.Form):
