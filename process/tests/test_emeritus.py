@@ -1,6 +1,7 @@
 from django.test import TestCase
 from django.urls import reverse
 from django.core import mail
+from django.utils.timezone import now
 from backend.unittest import PersonFixtureMixin
 from backend import const
 from unittest.mock import patch
@@ -82,6 +83,30 @@ class TestEmeritus(ProcessFixtureMixin, TestCase):
         stm = req.statements.get()
         self.assertEqual(stm.statement, "test statement")
         self.assertEqual(len(mail.outbox), 0)
+
+
+        # check for closed EMERITUS_DD process
+        process.closed = now()
+        process.save()
+        self._text_blocked(client, url)
+        # check that if the process is turned into REMOVED_DD, the visitor can
+        # no longer insert statements
+        process.closed = None
+        process.applying_for(const.STATUS_REMOVED_DD)
+        process.save()
+        self._text_blocked(client, url)
+        # check for closed REMOVED_DD process
+        process.closed = now()
+        process.save()
+        self._text_blocked(client, url)
+
+    def _text_blocked(self, client, url):
+        response = client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "expired")  # XXX
+        self.assertNotContains(response, "<textarea")
+        response = client.post(url, data={"statement": "test statement"})
+        self.assertPermissionDenied(response)
 
     def _test_forbidden(self, visitor):
         mail.outbox = []
