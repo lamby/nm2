@@ -204,7 +204,7 @@ class ProcessManager(models.Manager):
         Return processes that are in an early stage, that is, that still have
         an unapproved intent, sc_dmup or advocate requirement.
         """
-        reqs = Requirement.objects.filter(type__in=("intent", "sc_dmup", "advocate"), approved_by__isnull=True)
+        reqs = Requirement.objects.filter(type__in=("intent", "sc_dmup", "advocate"), approved_by__isnull=True).exclude(process__applying_for__in=(const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD))
         return self.get_queryset().filter(closed__isnull=True, frozen_by__isnull=True, approved_by__isnull=True, requirements__in=reqs).distinct()
 
 

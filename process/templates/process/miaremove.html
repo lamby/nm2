@@ -8,22 +8,30 @@
 
 {% block content %}
 
-<h1>Were Art Thou?</h1>
+<h1>Removal notice</h1>
 
 <p>This sends out a public notice to <i>debian-private</i> regarding the removal
 of the <tt>{{person.uid}}</tt> account of <i>{{person.fullname}}</i>.  The mail
 will contain instruction for stopping the removal procedure if anybody know
 something about <i>{{person.fullname}}</i>'s situation.</p>
 
+<p>After submitting this form, the process will become a process for applying
+for <i>Debian Developer, removed</i>.</p>
+
 <p>It is possible to customize the email introduction in the text below.</p>
 
 <form id="cancel" action="{{request.build_absolute_uri}}" method="POST">{% csrf_token %}
 {{form.non_field_errors}}
 <p>{{form.email.errors}}</p>
-<p>{{form.email.label_tag}}:<br>
+<p>{{form.email.label_tag}}<br>
 {{form.email}}</p>
 <button type="submit">Send mail</button>
 </form>
+
+
+<h2>Process log</h2>
+
+{% include "process/log_widget.html" with entries=status.log readonly=True %}
 
 {% endblock %}
 

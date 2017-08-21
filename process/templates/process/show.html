@@ -10,6 +10,14 @@
 </style>
 {% endblock %}
 
+{% block relatedpages %}
+  {{block.super}}
+{% if process.applying_for == "dd_e" %}
+  <br>
+  {% if visitor.is_admin %}<a href="{% url 'process_mia_remove' pk=process.pk %}">WAT remove</a>{% endif %}
+{% endif %}
+{% endblock %}
+
 {% block content %}
 
 <h1>{{person}} / {{process.applying_for|desc_status}}</h1>

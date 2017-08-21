@@ -591,12 +591,15 @@ def make_rt_ticket_text(request, visitor, process):
 
     wrapper = textwrap.TextWrapper(width=75, initial_indent="  ", subsequent_indent="  ")
     wrapped = []
+    intents_from = set()
     for intent in pmodels.Statement.objects.filter(requirement__process=process, requirement__type="intent"):
+        intents_from.add(intent.uploaded_by)
         for paragraph in intent.statement_clean.splitlines():
             for line in wrapper.wrap(paragraph):
                 wrapped.append(line)
         wrapped.append("")
     ctx["intents"] = "\n".join(wrapped)
+    ctx["intents_from"] = ", ".join(x.uid for x in sorted(intents_from))
 
     ctx["process_url"] = request.build_absolute_uri(process.get_absolute_url())
 
@@ -1011,6 +1014,11 @@ class MIARemove(VisitProcessMixin, FormView):
     template_name = "process/miaremove.html"
     form_class = MIARemoveForm
 
+    def get_context_data(self, **kw):
+        ctx = super().get_context_data(**kw)
+        ctx["status"] = self.compute_process_status()
+        return ctx
+
     def get_initial(self):
         initial = super().get_initial()
         initial["email"] = """
@@ -1047,7 +1055,7 @@ We've sent the last warning email on {:%Y-%m-%d}, with no response.
                 "process_url": self.request.build_absolute_uri(self.process.get_absolute_url()),
                 "emeritus_url": Emeritus.get_nonauth_url(self.process.person, self.request),
                 "cancel_url": self.request.build_absolute_uri(reverse("process_cancel", args=[self.process.pk])),
-                "deadline": now() + datetime.timedelta(days=30),
+                "deadline": now() + datetime.timedelta(days=15),
                 "text": text,
             }
 
