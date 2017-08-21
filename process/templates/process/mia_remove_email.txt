@@ -2,7 +2,7 @@
 
 Dear debian-private,
 
-this mail is a notice for the removal of {{person.fullname}} ({{person.uid}}, in CC)
+This mail is a notice for the removal of {{person.fullname}} ({{person.uid}}, in CC)
 after failed contact attempts by the Front Desk and Missing In Action teams.
 
 {{text|safe}}
@@ -11,10 +11,10 @@ The process is tracked at [1].
 
 The account will be shut down after {{deadline|date:"F d, Y"}}.
 
-If you know something about the situation of {{person.fullname}} please
-rise your voice now by replying to this email or, for a more confidential
-channel, replace debian-private with wat@debian.org.  Please keep the archive
-address in CC in both cases.
+If you know something about the situation of {{person.fullname}} please let us
+know now by replying to this email or, for a more confidential channel, replace
+debian-private with wat@debian.org.  Please keep the archive address in CC in
+both cases.
 
 For Front Desk / MIA team,
 {{visitor.fullname}}
