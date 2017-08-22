@@ -22,6 +22,7 @@ from six.moves import shlex_quote
 from . import models as pmodels
 from .forms import StatementForm
 from .serializers import ProcessSerializer
+from . import ops as pops
 
 
 class ProcessViewSet(viewsets.ReadOnlyModelViewSet):
@@ -74,14 +75,12 @@ class Create(VisitPersonMixin, FormView):
         if applying_for == const.STATUS_EMERITUS_DD:
             return redirect(reverse("process_emeritus", args=[self.person.lookup_key]))
 
+        op = pops.ProcessCreate(person=self.person, applying_for=applying_for, audit_author=self.visitor)
         with transaction.atomic():
-            p = pmodels.Process.objects.create(self.person, applying_for)
-            p.add_log(self.visitor, "Process created", is_public=True)
+            op.execute()
+        op.notify(self.request)
 
-        from .email import notify_new_process
-        notify_new_process(p, self.request)
-
-        return redirect(p.get_absolute_url())
+        return redirect(op.new_process.get_absolute_url())
 
 
 class Show(VisitProcessMixin, TemplateView):

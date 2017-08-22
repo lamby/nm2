@@ -132,9 +132,8 @@ class ProcessOperation(Operation):
             logtext = "Closed from keyring changelog {}, RT #{}".format(self.log_entry.shasum, self.rt)
         else:
             logtext = "Closed from keyring changelog {}, RT unknown".format(self.log_entry.shasum)
-        yield pops.CloseProcess(
+        yield pops.ProcessClose(
             process=self.process,
-            logtext=logtext,
             logdate=self.log_entry.dt,
             audit_author=self.author,
             audit_notes=logtext,
@@ -259,7 +258,7 @@ class AddDM(Add):
                 audit_notes = "Created DM entry, RT #{}".format(self.rt)
             else:
                 audit_notes = "Created DM entry, RT unknown"
-            yield bops.CreateUser(
+            yield bops.CreatePerson(
                 # Dummy username used to avoid unique entry conflicts
                 username="{}@example.org".format(self.fpr),
                 cn=self.cn,
@@ -364,9 +363,8 @@ class AddDD(Add):
                 logtext = "Added to {} keyring, RT #{}".format(self.role, self.rt)
             else:
                 logtext = "Added to {} keyring, RT unknown".format(self.role)
-            yield pops.CloseProcess(
+            yield pops.ProcessClose(
                 process=p,
-                logtext=logtext,
                 logdate=self.log_entry.dt,
                 audit_author=self.author,
                 audit_notes=logtext,

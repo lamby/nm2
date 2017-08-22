@@ -116,10 +116,9 @@ class NewGuestAccountsFromDSA(hk.Task):
                             person=person, status=new_status)
                         op.execute()
                     else:
-                        op = pops.CloseProcess(
+                        op = pops.ProcessClose(
                             audit_author=self.hk.housekeeper.user, audit_notes=audit_notes,
                             process=process,
-                            logtext=audit_notes,
                         )
                         op.execute()
 
