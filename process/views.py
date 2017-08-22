@@ -76,9 +76,7 @@ class Create(VisitPersonMixin, FormView):
             return redirect(reverse("process_emeritus", args=[self.person.lookup_key]))
 
         op = pops.ProcessCreate(person=self.person, applying_for=applying_for, audit_author=self.visitor)
-        with transaction.atomic():
-            op.execute()
-        op.notify(self.request)
+        op.execute(self.request)
 
         return redirect(op.new_process.get_absolute_url())
 
@@ -152,9 +150,7 @@ class AddProcessLog(VisitProcessMixin, View):
             op = pops.ProcessUnapprove(audit_author=self.visitor, audit_notes=logtext or "Process unapproved", process=self.process)
 
         if op is not None:
-            with transaction.atomic():
-                op.execute()
-            op.notify(self.request)
+            op.execute(self.request)
 
         return redirect(target.get_absolute_url())
 
@@ -208,9 +204,7 @@ class AssignAM(RequirementMixin, TemplateView):
         am_key = request.POST.get("am", None)
         am = bmodels.AM.lookup_or_404(am_key)
         op = pops.ProcessAssignAM(audit_author=self.visitor, process=self.process, am=am)
-        with transaction.atomic():
-            op.execute()
-        op.notify(self.request)
+        op.execute(self.request)
         return redirect(self.requirement.get_absolute_url())
 
 
@@ -221,8 +215,7 @@ class UnassignAM(RequirementMixin, View):
         current = self.process.current_am_assignment
         if current is not None:
             op = pops.ProcessUnassignAM(audit_author=self.visitor, assignment=current)
-            with transaction.atomic():
-                op.execute()
+            op.execute(self.request)
         return redirect(self.requirement.get_absolute_url())
 
 

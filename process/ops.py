@@ -59,7 +59,7 @@ class LogStatement(op.Operation):
         super().__init__(**kw)
         self._log_entry = None
 
-    def execute(self):
+    def _execute(self):
         if self.process is not None:
             target = self.process
         else:
@@ -86,7 +86,7 @@ class ProcessCreate(op.Operation):
         super().__init__(**kw)
         self._process = None
 
-    def execute(self):
+    def _execute(self):
         self._process = pmodels.Process.objects.create(self.person, self.applying_for)
         self._process.add_log(self.audit_author, self.audit_notes, is_public=True, logdate=self.audit_time)
 
@@ -103,7 +103,7 @@ class ProcessCreate(op.Operation):
 class RequirementApprove(op.Operation):
     requirement = RequirementField()
 
-    def execute(self):
+    def _execute(self):
         self.requirement.approved_by = self.audit_author
         self.requirement.approved_time = self.audit_time
         self.requirement.save()
@@ -114,7 +114,7 @@ class RequirementApprove(op.Operation):
 class RequirementUnapprove(op.Operation):
     requirement = RequirementField()
 
-    def execute(self):
+    def _execute(self):
         self.requirement.approved_by = None
         self.requirement.approved_time = None
         self.requirement.save()
@@ -125,7 +125,7 @@ class RequirementUnapprove(op.Operation):
 class ProcessFreeze(op.Operation):
     process = ProcessField()
 
-    def execute(self):
+    def _execute(self):
         self.process.frozen_by = self.audit_author
         self.process.frozen_time = self.audit_time
         self.process.save()
@@ -136,7 +136,7 @@ class ProcessFreeze(op.Operation):
 class ProcessUnfreeze(op.Operation):
     process = ProcessField()
 
-    def execute(self):
+    def _execute(self):
         self.process.frozen_by = None
         self.process.frozen_time = None
         self.process.save()
@@ -148,7 +148,7 @@ class ProcessApprove(op.Operation):
     process = ProcessField()
     approved_time = op.DatetimeField(null=True, default=now)
 
-    def execute(self):
+    def _execute(self):
         self.process.approved_by = self.audit_author
         self.process.approved_time = self.audit_time
         self.process.save()
@@ -159,7 +159,7 @@ class ProcessApprove(op.Operation):
 class ProcessUnapprove(op.Operation):
     process = ProcessField()
 
-    def execute(self):
+    def _execute(self):
         self.process.approved_by = None
         self.process.approved_time = None
         self.process.save()
@@ -170,7 +170,7 @@ class ProcessUnapprove(op.Operation):
 class ProcessClose(op.Operation):
     process = ProcessField()
 
-    def execute(self):
+    def _execute(self):
         self.process.add_log(self.audit_author, self.audit_notes, is_public=True, action="done", logdate=self.audit_time)
         self.process.closed = self.audit_time
         self.process.save()
@@ -193,7 +193,7 @@ class ProcessAssignAM(op.Operation):
         super().__init__(**kw)
         self._assignment = None
 
-    def execute(self):
+    def _execute(self):
         requirement = self.process.requirements.get(type="am_ok")
         current = self.process.current_am_assignment
         if current is not None:
@@ -228,7 +228,7 @@ class ProcessUnassignAM(op.Operation):
             kw["audit_notes"] = "Unassigned AM {}".format(kw["assignment"].am.person.uid)
         super().__init__(**kw)
 
-    def execute(self):
+    def _execute(self):
         requirement = self.assignment.process.requirements.get(type="am_ok")
         self.assignment.unassigned_by = self.audit_author
         self.assignment.unassigned_time = self.audit_time

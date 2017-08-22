@@ -1,4 +1,5 @@
 from django.utils.timezone import now, utc
+from django.db import transaction
 from backend import const
 from process.email import notify_new_dd
 from . import models as bmodels
@@ -170,6 +171,11 @@ class Operation(metaclass=OperationMeta):
         res["Operation"] = self.__class__.__name__
         return json.dumps(res, **kw)
 
+    def execute(self, request=None):
+        with transaction.atomic():
+            self._execute()
+        self.notify(request)
+
     def notify(self, request=None):
         """
         Send email notifications after the operation has been performed.
@@ -210,7 +216,7 @@ class CreatePerson(Operation):
     def __str__(self):
         return "Create user {}".format(self.email)
 
-    def execute(self):
+    def _execute(self):
         kw = {
             "status_changed": self.audit_time,
         }
@@ -236,7 +242,7 @@ class ChangeStatus(Operation):
     def __str__(self):
         return "Change status of {} to {}".format(self.person.lookup_key, self.status)
 
-    def execute(self):
+    def _execute(self):
         import process.models as pmodels
         process = pmodels.Process.objects.create(
             person=self.person,
@@ -270,7 +276,7 @@ class ChangeFingerprint(Operation):
     def __str__(self):
         return "Change fingerprint of {} to {}".format(self.person.lookup_key, self.fpr)
 
-    def execute(self):
+    def _execute(self):
         fpr = self.person.fprs.create(
             fpr=self.fpr, is_active=True,
             audit_author=self.audit_author,
