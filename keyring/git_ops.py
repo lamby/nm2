@@ -134,7 +134,7 @@ class ProcessOperation(Operation):
             logtext = "Closed from keyring changelog {}, RT unknown".format(self.log_entry.shasum)
         yield pops.ProcessClose(
             process=self.process,
-            logdate=self.log_entry.dt,
+            audit_time=self.log_entry.dt,
             audit_author=self.author,
             audit_notes=logtext,
         )
@@ -259,6 +259,9 @@ class AddDM(Add):
             else:
                 audit_notes = "Created DM entry, RT unknown"
             yield bops.CreatePerson(
+                audit_author=self.author,
+                audit_notes=audit_notes,
+                audit_time=self.log_entry.dt,
                 # Dummy username used to avoid unique entry conflicts
                 username="{}@example.org".format(self.fpr),
                 cn=self.cn,
@@ -266,10 +269,6 @@ class AddDM(Add):
                 sn=self.sn,
                 email=self.email,
                 status=const.STATUS_DM,
-                status_changed=self.log_entry.dt,
-                audit_author=self.author,
-                audit_notes=audit_notes,
-
                 fpr=self.fpr,
             )
             return
@@ -298,7 +297,7 @@ class AddDM(Add):
         yield bops.ChangeStatus(
             person=person,
             status=status,
-            status_changed=self.log_entry.dt,
+            audit_time=self.log_entry.dt,
             audit_author=self.author,
             audit_notes=audit_notes)
 
@@ -365,7 +364,7 @@ class AddDD(Add):
                 logtext = "Added to {} keyring, RT unknown".format(self.role)
             yield pops.ProcessClose(
                 process=p,
-                logdate=self.log_entry.dt,
+                audit_time=self.log_entry.dt,
                 audit_author=self.author,
                 audit_notes=logtext,
             )
@@ -423,7 +422,7 @@ class RemoveDD(Remove):
             yield bops.ChangeStatus(
                 person=person,
                 status=const.STATUS_EMERITUS_DD,
-                status_changed=self.log_entry.dt,
+                audit_time=self.log_entry.dt,
                 audit_author=self.author,
                 audit_notes=audit_notes)
             #log.info("%s: %s: %s", self.logtag, self.person_link(person), audit_notes)
@@ -478,7 +477,7 @@ class RemoveDM(Remove):
             yield bops.ChangeStatus(
                 person=person,
                 status=new_status,
-                status_changed=self.log_entry.dt,
+                audit_time=self.log_entry.dt,
                 audit_author=self.author,
                 audit_notes=audit_notes)
 

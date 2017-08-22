@@ -56,9 +56,9 @@ class Command(BaseCommand):
         op = bops.ChangeStatus(
             audit_author=author,
             audit_notes=message,
+            audit_time=date,
             person=person,
             status=status,
-            status_changed=date,
         )
         print(op.to_json())
 

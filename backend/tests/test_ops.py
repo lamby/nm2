@@ -24,9 +24,9 @@ class TestOps(PersonFixtureMixin, TestOpMixin, TestCase):
         def check_contents(o):
             self.assertEqual(o.audit_author, self.persons.fd)
             self.assertEqual(o.audit_notes, "test message")
+            self.assertIsInstance(o.audit_time, datetime.datetime)
             self.assertEqual(o.person, self.persons.dc)
             self.assertEqual(o.status, const.STATUS_DD_NU)
-            self.assertIsInstance(o.status_changed, datetime.datetime)
 
         o = ops.ChangeStatus(audit_author=self.persons.fd, audit_notes="test message", person=self.persons.dc, status=const.STATUS_DD_NU)
         self.check_op(o, check_contents)
@@ -35,6 +35,7 @@ class TestOps(PersonFixtureMixin, TestOpMixin, TestCase):
         def check_contents(o):
             self.assertEqual(o.audit_author, self.persons.fd)
             self.assertEqual(o.audit_notes, "test message")
+            self.assertIsInstance(o.audit_time, datetime.datetime)
             self.assertEqual(o.person, self.persons.dc)
             self.assertEqual(o.fpr, "123456789ABCDEF0")
 
@@ -45,13 +46,13 @@ class TestOps(PersonFixtureMixin, TestOpMixin, TestCase):
         def check_contents(o):
             self.assertEqual(o.audit_author, self.persons.fd)
             self.assertEqual(o.audit_notes, "test message")
+            self.assertIsInstance(o.audit_time, datetime.datetime)
             self.assertEqual(o.username, "test_username")
             self.assertEqual(o.cn, "test cn")
             self.assertEqual(o.mn, "")
             self.assertEqual(o.sn, "")
             self.assertEqual(o.email, "test@email")
             self.assertEqual(o.status, const.STATUS_DC)
-            self.assertIsNone(o.status_changed)
             self.assertIsNone(o.fpr)
             self.assertIsNone(o.last_login)
             self.assertIsNone(o.date_joined)

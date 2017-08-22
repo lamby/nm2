@@ -35,6 +35,15 @@ class StringField(OperationField):
         return val
 
 
+class BooleanField(OperationField):
+    def validate(self, val):
+        if val is None: return val
+        return bool(val)
+
+    def to_json(self, val):
+        return val
+
+
 class DateField(OperationField):
     def validate(self, val):
         if val is None: return val
@@ -124,6 +133,7 @@ class Operation(metaclass=OperationMeta):
 
     audit_author = PersonField()
     audit_notes = StringField()
+    audit_time = DatetimeField(null=True, default=now)
 
     def __init__(self, **kw):
         for name, field in self.fields.items():
@@ -147,6 +157,15 @@ class Operation(metaclass=OperationMeta):
         res["Operation"] = self.__class__.__name__
         return json.dumps(res, **kw)
 
+    def notify(self, request=None):
+        """
+        Send email notifications after the operation has been performed.
+
+        `request` can be provided to render site urls in the email.
+        """
+        # By default, do nothing
+        pass
+
     @classmethod
     def register(cls, _class):
         cls.classes[_class.__name__] = _class
@@ -169,7 +188,6 @@ class CreatePerson(Operation):
     sn = StringField(null=True, default="")
     email = StringField()
     status = PersonStatusField()
-    status_changed = DatetimeField(null=True)
     fpr = FingerprintField(null=True)
     last_login = DatetimeField(null=True)
     date_joined = DatetimeField(null=True)
@@ -180,9 +198,11 @@ class CreatePerson(Operation):
         return "Create user {}".format(self.email)
 
     def execute(self):
-        kw = {}
+        kw = {
+            "status_changed": self.audit_time,
+        }
         for name in self.fields:
-            if name == "fpr": continue
+            if name in ("fpr", "audit_time"): continue
             kw[name] = getattr(self, name)
 
         p = bmodels.Person.objects.create_user(**kw)
@@ -199,7 +219,6 @@ class CreatePerson(Operation):
 class ChangeStatus(Operation):
     person = PersonField()
     status = PersonStatusField()
-    status_changed = DatetimeField(null=True, default=now)
     
     def __str__(self):
         return "Change status of {} to {}".format(self.person.lookup_key, self.status)
@@ -210,10 +229,10 @@ class ChangeStatus(Operation):
             person=self.person,
             applying_for=self.status,
             frozen_by=self.audit_author,
-            frozen_time=self.status_changed,
+            frozen_time=self.audit_time,
             approved_by=self.audit_author,
-            approved_time=self.status_changed,
-            closed=self.status_changed,
+            approved_time=self.audit_time,
+            closed=self.audit_time,
             skip_requirements=True,
         )
         process.add_log(
@@ -221,10 +240,10 @@ class ChangeStatus(Operation):
             logtext=self.audit_notes,
             is_public=False,
             action="proc_approve",
-            logdate=self.status_changed
+            logdate=self.audit_time
         )
         self.person.status = self.status
-        self.person.status_changed = self.status_changed
+        self.person.status_changed = self.audit_time
         self.person.save(
             audit_author=self.audit_author,
             audit_notes=self.audit_notes)

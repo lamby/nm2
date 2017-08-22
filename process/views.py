@@ -101,7 +101,7 @@ class AddProcessLog(VisitProcessMixin, View):
     """
     @transaction.atomic
     def post(self, request, *args, **kw):
-        logtext = request.POST.get("logtext", "")
+        logtext = request.POST.get("logtext", "").strip()
         action = request.POST.get("add_action", "undefined")
         req_type = request.POST.get("req_type", None)
         is_public = True
@@ -115,55 +115,46 @@ class AddProcessLog(VisitProcessMixin, View):
 
         visit_perms = target.permissions_of(self.visitor)
 
-        if action == "log_private":
+        op = None
+        if action in ("log_private", "log_public"):
             if "add_log" not in visit_perms: raise PermissionDenied
-            is_public = False
-            action = ""
+            if logtext:
+                op_args = {}
+                if req_type:
+                    op_args["requirement"] = requirement
+                else:
+                    op_args["process"] = self.process
+                op = pops.LogStatement(
+                    audit_author=self.visitor,
+                    audit_notes=logtext,
+                    is_public=action == "log_public",
+                    **op_args)
         elif action == "log_public":
             if "add_log" not in visit_perms: raise PermissionDenied
             action = ""
         elif action == "req_unapprove":
             if action not in visit_perms: raise PermissionDenied
-            if not logtext: logtext = "Unapproved"
-            requirement.approved_by = None
-            requirement.approved_time = None
-            requirement.save()
+            op = pops.RequirementUnapprove(audit_author=self.visitor, audit_notes=logtext or "Requirement unapproved", requirement=requirement)
         elif action == "req_approve":
             if action not in visit_perms: raise PermissionDenied
-            if not logtext: logtext = "Approved"
-            requirement.approved_by = self.visitor
-            requirement.approved_time = now()
-            requirement.save()
+            op = pops.RequirementApprove(audit_author=self.visitor, audit_notes=logtext or "Requirement approved", requirement=requirement)
         elif action == "proc_freeze":
             if action not in visit_perms: raise PermissionDenied
-            if not logtext: logtext = "Frozen for review"
-            self.process.frozen_by = self.visitor
-            self.process.frozen_time = now()
-            self.process.save()
+            op = pops.ProcessFreeze(audit_author=self.visitor, audit_notes=logtext or "Process frozen for review", process=self.process)
         elif action == "proc_unfreeze":
             if action not in visit_perms: raise PermissionDenied
-            if not logtext: logtext = "Unfrozen for further work"
-            self.process.frozen_by = None
-            self.process.frozen_time = None
-            self.process.save()
+            op = pops.ProcessUnfreeze(audit_author=self.visitor, audit_notes=logtext or "Process unfrozen for further work", process=self.process)
         elif action == "proc_approve":
             if action not in visit_perms: raise PermissionDenied
-            if not logtext: logtext = "Process approved"
-            self.process.approved_by = self.visitor
-            self.process.approved_time = now()
-            self.process.save()
+            op = pops.ProcessApprove(audit_author=self.visitor, audit_notes=logtext or "Process approved", process=self.process)
         elif action == "proc_unapprove":
             if action not in visit_perms: raise PermissionDenied
-            if not logtext: logtext = "Process unapproved"
-            self.process.approved_by = None
-            self.process.approved_time = None
-            self.process.save()
+            op = pops.ProcessUnapprove(audit_author=self.visitor, audit_notes=logtext or "Process unapproved", process=self.process)
 
-        if logtext:
-            entry = target.add_log(self.visitor, logtext, action=action if action else "", is_public=is_public)
-            if not action:
-                from .email import notify_new_log_entry
-                notify_new_log_entry(entry, request)
+        if op is not None:
+            with transaction.atomic():
+                op.execute()
+            op.notify(self.request)
 
         return redirect(target.get_absolute_url())
 
