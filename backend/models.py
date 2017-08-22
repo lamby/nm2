@@ -488,14 +488,6 @@ class Person(PermissionsMixin, models.Model):
 
         return statuses
 
-    @property
-    def active_processes(self):
-        """
-        Return a list of all the active Processes for this person, if any; else
-        the empty list.
-        """
-        return list(Process.objects.filter(person=self, is_active=True).order_by("id"))
-
     def make_pending(self, days_valid=30):
         """
         Make this person a pending person.
@@ -1011,9 +1003,6 @@ class Process(models.Model):
             # If we reach here, either we have one process, or a new process
             # has been added # changed since the URL was generated. We have an
             # ambiguous situation, which we handle blissfully arbitrarily
-            res = p.active_processes
-            if res: return res[0]
-
             try:
                 from django.db.models import Max
                 return p.processes.annotate(last_change=Max("log__logdate")).order_by("-last_change")[0]

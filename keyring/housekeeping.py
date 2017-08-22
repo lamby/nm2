@@ -5,6 +5,7 @@ from django.db import transaction
 from backend.housekeeping import MakeLink
 import backend.models as bmodels
 from backend import const
+import process.models as pmodels
 from . import models as kmodels
 from .git import GitKeyring
 from . import git_ops
@@ -220,7 +221,7 @@ class CleanUserKeys(hk.Task):
             except bmodels.Fingerprint.DoesNotExist:
                 fpr = None
 
-            in_use = fpr is not None and fpr.is_active and (fpr.person.pending or fpr.person.active_processes)
+            in_use = fpr is not None and fpr.is_active and (fpr.person.pending or pmodels.Process.objects.filter(person=fpr.person, closed__isnull=True).exists())
             if in_use: continue
 
             if key.key_updated < threshold:

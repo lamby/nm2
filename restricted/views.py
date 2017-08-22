@@ -85,87 +85,19 @@ class AMMain(VisitorTemplateView):
 
         ctx["am_available"] = bmodels.AM.list_available(free_only=True)
 
-        if self.visitor.am.is_fd or self.visitor.am.is_dam:
-            DISPATCH = {
-                const.PROGRESS_APP_NEW: "prog_app_new",
-                const.PROGRESS_APP_RCVD: "prog_app_new",
-                const.PROGRESS_ADV_RCVD: "prog_app_new",
-                const.PROGRESS_POLL_SENT: "prog_poll_sent",
-                const.PROGRESS_APP_OK: "prog_app_ok",
-                const.PROGRESS_AM_RCVD: "prog_am_rcvd",
-                const.PROGRESS_AM_OK: "prog_am_ok",
-                const.PROGRESS_FD_OK: "prog_fd_ok",
-                const.PROGRESS_DAM_OK: "prog_dam_ok",
-            }
-            for p in bmodels.Process.objects.filter(is_active=True, progress__in=list(DISPATCH.keys())) \
-                            .annotate(
-                                started=Min("log__logdate"),
-                                last_change=Max("log__logdate")) \
-                            .order_by("started"):
-                tgt = DISPATCH.get(p.progress, None)
-                if tgt is not None:
-                    p.annotate_with_duration_stats()
-                    ctx.setdefault(tgt, []).append(p)
-
-            DISPATCH = {
-                const.PROGRESS_APP_HOLD: "prog_app_hold",
-                const.PROGRESS_FD_HOLD: "prog_app_hold",
-                const.PROGRESS_DAM_HOLD: "prog_app_hold",
-            }
-            for p in bmodels.Process.objects.filter(is_active=True, manager=None, progress__in=list(DISPATCH.keys())) \
-                            .annotate(
-                                started=Min("log__logdate"),
-                                last_change=Max("log__logdate")) \
-                            .order_by("started"):
-                tgt = DISPATCH.get(p.progress, None)
-                if tgt is not None:
-                    p.annotate_with_duration_stats()
-                    ctx.setdefault(tgt, []).append(p)
-
-            DISPATCH = {
-                const.PROGRESS_FD_HOLD: "prog_fd_hold",
-                const.PROGRESS_DAM_HOLD: "prog_dam_hold",
-            }
-            for p in bmodels.Process.objects.filter(is_active=True, progress__in=list(DISPATCH.keys())) \
-                            .exclude(manager=None) \
-                            .annotate(
-                                started=Min("log__logdate"),
-                                last_change=Max("log__logdate")) \
-                            .order_by("started"):
-                tgt = DISPATCH.get(p.progress, None)
-                if tgt is not None:
-                    p.annotate_with_duration_stats()
-                    ctx.setdefault(tgt, []).append(p)
-
-
-        DISPATCH = {
-            const.PROGRESS_AM_RCVD: "am_prog_rcvd",
-            const.PROGRESS_AM: "am_prog_am",
-            const.PROGRESS_AM_HOLD: "am_prog_hold",
-            const.PROGRESS_AM_OK: "am_prog_done",
-            const.PROGRESS_FD_HOLD: "am_prog_done",
-            const.PROGRESS_FD_OK: "am_prog_done",
-            const.PROGRESS_DAM_HOLD: "am_prog_done",
-            const.PROGRESS_DAM_OK: "am_prog_done",
-            const.PROGRESS_DONE: "am_prog_done",
-            const.PROGRESS_CANCELLED: "am_prog_done",
-        }
-        for p in bmodels.Process.objects.filter(manager=self.visitor.am, progress__in=list(DISPATCH.keys())) \
+        for a in pmodels.AMAssignment.objects.filter(am=self.visitor.am, process__closed__isnull=True, unassigned_by__isnull=True) \
+                        .select_related("process") \
                         .annotate(
-                            started=Min("log__logdate"),
-                            last_change=Max("log__logdate")) \
+                            started=Min("process__log__logdate"),
+                            last_change=Max("process__log__logdate")) \
                         .order_by("started"):
-            tgt = DISPATCH.get(p.progress, None)
-            if tgt is not None:
-                p.annotate_with_duration_stats()
-                ctx.setdefault(tgt, []).append(p)
-
-        processes = []
-        for a in pmodels.AMAssignment.objects.filter(am=self.visitor.am, unassigned_by__isnull=True, process__closed__isnull=True).select_related("process"):
-            processes.append(a.process)
-        ctx["am_processes"] = processes
+            if a.paused:
+                ctx.setdefault("am_prog_hold", []).append(a.process)
+            else:
+                ctx.setdefault("am_prog_am", []).append(a.process)
 
         return ctx
+
 
 class AMProfile(VisitPersonMixin, FormView):
     # Require DD instead of AM to give access to inactive AMs

@@ -39,12 +39,6 @@ def ensure_person(val):
     else:
         return bmodels.Person.lookup(val)
 
-def ensure_old_process(val):
-    if isinstance(val, bmodels.Process):
-        return val
-    else:
-        return bmodels.Process.objects.get(pk=val)
-
 
 class Operation(object):
     classes = {}
@@ -180,33 +174,4 @@ class ChangeFingerprint(Operation):
         res = super(ChangeFingerprint, self).to_dict()
         res["person"] = self.person
         res["fpr"] = self.fpr
-        return res
-
-
-@Operation.register
-class CloseOldProcess(Operation):
-    def __init__(self, audit_author, audit_notes, process, logtext, logdate=None):
-        super(CloseOldProcess, self).__init__(audit_author, audit_notes)
-        self.process = ensure_old_process(process)
-        self.logtext = logtext
-        self.logdate = logdate if logdate else now()
-
-    def execute(self):
-        l = bmodels.Log.for_process(self.process, changed_by=self.audit_author, logdate=self.logdate, logtext=self.logtext)
-        l.save()
-        self.process.progress = const.PROGRESS_DONE
-        self.process.is_active = False
-        self.process.save()
-        self.process.person.status = self.process.applying_for
-        self.process.person.status_changed = self.logdate
-        self.process.person.save(audit_author=self.audit_author, audit_notes=self.logtext)
-        # Mail leader@debian.org as requested by mehdi via IRC on 2016-07-14
-        if self.process.applying_for in (const.STATUS_DD_NU, const.STATUS_DD_U):
-            notify_new_dd(self.process)
-
-    def to_dict(self):
-        res = super(CloseOldProcess, self).to_dict()
-        res["process"] = self.process.pk
-        res["logtext"] = self.logtext
-        res["logdate"] = self.logdate
         return res

@@ -1,5 +1,6 @@
 from django.views.generic import TemplateView
 from django.core.exceptions import PermissionDenied
+from django.core import signing
 from . import models as bmodels
 
 class OverrideView(Exception):
@@ -149,3 +150,40 @@ class VisitProcessMixin(VisitPersonMixin):
 class VisitProcessTemplateView(VisitProcessMixin, TemplateView):
     template_name = "process/show.html"
 
+
+class TokenAuthMixin:
+    # Domain used for this token
+    token_domain = None
+    # Max age in seconds
+    token_max_age = 15 * 3600 * 24
+
+    @classmethod
+    def make_token(cls, uid, **kw):
+        from django.utils.http import urlencode
+        kw.update(u=uid, d=cls.token_domain)
+        return urlencode({"t": signing.dumps(kw)})
+
+    def verify_token(self, decoded):
+        # Extend to verify extra components of the token
+        pass
+
+    def load_objects(self):
+        token = self.request.GET.get("t")
+        if token is not None:
+            try:
+                decoded = signing.loads(token, max_age=self.token_max_age)
+            except signing.BadSignature:
+                raise PermissionDenied
+            uid = decoded.get("u")
+            if uid is None:
+                raise PermissionDenied
+            if decoded.get("d") != self.token_domain:
+                raise PermissionDenied
+            self.verify_token(decoded)
+            try:
+                u = bmodels.Person.objects.get(uid=uid)
+            except bmodels.Person.DoesNotExist:
+                u = None
+            if u is not None:
+                self.request.user = u
+        super().load_objects()
