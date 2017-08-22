@@ -167,3 +167,40 @@ class ProcessClose(op.Operation):
         # Mail leader@debian.org as requested by mehdi via IRC on 2016-07-14
         if self.process.applying_for in (const.STATUS_DD_NU, const.STATUS_DD_U):
             notify_new_dd(self.process)
+
+
+@op.Operation.register
+class ProcessAssignAM(op.Operation):
+    process = ProcessField()
+    am = op.AMField()
+
+    def __init__(self, **kw):
+        if "audit_notes" not in kw:
+            kw["audit_notes"] = "Assigned AM {}".format(kw["am"].person.lookup_key)
+        super().__init__(**kw)
+        self._assignment = None
+
+    def execute(self):
+        requirement = self.process.requirements.get(type="am_ok")
+        current = self.process.current_am_assignment
+        if current is not None:
+            current.unassigned_by = self.audit_author
+            current.unassigned_time = self.audit_time
+            current.save()
+            requirement.add_log(self.audit_author, "Unassigned AM {}".format(current.am.person.lookup_key), is_public=True, action="unassign_am", logdate=self.audit_time)
+
+        self._assignment = pmodels.AMAssignment.objects.create(
+            process=self.process,
+            am=self.am,
+            assigned_by=self.audit_author,
+            assigned_time=self.audit_time)
+
+        if not self.am.is_am:
+            self.am.is_am = True
+            self.am.save()
+
+        requirement.add_log(self.audit_author, self.audit_notes, is_public=True, action="assign_am", logdate=self.audit_time)
+
+    def notify(self, request=None):
+        from .email import notify_am_assigned
+        notify_am_assigned(self._assignment, request=request)

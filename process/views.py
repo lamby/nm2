@@ -204,33 +204,13 @@ class AssignAM(RequirementMixin, TemplateView):
         ctx["ams"] = bmodels.AM.list_available(free_only=False)
         return ctx
 
-    def _assign_am(self, am):
-        current = self.process.current_am_assignment
-        if current is not None:
-            current.unassigned_by = self.visitor
-            current.unassigned_time = now()
-            current.save()
-            self.requirement.add_log(self.visitor, "Unassigned AM {}".format(current.am.person.lookup_key), is_public=True, action="unassign_am")
-
-        current = pmodels.AMAssignment.objects.create(
-            process=self.process,
-            am=am,
-            assigned_by=self.visitor,
-            assigned_time=now())
-
-        if not am.is_am:
-            am.is_am = True
-            am.save()
-
-        self.requirement.add_log(self.visitor, "Assigned AM {}".format(am.person.lookup_key), is_public=True, action="assign_am")
-
-        from .email import notify_am_assigned
-        notify_am_assigned(current, request=self.request)
-
     def post(self, request, *args, **kw):
         am_key = request.POST.get("am", None)
         am = bmodels.AM.lookup_or_404(am_key)
-        self._assign_am(am)
+        op = pops.ProcessAssignAM(audit_author=self.visitor, process=self.process, am=am)
+        with transaction.atomic():
+            op.execute()
+        op.notify(self.request)
         return redirect(self.requirement.get_absolute_url())
 
 

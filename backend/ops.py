@@ -84,6 +84,19 @@ class PersonField(OperationField):
         return val.lookup_key
 
 
+class AMField(OperationField):
+    def validate(self, val):
+        if val is None: return val
+        if isinstance(val, bmodels.AM):
+            return val
+        else:
+            return bmodels.AM.lookup(val)
+
+    def to_json(self, val):
+        if val is None: return val
+        return val.lookup_key
+
+
 class PersonStatusField(OperationField):
     def validate(self, val):
         if val is None: return val
