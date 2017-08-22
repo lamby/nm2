@@ -220,10 +220,9 @@ class UnassignAM(RequirementMixin, View):
     def post(self, request, *args, **kw):
         current = self.process.current_am_assignment
         if current is not None:
-            current.unassigned_by = self.visitor
-            current.unassigned_time = now()
-            current.save()
-            self.requirement.add_log(self.visitor, "Unassigned AM {}".format(current.am.person.lookup_key), is_public=True, action="unassign_am")
+            op = pops.ProcessUnassignAM(audit_author=self.visitor, assignment=current)
+            with transaction.atomic():
+                op.execute()
         return redirect(self.requirement.get_absolute_url())
 
 

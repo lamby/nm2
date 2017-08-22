@@ -34,6 +34,19 @@ class RequirementField(op.OperationField):
         return val.pk
 
 
+class AMAssignmentField(op.OperationField):
+    def validate(self, val):
+        if val is None: return val
+        if isinstance(val, pmodels.AMAssignment):
+            return val
+        else:
+            return pmodels.AMAssignment.objects.get(pk=val)
+
+    def to_json(self, val):
+        if val is None: return val
+        return val.pk
+
+
 @op.Operation.register
 class LogStatement(op.Operation):
     is_public = op.BooleanField()
@@ -204,3 +217,20 @@ class ProcessAssignAM(op.Operation):
     def notify(self, request=None):
         from .email import notify_am_assigned
         notify_am_assigned(self._assignment, request=request)
+
+
+@op.Operation.register
+class ProcessUnassignAM(op.Operation):
+    assignment = AMAssignmentField()
+
+    def __init__(self, **kw):
+        if "audit_notes" not in kw:
+            kw["audit_notes"] = "Unassigned AM {}".format(kw["assignment"].am.person.uid)
+        super().__init__(**kw)
+
+    def execute(self):
+        requirement = self.assignment.process.requirements.get(type="am_ok")
+        self.assignment.unassigned_by = self.audit_author
+        self.assignment.unassigned_time = self.audit_time
+        self.assignment.save()
+        requirement.add_log(self.audit_author, self.audit_notes, is_public=True, action="unassign_am", logdate=self.audit_time)

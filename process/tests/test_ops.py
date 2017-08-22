@@ -131,12 +131,25 @@ class TestOps(ProcessFixtureMixin, TestOpMixin, TestCase):
     def test_process_assign_am(self):
         def check_contents(o):
             self.assertEqual(o.audit_author, self.persons.fd)
-            self.assertEqual(o.audit_notes, "Assigned am activeam")
+            self.assertEqual(o.audit_notes, "Assigned AM activeam")
             self.assertIsInstance(o.audit_time, datetime.datetime)
             self.assertEqual(o.process, self.processes.app)
             self.assertEqual(o.am, self.ams.activeam)
 
         o = pops.ProcessAssignAM(audit_author=self.persons.fd, process=self.processes.app, am=self.ams.activeam)
+        self.check_op(o, check_contents)
+
+    def test_process_unassign_am(self):
+        pops.ProcessAssignAM(audit_author=self.persons.fd, process=self.processes.app, am=self.ams.activeam).execute()
+        assignment = self.processes.app.ams.get()
+
+        def check_contents(o):
+            self.assertEqual(o.audit_author, self.persons.fd)
+            self.assertEqual(o.audit_notes, "Unassigned AM activeam")
+            self.assertIsInstance(o.audit_time, datetime.datetime)
+            self.assertEqual(o.assignment, assignment)
+
+        o = pops.ProcessUnassignAM(audit_author=self.persons.fd, assignment=assignment)
         self.check_op(o, check_contents)
 
 
