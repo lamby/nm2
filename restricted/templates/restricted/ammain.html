@@ -79,32 +79,6 @@ $(function() {
 <p>Currently there are no free application managers.</p>
 {% endif %}
 
-<h3>Old style processes</h3>
-
-<p>The following people have applied but have not enough advocates or we did not send the activity poll yet.</p>
-{% include "restricted/process_table.html" with p=p progs=prog_app_new extras="" only %}
-
-<p>The following people have not replied to the activity poll yet.</p>
-{% include "restricted/process_table.html" with p=p progs=prog_poll_sent extras="" only %}
-
-<p>The following applicants are waiting for an Application Manager to be
-assigned (first one is oldest).</p>
-{% include "restricted/process_table.html" with p=p progs=prog_app_ok extras="" only %}
-
-<p>Applicants currently not ready to be assigned to an AM (ordered by hold date):</p>
-{% include "restricted/process_table.html" with p=p progs=prog_app_hold extras="" only %}
-
-<p>Applicants assigned to AM but AM has not confirmed:</p>
-{% include "restricted/process_table.html" with p=p progs=prog_am_rcvd extras="m" only %}
-
-<p>The reports of the following applicants approved by their AM need to be
-checked:</p>
-{% include "restricted/process_table.html" with p=p progs=prog_am_ok extras="m" only %}
-
-<p>The following applicants have incomplete AM reports (ordered by hold date):</p>
-{% include "restricted/process_table.html" with p=p progs=prog_fd_hold extras="m" only %}
-
-
 <h2>Debian Account Manager</h2>
 
 <p>The following applicants have been approved by the NM committee and the FD
@@ -122,54 +96,25 @@ but a DAM has not fully processed them yet (sorted by FD approval):</p>
 
 
 {# only show application manager section if the current user either has AM slots or any existing process assigned #}
-{% if visitor.am.slots or am_prog_rcvd or am_prog_am or am_prog_hold or am_prog_done %}
+{% if visitor.am.slots or am_prog_am or am_prog_hold %}
 <h2>Application Manager</h2>
 
 <p>Hello <b>{{visitor.uid}}</b>, here is a list of New Member applicants that
 you are the AM for:</p>
 
-{% include "process/process_list.html" with procs=am_processes %}
-
-<h3>Applicants to Accept</h3>
-
-<p>These applicants have been assigned to you by the Front Desk but you have
-not confirmed that you will or will not be their AM (ordered by assignment
-date).</p>
-{% include "restricted/process_table.html" with p=p progs=am_prog_rcvd extras="" only %}
-
 <h3>Applicants to process</h3>
 
 <p>The following applicants you are the AM for (ordered by the date you
 accepted them as NMs):</p>
-{% include "restricted/process_table.html" with p=p progs=am_prog_am extras="" only %}
+{% include "process/process_list.html" with procs=am_prog_am %}
 
 <h3>Applicants on Hold</h3>
 
 <p>Applicants who make it here have some issue with completing the process but
 are expected to be able to work around that soon (ordered by hold date).</p>
-{% include "restricted/process_table.html" with p=p progs=am_prog_hold extras="" only %}
+{% include "process/process_list.html" with progs=am_prog_hold %}
 
-<h3>Processed Applicants</h3>
-
-<p>These applicants you have processed through the system and are here for
-historical or informational purposes (ordered by account creation date).</p>
-{% include "restricted/process_table.html" with p=p progs=am_prog_done extras="" only %}
 {% endif %}
-
-{% comment %}
-                      <H2>Key</H2>
-                      <UL>
-                          <LI><IMG src="images/shake.png" alt="V" width="16" height="16"> : Advocate Check ok
-                          <LI><IMG src="images/mag.png" alt="I" width="16" height="16"> : Identification complete
-                          <LI><IMG src="images/dfsg.png" alt="P" width="16" height="16"> : Philosophy and Procedures complete
-                          <LI><IMG src="images/hammer.png" alt="T" width="16" height="16"> : Tasks and Skills complete
-                          <LI><IMG src="images/thumb.png" alt="A" width="16" height="16"> : Application Manager Recommends applicant
-                          <LI><IMG src="images/new.png" alt="N" width="16" height="16"> : New Debian developer
-                          <LI><IMG src="images/hold.png" alt="H" width="16" height="16"> : On hold
-                      </UL>
-                  </div> <!-- end maincol -->
-
-{% endcomment %}
 
 {% endblock %}
 
