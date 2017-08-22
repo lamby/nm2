@@ -87,10 +87,7 @@ class AMMain(VisitorTemplateView):
 
         for a in pmodels.AMAssignment.objects.filter(am=self.visitor.am, process__closed__isnull=True, unassigned_by__isnull=True) \
                         .select_related("process") \
-                        .annotate(
-                            started=Min("process__log__logdate"),
-                            last_change=Max("process__log__logdate")) \
-                        .order_by("started"):
+                        .order_by("process__started"):
             if a.paused:
                 ctx.setdefault("am_prog_hold", []).append(a.process)
             else:
