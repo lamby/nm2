@@ -1,5 +1,6 @@
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect, get_object_or_404
+from django.utils.timezone import now
 from backend.mixins import VisitPersonMixin
 from . import models as pmodels
 
@@ -97,3 +98,62 @@ class VisitProcessMixin(VisitPersonMixin):
 
     def compute_process_status(self):
         return compute_process_status(self.process, self.visitor, self.visit_perms)
+
+
+class RequirementMixin(VisitProcessMixin):
+    # Requirement type. If not found, check self.kwargs["type"]
+    type = None
+
+    def get_requirement_type(self):
+        if self.type:
+            return self.type
+        else:
+            return self.kwargs.get("type", None)
+
+    def get_requirement(self):
+        process = get_object_or_404(pmodels.Process, pk=self.kwargs["pk"])
+        return get_object_or_404(pmodels.Requirement, process=process, type=self.get_requirement_type())
+
+    def get_visit_perms(self):
+        return self.requirement.permissions_of(self.visitor)
+
+    def get_process(self):
+        return self.requirement.process
+
+    def load_objects(self):
+        self.requirement = self.get_requirement()
+        super(RequirementMixin, self).load_objects()
+
+    def get_context_data(self, **kw):
+        ctx = super(RequirementMixin, self).get_context_data(**kw)
+        ctx["requirement"] = self.requirement
+        ctx["type"] = self.requirement.type
+        ctx["type_desc"] = pmodels.REQUIREMENT_TYPES_DICT[self.requirement.type].desc
+        ctx["explain_template"] = "process/explain_statement_" + self.requirement.type + ".html"
+        ctx["status"] = self.requirement.compute_status()
+        ctx["wikihelp"] = "https://wiki.debian.org/nm.debian.org/Requirement/" + self.requirement.type
+        return ctx
+
+
+class StatementMixin(RequirementMixin):
+    def load_objects(self):
+        super(StatementMixin, self).load_objects()
+        if "st" in self.kwargs:
+            self.statement = get_object_or_404(pmodels.Statement, pk=self.kwargs["st"])
+            if self.statement.requirement != self.requirement:
+                raise PermissionDenied
+        else:
+            self.statement = None
+
+    def get_form_kwargs(self):
+        kw = super(StatementMixin, self).get_form_kwargs()
+        kw["fpr"] = self.visitor.fpr
+        return kw
+
+    def get_context_data(self, **kw):
+        ctx = super(StatementMixin, self).get_context_data(**kw)
+        ctx["fpr"] = self.visitor.fpr
+        ctx["keyid"] = self.visitor.fpr[-16:]
+        ctx["statement"] = self.statement
+        ctx["now"] = now()
+        return ctx

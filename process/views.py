@@ -5,15 +5,14 @@ from django.views.generic.edit import FormView
 from django.utils.timezone import now
 from django.db import transaction
 from django import forms, http
-from django.core import signing
 from django.core.exceptions import PermissionDenied
 from django.conf import settings
 from django.urls import reverse, reverse_lazy
 from rest_framework import viewsets
-from backend.mixins import VisitorMixin, VisitPersonMixin
+from backend.mixins import VisitorMixin, VisitPersonMixin, TokenAuthMixin
 from backend import const
 import backend.models as bmodels
-from .mixins import VisitProcessMixin
+from .mixins import VisitProcessMixin, RequirementMixin, StatementMixin
 import datetime
 import re
 import json
@@ -171,41 +170,6 @@ class AddProcessLog(VisitProcessMixin, View):
         return redirect(target.get_absolute_url())
 
 
-class RequirementMixin(VisitProcessMixin):
-    # Requirement type. If not found, check self.kwargs["type"]
-    type = None
-
-    def get_requirement_type(self):
-        if self.type:
-            return self.type
-        else:
-            return self.kwargs.get("type", None)
-
-    def get_requirement(self):
-        process = get_object_or_404(pmodels.Process, pk=self.kwargs["pk"])
-        return get_object_or_404(pmodels.Requirement, process=process, type=self.get_requirement_type())
-
-    def get_visit_perms(self):
-        return self.requirement.permissions_of(self.visitor)
-
-    def get_process(self):
-        return self.requirement.process
-
-    def load_objects(self):
-        self.requirement = self.get_requirement()
-        super(RequirementMixin, self).load_objects()
-
-    def get_context_data(self, **kw):
-        ctx = super(RequirementMixin, self).get_context_data(**kw)
-        ctx["requirement"] = self.requirement
-        ctx["type"] = self.requirement.type
-        ctx["type_desc"] = pmodels.REQUIREMENT_TYPES_DICT[self.requirement.type].desc
-        ctx["explain_template"] = "process/explain_statement_" + self.requirement.type + ".html"
-        ctx["status"] = self.requirement.compute_status()
-        ctx["wikihelp"] = "https://wiki.debian.org/nm.debian.org/Requirement/" + self.requirement.type
-        return ctx
-
-
 class ReqIntent(RequirementMixin, TemplateView):
     type = "intent"
     template_name = "process/req_intent.html"
@@ -292,30 +256,6 @@ class UnassignAM(RequirementMixin, View):
             current.save()
             self.requirement.add_log(self.visitor, "Unassigned AM {}".format(current.am.person.lookup_key), is_public=True, action="unassign_am")
         return redirect(self.requirement.get_absolute_url())
-
-
-class StatementMixin(RequirementMixin):
-    def load_objects(self):
-        super(StatementMixin, self).load_objects()
-        if "st" in self.kwargs:
-            self.statement = get_object_or_404(pmodels.Statement, pk=self.kwargs["st"])
-            if self.statement.requirement != self.requirement:
-                raise PermissionDenied
-        else:
-            self.statement = None
-
-    def get_form_kwargs(self):
-        kw = super(StatementMixin, self).get_form_kwargs()
-        kw["fpr"] = self.visitor.fpr
-        return kw
-
-    def get_context_data(self, **kw):
-        ctx = super(StatementMixin, self).get_context_data(**kw)
-        ctx["fpr"] = self.visitor.fpr
-        ctx["keyid"] = self.visitor.fpr[-16:]
-        ctx["statement"] = self.statement
-        ctx["now"] = now()
-        return ctx
 
 
 class StatementCreate(StatementMixin, FormView):
@@ -782,44 +722,6 @@ class Approve(VisitProcessMixin, FormView):
         self.process.save()
         self.process.add_log(self.visitor, "Process approved", action="proc_approve", is_public=True)
         return redirect(self.process.get_absolute_url())
-
-
-class TokenAuthMixin:
-    # Domain used for this token
-    token_domain = None
-    # Max age in seconds
-    token_max_age = 15 * 3600 * 24
-
-    @classmethod
-    def make_token(cls, uid, **kw):
-        from django.utils.http import urlencode
-        kw.update(u=uid, d=cls.token_domain)
-        return urlencode({"t": signing.dumps(kw)})
-
-    def verify_token(self, decoded):
-        # Extend to verify extra components of the token
-        pass
-
-    def load_objects(self):
-        token = self.request.GET.get("t")
-        if token is not None:
-            try:
-                decoded = signing.loads(token, max_age=self.token_max_age)
-            except signing.BadSignature:
-                raise PermissionDenied
-            uid = decoded.get("u")
-            if uid is None:
-                raise PermissionDenied
-            if decoded.get("d") != self.token_domain:
-                raise PermissionDenied
-            self.verify_token(decoded)
-            try:
-                u = bmodels.Person.objects.get(uid=uid)
-            except bmodels.Person.DoesNotExist:
-                u = None
-            if u is not None:
-                self.request.user = u
-        super().load_objects()
 
 
 class EmeritusForm(forms.Form):
