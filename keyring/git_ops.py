@@ -359,24 +359,6 @@ class AddDD(Add):
         applying_for = role_status_map[self.role]
 
         found = False
-        for p in person.active_processes:
-            if p.applying_for != applying_for: continue
-            if self.rt:
-                logtext = "Added to {} keyring, RT #{}".format(self.role, self.rt)
-            else:
-                logtext = "Added to {} keyring, RT unknown".format(self.role)
-            if not bmodels.Log.objects.filter(process=p, changed_by=self.author, logdate=self.log_entry.dt, logtext=logtext).exists():
-                yield bops.CloseOldProcess(
-                    process=p,
-                    logtext=logtext,
-                    logdate=self.log_entry.dt,
-                    audit_author=self.author,
-                    audit_notes=logtext,
-                )
-            #log.info("%s: %s has an open process to become %s, keyring added them as %s",
-            #            self.logtag, self.person_link(person), const.ALL_STATUS_DESCS[p.applying_for], self.role)
-            found = True
-
         for p in pmodels.Process.objects.filter(person=person, applying_for=applying_for, closed__isnull=True):
             if self.rt:
                 logtext = "Added to {} keyring, RT #{}".format(self.role, self.rt)

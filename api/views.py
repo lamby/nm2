@@ -1,24 +1,3 @@
-# coding: utf-8
-# nm.debian.org website API
-#
-# Copyright (C) 2012--2014  Enrico Zini <enrico@debian.org>
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as
-# published by the Free Software Foundation, either version 3 of the
-# License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-
-
-
 from django import http
 from django.core.exceptions import PermissionDenied
 from django.utils.translation import ugettext as _
@@ -105,8 +84,6 @@ class Status(APIVisitorMixin, View):
                 "status": p.status,
             }
             if "am" in perms: rp["is_am"] = True
-            processes = [x.applying_for for x in p.active_processes]
-            if processes: rp["applying_for"] = processes
             res[p.username] = rp
         return json_response(dict(people=res))
 
