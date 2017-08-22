@@ -569,63 +569,6 @@ class MakeRTTicket(VisitProcessMixin, TemplateView):
         return ctx
 
 
-class EmailLookup(VisitProcessMixin, View):
-    def _fetch_url(self, url):
-        bundle="/etc/ssl/ca-debian/ca-certificates.crt"
-        if os.path.exists(bundle):
-            return requests.get(url, verify=bundle)
-        else:
-            return requests.get(url)
-
-    def _scrape_msgid(self, content):
-        from lxml.html import document_fromstring
-        page = document_fromstring(content)
-        for el in page.iter("li"):
-            has_msgid = any(x.text == "Message-id" for x in el.iter("em"))
-            if not has_msgid: continue
-            for a in el.iter("a"):
-                href = a.attrib.get("href", None)
-                if href is None: continue
-                if not href.startswith("msg"): continue
-                return a.text
-        return None
-
-    def _fetch(self, url):
-        mbox_pathname = self.process.mailbox_file
-        if mbox_pathname is None:
-            return { "error": "process has no archived emails yet" }
-
-        if not url.startswith("https://lists.debian.org/debian-newmaint/"):
-            return { "error": "url does not look like a debian-newmaint archive url" }
-
-        res = self._fetch_url(url)
-        if res.status_code != 200:
-            return { "error": "fetching url had result code {} instead of 200".format(res.status_code) }
-
-        msgid = self._scrape_msgid(res.content)
-        if msgid is None:
-            return { "error": "message ID not found at {}".format(url) }
-
-        import mailbox
-        mbox = mailbox.mbox(mbox_pathname)
-        for key in mbox.keys():
-            msg = mbox.get_message(key)
-            if msg["Message-ID"].strip("<>") == msgid:
-                fp = mbox.get_file(key)
-                try:
-                    return { "msg": fp.read().decode("utf8") }
-                finally:
-                    fp.close()
-
-        return { "error": "Message-ID {} not found in archive mailbox".format(msgid) }
-
-    def post(self, request, *args, **kw):
-        url = request.POST["url"]
-        res = http.HttpResponse(content_type="application/json")
-        json.dump(self._fetch(url), res)
-        return res
-
-
 class ApproveForm(forms.Form):
     signed = forms.CharField(label="Signed RT text", widget=forms.Textarea(attrs={"rows": 25, "cols": 80}))
 
