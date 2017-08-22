@@ -56,7 +56,6 @@ class Create(VisitPersonMixin, FormView):
     def get_context_data(self, **kw):
         ctx = super(Create, self).get_context_data(**kw)
         current = []
-        current.extend(bmodels.Process.objects.filter(person=self.person, is_active=True))
         current.extend(pmodels.Process.objects.filter(person=self.person, closed__isnull=True))
         ctx["current"] = current
         ctx["wikihelp"] = "https://wiki.debian.org/nm.debian.org/Process/Start"

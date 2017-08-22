@@ -16,7 +16,5 @@ class TestStats(PersonFixtureMixin, TestCase):
         self.assertEqual(response.status_code, 200)
         response = client.get(reverse("public_stats"), data={"json": True, "days": 30})
         self.assertEqual(response.status_code, 200)
-        response = client.get(reverse("public_stats_latest"), data={"json": True, "days": 30})
-        self.assertEqual(response.status_code, 200)
         response = client.get(reverse("public_stats_graph"), data={"json": True, "days": 30})
         self.assertEqual(response.status_code, 200)

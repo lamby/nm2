@@ -60,7 +60,6 @@ $(function() {
 {% block breadcrumbs %}{{block.super}} / <a href="{% url 'public_stats' %}">stats</a>{% endblock %}
 
 {% block relatedpages %}
-<a href="{% url 'public_stats_latest' %}">latest events</a>
 <a href="../../stats/">historical graphs</a>
 {{block.super}}
 {% endblock %}

@@ -182,22 +182,6 @@ class ComputeAMCTTE(hk.Task):
         log.info("%s: %d CTTE members", self.IDENTIFIER, bmodels.AM.objects.filter(is_am_ctte=True).count())
 
 
-class ComputeProcessActiveFlag(hk.Task):
-    """
-    Compute Process.is_active from Process.progress
-    """
-    @transaction.atomic
-    def run_main(self, stage):
-        cursor = connection.cursor()
-        cursor.execute("""
-            UPDATE process SET is_active=(progress NOT IN (%s, %s))
-        """, (const.PROGRESS_DONE, const.PROGRESS_CANCELLED))
-        log.info("%s: %d/%d active processes",
-                 self.IDENTIFIER,
-                 bmodels.Process.objects.filter(is_active=True).count(),
-                 cursor.rowcount)
-
-
 class PersonExpires(hk.Task):
     """
     Expire old Person records
@@ -283,25 +267,6 @@ class CheckStatusProgressMatch(hk.Task):
                          self.IDENTIFIER, self.hk.link(person), person.status, process.applying_for)
 
 
-class CheckLogProgressMatch(hk.Task):
-    """
-    Check that the last process with progress 'done' has the same
-    'applying_for' as the person status
-    """
-    DEPENDS = [MakeLink]
-
-    def run_main(self, stage):
-        for p in bmodels.Process.objects.filter(is_active=True):
-            try:
-                last_log = p.log.order_by("-logdate")[0]
-            except IndexError:
-                log.warning("%s: %s (%s) has no log entries", self.IDENTIFIER, self.hk.link(p), repr(p))
-                continue
-            if p.progress != last_log.progress:
-                log.warning("%s: %s (%s) has progress %s but the last log entry has progress %s",
-                            self.IDENTIFIER, self.hk.link(p), repr(p), p.progress, last_log.progress)
-
-
 class CheckEnums(hk.Task):
     """
     Consistency check of enum values
@@ -315,7 +280,7 @@ class CheckEnums(hk.Task):
         for p in bmodels.Person.objects.exclude(status__in=statuses):
             log.warning("%s: %s: invalid status %s", self.IDENTIFIER, self.hk.link(p), p.status)
 
-        for p in bmodels.Process.objects.exclude(applying_for__in=statuses):
+        for p in pmodels.Process.objects.exclude(applying_for__in=statuses):
             log.warning("%s: %s: invalid applying_for %s", self.IDENTIFIER, self.hk.link(p), p.applying_for)
 
         for p in bmodels.Process.objects.exclude(progress__in=progresses):

@@ -17,13 +17,7 @@
             <td val="{{p.started|date:'Y-m-d'}}">{{p.started.date}}</td>
             <td val="{{p.started|date:'Y-m-d'}}">{{p.ended.date}}</td>
             <td>{{p.applying_for|desc_status}} ({{p.is_active|yesno:"in progress,done"}})</td>
-            <td>
-                {% if p.is_active %}
-                <a href="{% url 'public_progress' progress=p.progress %}">{{p.progress|desc_progress}}</a>
-                {% else %}
-                {{p.progress|desc_progress}}
-                {% endif %}
-            </td>
+            <td>{{p.progress|desc_progress}}</td>
             <td>
                 {% if p.manager %}
                 <a href="{{ p.manager.get_absolute_url }}" title="{{p.manager.person.fullname}}">{{p.manager.person.uid|default:"None"}}</a>

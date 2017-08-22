@@ -34,12 +34,5 @@ $(function() {
 
 {% include "process/process_list.html" with procs=last %}
 
-<h2>Old-style processes</h2>
-
-<p>
-The process workflow has been reimplemented and this page lists only the processes using the new workflow.<br>
-<a href="{% url 'processes' %}">Archive list of processes using the old workflow.</a>
-</p>
-
 {% endblock %}
 

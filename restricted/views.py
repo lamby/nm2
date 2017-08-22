@@ -98,6 +98,7 @@ class AMMain(VisitorTemplateView):
 
         return ctx
 
+
 class AMProfile(VisitPersonMixin, FormView):
     # Require DD instead of AM to give access to inactive AMs
     require_visitor = "dd"

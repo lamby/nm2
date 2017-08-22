@@ -77,29 +77,6 @@ class Managers(VisitorTemplateView):
         ctx["ams"] = ams
         return ctx
 
-class Processes(VisitorTemplateView):
-    template_name = "public/processes.html"
-
-    def get_context_data(self, **kw):
-        from django.db.models import Min, Max
-        ctx = super(Processes, self).get_context_data(**kw)
-
-        cutoff = now() - datetime.timedelta(days=180)
-
-        ctx["open"] = bmodels.Process.objects.filter(is_active=True) \
-                                             .annotate(
-                                                 started=Min("log__logdate"),
-                                                 last_change=Max("log__logdate")) \
-                                             .order_by("-last_change")
-
-        ctx["done"] = bmodels.Process.objects.filter(progress=const.PROGRESS_DONE) \
-                                             .annotate(
-                                                 started=Min("log__logdate"),
-                                                 last_change=Max("log__logdate")) \
-                                             .order_by("-last_change") \
-                                             .filter(last_change__gt=cutoff)
-
-        return ctx
 
 def make_statusupdateform(editor):
     if editor.is_fd:
@@ -292,24 +269,6 @@ class AuditLog(VisitorTemplateView):
         ctx["audit_log"] = audit_log
         return ctx
 
-class Progress(VisitorTemplateView):
-    template_name = "public/progress.html"
-
-    def get_context_data(self, **kw):
-        ctx = super(Progress, self).get_context_data(**kw)
-        progress = self.kwargs["progress"]
-
-        from django.db.models import Min, Max
-
-        processes = bmodels.Process.objects.filter(progress=progress, is_active=True) \
-                .annotate(started=Min("log__logdate"), ended=Max("log__logdate")) \
-                .order_by("started")
-
-        ctx.update(
-            progress=progress,
-            processes=processes,
-        )
-        return ctx
 
 class Stats(VisitorTemplateView):
     template_name = "public/stats.html"
@@ -339,23 +298,6 @@ class Stats(VisitorTemplateView):
 
         # List of active processes with statistics
         active_processes = []
-        #for p in bmodels.Process.objects.filter(is_active=True):
-        #    p.annotate_with_duration_stats()
-        #    mbox_mtime = p.mailbox_mtime
-        #    if mbox_mtime is None:
-        #        p.mbox_age = None
-        #    else:
-        #        p.mbox_age = (dtnow - mbox_mtime).days
-        #    active_processes.append(p)
-        #    if self.visitor and self.visitor.is_admin:
-        #        pathname = p.mailbox_file
-        #        if pathname:
-        #            p.mbox_stats = []
-        #            for idx, (addr, length) in enumerate(mailbox_get_gaps(pathname)):
-        #                neg = 1 if idx % 2 == 0 else -1
-        #                p.mbox_stats.append(neg * min(round(length/86400), 30))
-        #        else:
-        #            p.mbox_stats = None
 
         # Build process list
         import process.models as pmodels
@@ -373,8 +315,6 @@ class Stats(VisitorTemplateView):
 
         # Count of applicants by progress (for rrdstats.sh, merge old and new processes)
         by_progress = Counter()
-        for row in bmodels.Process.objects.filter(is_active=True).values("progress").annotate(Count("progress")):
-            by_progress[row["progress"]] = row["progress__count"]
         by_progress["dam_ok"] += by_status["Approved"]
         by_progress["am"] += by_status["AM"]
         by_progress["am_hold"] += by_status["AM Hold"]
@@ -432,104 +372,6 @@ class Findperson(VisitorMixin, FormView):
         if fpr:
             bmodels.Fingerprint.objects.create(fpr=fpr, person=person, is_active=True, audit_author=self.visitor, audit_notes="user created manually")
         return redirect(person.get_absolute_url())
-
-
-class StatsLatest(VisitorTemplateView):
-    template_name = "public/stats_latest.html"
-
-    def compute_stats(self):
-        from django.db.models import Count, Min, Max
-
-        days = int(self.request.GET.get("days", "7"))
-        threshold = now().replace(hour=0, minute=0, second=0, microsecond=0) - datetime.timedelta(days=days)
-
-        raw_counts = dict((x.tag, 0) for x in const.ALL_PROGRESS)
-        for p in bmodels.Process.objects.values("progress").annotate(count=Count("id")).filter(is_active=True):
-            raw_counts[p["progress"]] = p["count"]
-
-        counts = dict(
-            new=raw_counts[const.PROGRESS_APP_NEW] + raw_counts[const.PROGRESS_APP_RCVD] + raw_counts[const.PROGRESS_ADV_RCVD],
-            new_hold=raw_counts[const.PROGRESS_APP_HOLD],
-            new_ok=raw_counts[const.PROGRESS_APP_OK],
-            am=raw_counts[const.PROGRESS_AM_RCVD] + raw_counts[const.PROGRESS_AM],
-            am_hold=raw_counts[const.PROGRESS_AM_HOLD],
-            fd=raw_counts[const.PROGRESS_AM_OK],
-            fd_hold=raw_counts[const.PROGRESS_FD_HOLD],
-            dam=raw_counts[const.PROGRESS_FD_OK],
-            dam_hold=raw_counts[const.PROGRESS_DAM_HOLD],
-            dam_ok=raw_counts[const.PROGRESS_DAM_OK],
-        )
-
-        irc_topic = "New %(new)d+%(new_hold)d ok %(new_ok)d | AM: %(am)d+%(am_hold)d | FD: %(fd)d+%(fd_hold)d | DAM: %(dam)d+%(dam_hold)d ok %(dam_ok)d" % counts
-
-        events = []
-
-        # Collect status change events
-        for p in bmodels.Person.objects.filter(status_changed__gte=threshold).order_by("-status_changed"):
-            events.append(dict(
-                type="status",
-                time=p.status_changed,
-                person=p,
-            ))
-
-        # Collect progress change events
-        for pr in bmodels.Process.objects.filter(is_active=True):
-            old_progress = None
-            for l in pr.log.order_by("logdate"):
-                if l.progress != old_progress:
-                    if l.logdate.date() >= threshold:
-                        events.append(dict(
-                            type="progress",
-                            time=l.logdate,
-                            person=pr.person,
-                            log=l,
-                        ))
-                    old_progress = l.progress
-
-        events.sort(key=lambda x:x["time"])
-        return {
-            "counts": counts,
-            "raw_counts": raw_counts,
-            "irc_topic": irc_topic,
-            "events": events,
-        }
-
-    def get(self, request, *args, **kw):
-        # If JSON is requested, dump them right away
-        if 'json' in self.request.GET:
-            ctx = self.compute_stats()
-            json_evs = []
-            for e in ctx["events"]:
-                ne = dict(
-                    status_changed_dt=e["time"].strftime("%Y-%m-%d %H:%M:%S"),
-                    status_changed_ts=e["time"].strftime("%s"),
-                    uid=e["person"].uid,
-                    fn=e["person"].fullname,
-                    key=e["person"].lookup_key,
-                    type=e["type"],
-                )
-                if e["type"] == "status":
-                    ne.update(
-                        status=e["person"].status,
-                    )
-                elif e["type"] == "progress":
-                    ne.update(
-                        process_key=e["log"].process.lookup_key,
-                        progress=e["log"].progress,
-                    )
-                json_evs.append(ne)
-            ctx["events"] = json_evs
-            res = http.HttpResponse(content_type="application/json")
-            res["Content-Disposition"] = "attachment; filename=stats.json"
-            json.dump(ctx, res, indent=1)
-            return res
-        else:
-            return super(StatsLatest, self).get(request, *args, **kw)
-
-    def get_context_data(self, **kw):
-        ctx = super(StatsLatest, self).get_context_data(**kw)
-        ctx.update(**self.compute_stats())
-        return ctx
 
 
 class StatsGraph(VisitorTemplateView):

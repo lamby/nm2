@@ -21,43 +21,11 @@ from . import models as dmodels
 from backend import const
 import backend.models as bmodels
 import process.models as pmodels
+import backend.ops as bops
 import process.ops as pops
 import logging
 
 log = logging.getLogger(__name__)
-
-class ProgressFinalisationsOnAccountsCreated(hk.Task):
-    """
-    Update pending dm_ga processes after the account is created
-    """
-    DEPENDS = [MakeLink, Housekeeper]
-
-    @transaction.atomic
-    def run_main(self, stage):
-        # Get a lits of accounts from DSA
-        dm_ga_uids = set()
-        dd_uids = set()
-        for entry in dmodels.list_people():
-            if entry.is_dd and entry.single("keyFingerPrint") is not None:
-                dd_uids.add(entry.uid)
-            else:
-                dm_ga_uids.add(entry.uid)
-
-        # Check if pending processes got an account
-        for proc in bmodels.Process.objects.filter(is_active=True):
-            if proc.progress != const.PROGRESS_DAM_OK: continue
-            finalised_msg = None
-
-            if proc.applying_for == const.STATUS_DM_GA and proc.person.uid in dm_ga_uids:
-                finalised_msg = "guest LDAP account created by DSA"
-            if proc.applying_for in (const.STATUS_DD_NU, const.STATUS_DD_U) and proc.person.uid in dd_uids:
-                finalised_msg = "LDAP account created by DSA"
-
-            if finalised_msg is not None:
-                old_status = proc.person.status
-                proc.finalize(finalised_msg, audit_author=self.hk.housekeeper.user, audit_notes="DSA created the account: finalising process")
-                log.info("%s: %s finalised: %s changes status %s->%s",
-                         self.IDENTIFIER, self.hk.link(proc), proc.person.uid, old_status, proc.person.status)
 
 
 class NewGuestAccountsFromDSA(hk.Task):
@@ -143,20 +111,10 @@ class NewGuestAccountsFromDSA(hk.Task):
                         process = None
 
                     if process is None:
-                        bmodels.Process.objects.create_instant_process(
-                            person, new_status, [
-                                # Add a log entry documenting what is happening
-                                bmodels.Log(
-                                    changed_by=self.hk.housekeeper.user,
-                                    progress=const.PROGRESS_DONE,
-                                    logtext=audit_notes,
-                                ),
-                            ])
-
-                        person.uid = entry.uid
-                        person.status = new_status
-
-                        person.save(audit_author=self.hk.housekeeper.user, audit_notes=audit_notes)
+                        op = bops.ChangeStatus(
+                            audit_author=self.hk.housekeeper.user, audit_notes=audit_notes,
+                            person=person, status=new_status)
+                        op.execute()
                     else:
                         op = pops.CloseProcess(
                             audit_author=self.hk.housekeeper.user, audit_notes=audit_notes,
