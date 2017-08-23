@@ -8,7 +8,9 @@ from django import forms, http
 from django.core.exceptions import PermissionDenied
 from django.conf import settings
 from django.urls import reverse, reverse_lazy
+from collections import OrderedDict
 from rest_framework import viewsets
+from backend.shortcuts import build_absolute_uri
 from backend.mixins import VisitorMixin, VisitPersonMixin, TokenAuthMixin
 from backend import const
 import backend.models as bmodels
@@ -22,6 +24,7 @@ from six.moves import shlex_quote
 from . import models as pmodels
 from .forms import StatementForm
 from .serializers import ProcessSerializer
+from . import ops as pops
 
 
 class ProcessViewSet(viewsets.ReadOnlyModelViewSet):
@@ -74,14 +77,10 @@ class Create(VisitPersonMixin, FormView):
         if applying_for == const.STATUS_EMERITUS_DD:
             return redirect(reverse("process_emeritus", args=[self.person.lookup_key]))
 
-        with transaction.atomic():
-            p = pmodels.Process.objects.create(self.person, applying_for)
-            p.add_log(self.visitor, "Process created", is_public=True)
+        op = pops.ProcessCreate(person=self.person, applying_for=applying_for, audit_author=self.visitor)
+        op.execute(self.request)
 
-        from .email import notify_new_process
-        notify_new_process(p, self.request)
-
-        return redirect(p.get_absolute_url())
+        return redirect(op.new_process.get_absolute_url())
 
 
 class Show(VisitProcessMixin, TemplateView):
@@ -102,7 +101,7 @@ class AddProcessLog(VisitProcessMixin, View):
     """
     @transaction.atomic
     def post(self, request, *args, **kw):
-        logtext = request.POST.get("logtext", "")
+        logtext = request.POST.get("logtext", "").strip()
         action = request.POST.get("add_action", "undefined")
         req_type = request.POST.get("req_type", None)
         is_public = True
@@ -116,55 +115,44 @@ class AddProcessLog(VisitProcessMixin, View):
 
         visit_perms = target.permissions_of(self.visitor)
 
-        if action == "log_private":
+        op = None
+        if action in ("log_private", "log_public"):
             if "add_log" not in visit_perms: raise PermissionDenied
-            is_public = False
-            action = ""
+            if logtext:
+                op_args = {}
+                if req_type:
+                    op_args["requirement"] = requirement
+                else:
+                    op_args["process"] = self.process
+                op = pops.ProcessAddLogEntry(
+                    audit_author=self.visitor,
+                    audit_notes=logtext,
+                    is_public=action == "log_public",
+                    **op_args)
         elif action == "log_public":
             if "add_log" not in visit_perms: raise PermissionDenied
             action = ""
         elif action == "req_unapprove":
             if action not in visit_perms: raise PermissionDenied
-            if not logtext: logtext = "Unapproved"
-            requirement.approved_by = None
-            requirement.approved_time = None
-            requirement.save()
+            op = pops.RequirementUnapprove(audit_author=self.visitor, audit_notes=logtext or "Requirement unapproved", requirement=requirement)
         elif action == "req_approve":
             if action not in visit_perms: raise PermissionDenied
-            if not logtext: logtext = "Approved"
-            requirement.approved_by = self.visitor
-            requirement.approved_time = now()
-            requirement.save()
+            op = pops.RequirementApprove(audit_author=self.visitor, audit_notes=logtext or "Requirement approved", requirement=requirement)
         elif action == "proc_freeze":
             if action not in visit_perms: raise PermissionDenied
-            if not logtext: logtext = "Frozen for review"
-            self.process.frozen_by = self.visitor
-            self.process.frozen_time = now()
-            self.process.save()
+            op = pops.ProcessFreeze(audit_author=self.visitor, audit_notes=logtext or "Process frozen for review", process=self.process)
         elif action == "proc_unfreeze":
             if action not in visit_perms: raise PermissionDenied
-            if not logtext: logtext = "Unfrozen for further work"
-            self.process.frozen_by = None
-            self.process.frozen_time = None
-            self.process.save()
+            op = pops.ProcessUnfreeze(audit_author=self.visitor, audit_notes=logtext or "Process unfrozen for further work", process=self.process)
         elif action == "proc_approve":
             if action not in visit_perms: raise PermissionDenied
-            if not logtext: logtext = "Process approved"
-            self.process.approved_by = self.visitor
-            self.process.approved_time = now()
-            self.process.save()
+            op = pops.ProcessApprove(audit_author=self.visitor, audit_notes=logtext or "Process approved", process=self.process)
         elif action == "proc_unapprove":
             if action not in visit_perms: raise PermissionDenied
-            if not logtext: logtext = "Process unapproved"
-            self.process.approved_by = None
-            self.process.approved_time = None
-            self.process.save()
+            op = pops.ProcessUnapprove(audit_author=self.visitor, audit_notes=logtext or "Process unapproved", process=self.process)
 
-        if logtext:
-            entry = target.add_log(self.visitor, logtext, action=action if action else "", is_public=is_public)
-            if not action:
-                from .email import notify_new_log_entry
-                notify_new_log_entry(entry, request)
+        if op is not None:
+            op.execute(self.request)
 
         return redirect(target.get_absolute_url())
 
@@ -214,33 +202,11 @@ class AssignAM(RequirementMixin, TemplateView):
         ctx["ams"] = bmodels.AM.list_available(free_only=False)
         return ctx
 
-    def _assign_am(self, am):
-        current = self.process.current_am_assignment
-        if current is not None:
-            current.unassigned_by = self.visitor
-            current.unassigned_time = now()
-            current.save()
-            self.requirement.add_log(self.visitor, "Unassigned AM {}".format(current.am.person.lookup_key), is_public=True, action="unassign_am")
-
-        current = pmodels.AMAssignment.objects.create(
-            process=self.process,
-            am=am,
-            assigned_by=self.visitor,
-            assigned_time=now())
-
-        if not am.is_am:
-            am.is_am = True
-            am.save()
-
-        self.requirement.add_log(self.visitor, "Assigned AM {}".format(am.person.lookup_key), is_public=True, action="assign_am")
-
-        from .email import notify_am_assigned
-        notify_am_assigned(current, request=self.request)
-
     def post(self, request, *args, **kw):
         am_key = request.POST.get("am", None)
         am = bmodels.AM.lookup_or_404(am_key)
-        self._assign_am(am)
+        op = pops.ProcessAssignAM(audit_author=self.visitor, process=self.process, am=am)
+        op.execute(self.request)
         return redirect(self.requirement.get_absolute_url())
 
 
@@ -250,14 +216,12 @@ class UnassignAM(RequirementMixin, View):
     def post(self, request, *args, **kw):
         current = self.process.current_am_assignment
         if current is not None:
-            current.unassigned_by = self.visitor
-            current.unassigned_time = now()
-            current.save()
-            self.requirement.add_log(self.visitor, "Unassigned AM {}".format(current.am.person.lookup_key), is_public=True, action="unassign_am")
+            op = pops.ProcessUnassignAM(audit_author=self.visitor, assignment=current)
+            op.execute(self.request)
         return redirect(self.requirement.get_absolute_url())
 
 
-class StatementCreate(StatementMixin, FormView):
+class StatementCreate(RequirementMixin, FormView):
     form_class = StatementForm
     require_visit_perms = "edit_statements"
     template_name = "process/statement_create.html"
@@ -267,10 +231,16 @@ class StatementCreate(StatementMixin, FormView):
         self.blurb = self.get_blurb()
         if self.blurb:
             self.blurb = ["For nm.debian.org, at {:%Y-%m-%d}:".format(now())] + self.blurb
-        if self.requirement.process.applying_for == const.STATUS_EMERITUS_DD:
-            self.notify_ml = "private"
-        else:
-            self.notify_ml = "newmaint"
+
+    def check_permissions(self):
+        super().check_permissions()
+        if self.requirement.process.applying_for in (const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD):
+            raise PermissionDenied
+
+    def get_form_kwargs(self):
+        kw = super().get_form_kwargs()
+        kw["fpr"] = self.visitor.fpr
+        return kw
 
     def get_blurb(self):
         """
@@ -287,74 +257,21 @@ class StatementCreate(StatementMixin, FormView):
         #    ]
         return None
 
-    def get_initial(self):
-        if self.statement is None:
-            return super(StatementCreate, self).get_initial()
-        else:
-            return { "statement": self.statement.statement }
-
-    def normalise_text(self, text):
-        return re.sub("\s+", " ", text).lower().strip()
-
     def get_context_data(self, **kw):
-        ctx = super(StatementCreate, self).get_context_data(**kw)
+        ctx = super().get_context_data(**kw)
         ctx["blurb"] = [shlex_quote(x) for x in self.blurb] if self.blurb else None
         ctx["wikihelp"] = "https://wiki.debian.org/nm.debian.org/Statements"
-        ctx["notify_ml"] = self.notify_ml
         return ctx
 
     @transaction.atomic
     def form_valid(self, form):
-        statement = self.statement
-        if statement is None:
-            statement = pmodels.Statement(requirement=self.requirement, fpr=self.visitor.fingerprint)
-            replace = False
-        else:
-            replace = True
-        statement.uploaded_by = self.visitor
-        statement.uploaded_time = now()
-        statement.statement, plaintext = form.cleaned_data["statement"]
-        statement.save()
-
-        file_statement(self.request, self.visitor, self.requirement, statement, replace=replace, notify_ml=self.notify_ml)
-
+        statement, plaintext = form.cleaned_data["statement"]
+        op = pops.ProcessStatementAdd(
+                audit_author=self.visitor,
+                requirement=self.requirement,
+                statement=statement)
+        op.execute(self.request)
         return redirect(self.requirement.get_absolute_url())
-
-
-def file_statement(request, visitor, requirement, statement, replace=False, notify_ml="newmaint", mia=None):
-    if replace:
-        action = "Updated"
-        log_action = "update_statement"
-    else:
-        action = "Added"
-        log_action = "add_statement"
-
-    requirement.add_log(visitor, "{} a signed statement".format(action), True, action=log_action)
-
-    # Check if the requirement considers itself satisfied now, and
-    # auto-mark approved accordingly
-    status = requirement.compute_status()
-    if status["satisfied"]:
-        try:
-            robot = bmodels.Person.objects.get(username="__housekeeping__")
-        except bmodels.Person.DoesNotExist:
-            robot = visitor
-        requirement.approved_by = robot
-        requirement.approved_time = now()
-    else:
-        requirement.approved_by = None
-        requirement.approved_time = None
-    requirement.save()
-
-    if requirement.approved_by:
-        requirement.add_log(requirement.approved_by, "New statement received, the requirement seems satisfied", True, action="req_approve")
-
-    if requirement.type in ("intent", "advocate", "am_ok"):
-        msg = statement.rfc3156
-        if msg is None:
-            from .email import notify_new_statement
-            return notify_new_statement(statement, request=request, cc_nm=(requirement.type=="am_ok"), notify_ml=notify_ml, mia=mia)
-    return None
 
 
 class StatementDelete(StatementMixin, TemplateView):
@@ -362,7 +279,8 @@ class StatementDelete(StatementMixin, TemplateView):
     template_name = "process/statement_delete.html"
 
     def post(self, request, *args, **kw):
-        self.statement.delete()
+        op = pops.ProcessStatementRemove(audit_author=self.visitor, statement=self.statement)
+        op.execute(self.request)
         return redirect(self.requirement.get_absolute_url())
 
 
@@ -540,7 +458,7 @@ def make_rt_ticket_text(request, visitor, process):
     ctx["intents"] = "\n".join(wrapped)
     ctx["intents_from"] = ", ".join(x.uid for x in sorted(intents_from))
 
-    ctx["process_url"] = request.build_absolute_uri(process.get_absolute_url())
+    ctx["process_url"] = build_absolute_uri(process.get_absolute_url(), request)
 
     from django.template.loader import render_to_string
     return render_to_string("process/rt_ticket.txt", ctx).strip()
@@ -579,28 +497,7 @@ class Approve(VisitProcessMixin, FormView):
 
     def load_objects(self):
         super().load_objects()
-        self.only_guest_account = only_needs_guest_account(self.process)
-
-        if self.only_guest_account:
-            subject = "Guest account on porter machines for {}".format(self.person.fullname)
-        else:
-            subject = "{} to become {}".format(self.person.fullname, const.ALL_STATUS_DESCS[self.process.applying_for])
-
-        cc = [self.person.email, self.process.archive_email]
-        if self.process.applying_for == "dm":
-            cc.append("nm@debian.org")
-            requestor = "nm@debian.org"
-        else:
-            requestor = "da-manager@debian.org"
-            cc.append("da-manager@debian.org")
-
-        self.rt_content = {
-            "id": "ticket/new",
-            "Queue": "DSA - Incoming" if self.only_guest_account else "Keyring",
-            "Requestor": requestor,
-            "Subject": subject,
-            "Cc": ", ".join(cc)
-        }
+        self.op = pops.ProcessApproveRT(audit_author=self.visitor, process=self.process)
 
     def check_permissions(self):
         super().check_permissions()
@@ -611,58 +508,31 @@ class Approve(VisitProcessMixin, FormView):
 
     def get_context_data(self, **kw):
         ctx = super().get_context_data(**kw)
-        ctx["rt_content"] = sorted(self.rt_content.items())
+        rt_content = [
+            ("id", self.op.rt_id),
+            ("Queue", self.op.rt_queue),
+            ("Requestor", self.op.rt_requestor),
+            ("Subject", self.op.rt_subject),
+            ("Cc", self.op.rt_cc),
+        ]
+        ctx["rt_content"] = rt_content
         ctx["text"] = make_rt_ticket_text(self.request, self.visitor, self.process)
         return ctx
 
     def form_valid(self, form):
-        signed = form.cleaned_data["signed"]
+        self.op.rt_text = form.cleaned_data["signed"]
 
-        lines = []
-        for key, val in self.rt_content.items():
-            lines.append("{}: {}".format(key, val))
-
-        lines.append("Text:")
-        for line in signed.splitlines():
-            lines.append(" " + line)
-
-        args = {"data": { "content": "\n".join(lines) } }
-        bundle="/etc/ssl/ca-debian/ca-certificates.crt"
-        if os.path.exists(bundle):
-            args["verify"] = bundle
-
-        rt_user = getattr(settings, "RT_USER", None)
-        rt_pass = getattr(settings, "RT_PASS", None)
-        if rt_user is not None and rt_pass is not None:
-            args["params"] = { "user": rt_user, "pass": rt_pass }
-
-        # See https://rt-wiki.bestpractical.com/wiki/REST
-        res = requests.post("https://rt.debian.org/REST/1.0/ticket/new", **args)
-        res.raise_for_status()
-        res_lines = res.text.splitlines()
-        ver, status, text = res_lines[0].split(None, 2)
-
-        def report_error(msg):
+        try:
+            self.op.execute(self.request)
+        except self.op.RTError as e:
             out = http.HttpResponse(content_type="text/plain")
             out.status_code = 500
-            print("Error:", msg, file=out)
+            print("Error:", e.msg, file=out)
             print("RT response:", file=out)
-            for line in res_lines:
+            for line in e.rt_lines:
                 print(line, file=out)
             return out
 
-        if int(status) != 200:
-            return report_error("RT status code is not 200")
-
-        mo = re.match("# Ticket (\d+) created.", res_lines[2])
-        if not mo:
-            return report_error("Could not find ticket number is response")
-        self.process.rt_ticket = int(mo.group(1))
-        self.process.rt_request = signed
-        self.process.approved_by = self.visitor
-        self.process.approved_time = now()
-        self.process.save()
-        self.process.add_log(self.visitor, "Process approved", action="proc_approve", is_public=True)
         return redirect(self.process.get_absolute_url())
 
 
@@ -717,32 +587,16 @@ So long, and thanks for all the fish.
             raise RuntimeError("cannot generate an Emeritus url for a user without uid")
         url = reverse("process_emeritus") + "?" + cls.make_token(person.uid)
         if not request: return url
-        return request.build_absolute_uri(url)
+        return build_absolute_uri(url, request)
 
     def form_valid(self, form):
         if self.expired:
             raise PermissionDenied
 
-        text = form.cleaned_data["statement"]
+        op = pops.RequestEmeritus(audit_author=self.visitor, person=self.person, statement=form.cleaned_data["statement"])
+        op.execute(self.request)
 
-        with transaction.atomic():
-            if self.process is None:
-                self.process = pmodels.Process.objects.create(self.person, const.STATUS_EMERITUS_DD)
-                self.process.add_log(self.visitor, "Process created", is_public=True)
-
-            requirement = self.process.requirements.get(type="intent")
-            if requirement.statements.exists():
-                return redirect(self.process.get_absolute_url())
-
-            statement = pmodels.Statement(requirement=requirement)
-            statement.uploaded_by = self.visitor
-            statement.uploaded_time = now()
-            statement.statement = text
-            statement.save()
-            # See /srv/qa.debian.org/mia/README
-            file_statement(self.request, self.visitor, requirement, statement, replace=False, notify_ml="private", mia="in, retired; emeritus via nm.d.o")
-
-        return redirect(self.process.get_absolute_url())
+        return redirect(op._statement.requirement.process.get_absolute_url())
 
 
 class CancelForm(forms.Form):
@@ -773,154 +627,15 @@ class Cancel(VisitProcessMixin, FormView):
             raise PermissionDenied
 
     def form_valid(self, form):
-        text = form.cleaned_data["statement"]
-        with transaction.atomic():
-            entry = self.process.add_log(self.visitor, text, action="proc_close", is_public=form.cleaned_data["is_public"])
-            self.process.closed = now()
-            self.process.save()
+        if self.process.applying_for in (const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD):
+            cls = pops.ProcessCancelEmeritus
+        else:
+            cls = pops.ProcessCancel
 
-            from .email import notify_new_log_entry
-            # See /srv/qa.debian.org/mia/README
-            notify_new_log_entry(entry, self.request, mia="in, ok; still active via nm.d.o")
-
-        return redirect(self.process.get_absolute_url())
-
-
-class MIAPingForm(forms.Form):
-    email = forms.CharField(
-        required=True,
-        label=_("Email introduction"),
-        widget=forms.Textarea(attrs=dict(rows=10, cols=80))
-    )
-
-
-class MIAPing(VisitPersonMixin, FormView):
-    require_visitor = "admin"
-    template_name = "process/miaping.html"
-    form_class = MIAPingForm
-
-    def get_initial(self):
-        initial = super().get_initial()
-        initial["email"] = """
-We are currently in the process of checking the activity of accounts
-in the Debian LDAP, after the MIA team has contacted you already.
-""".strip()
-        return initial
-
-    def form_valid(self, form):
-        text = form.cleaned_data["email"]
-
-        process = pmodels.Process.objects.create(self.person, const.STATUS_EMERITUS_DD)
-        process.add_log(self.visitor, "Sent ping email", is_public=True)
-
-        ctx = {
-            "visitor": self.visitor,
-            "person": process.person,
-            "process": process,
-            "process_url": self.request.build_absolute_uri(process.get_absolute_url()),
-            "emeritus_url": Emeritus.get_nonauth_url(process.person, self.request),
-            "cancel_url": self.request.build_absolute_uri(reverse("process_cancel", args=[process.pk])),
-            "deadline": now() + datetime.timedelta(days=30),
-            "text": text,
-        }
-
-        from django.template.loader import render_to_string
-        body = render_to_string("process/mia_ping_email.txt", ctx).strip()
-
-        mia_addr = "mia-{}@qa.debian.org".format(self.person.uid)
-
-        from .email import build_django_message
-        msg = build_django_message(
-            from_email=("Debian MIA team", "wat@debian.org"),
-            to=[self.person.email],
-            cc=[process.archive_email],
-            bcc=[mia_addr, "wat@debian.org"],
-            subject="WAT: Are you still active in Debian? ({})".format(self.person.uid),
-            headers={
-                "X-MIA-Summary": "out, wat; WAT by nm.d.o",
-            },
-            body=body)
-        msg.send()
-
-        return redirect(process.get_absolute_url())
-
-
-class MIARemoveForm(forms.Form):
-    email = forms.CharField(
-        required=True,
-        label=_("Email introduction"),
-        widget=forms.Textarea(attrs=dict(rows=10, cols=80))
-    )
-
-
-class MIARemove(VisitProcessMixin, FormView):
-    require_visitor = "admin"
-    template_name = "process/miaremove.html"
-    form_class = MIARemoveForm
-
-    def get_context_data(self, **kw):
-        ctx = super().get_context_data(**kw)
-        ctx["status"] = self.compute_process_status()
-        return ctx
-
-    def get_initial(self):
-        initial = super().get_initial()
-        initial["email"] = """
-We've sent the last warning email on {:%Y-%m-%d}, with no response.
-""".format(self.process.started).strip()
-        return initial
-
-    def form_valid(self, form):
-        text = form.cleaned_data["email"]
-
-        with transaction.atomic():
-            self.process.applying_for = const.STATUS_REMOVED_DD
-            self.process.save()
-
-            requirement = self.process.requirements.get(type="intent")
-
-            statement = pmodels.Statement(requirement=requirement)
-            statement.uploaded_by = self.visitor
-            statement.uploaded_time = now()
-            statement.statement = text
-            statement.save()
-
-            requirement.add_log(self.visitor, "Added intent to remove", True, action="add_statement")
-            requirement.approved_by = self.visitor
-            requirement.approved_time = now()
-            requirement.save()
-
-            requirement.add_log(self.visitor, "Requirement satisfied with intent to remove", True, action="req_approve")
-
-            ctx = {
-                "visitor": self.visitor,
-                "person": self.process.person,
-                "process": self.process,
-                "process_url": self.request.build_absolute_uri(self.process.get_absolute_url()),
-                "emeritus_url": Emeritus.get_nonauth_url(self.process.person, self.request),
-                "cancel_url": self.request.build_absolute_uri(reverse("process_cancel", args=[self.process.pk])),
-                "deadline": now() + datetime.timedelta(days=15),
-                "text": text,
-            }
-
-            from django.template.loader import render_to_string
-            body = render_to_string("process/mia_remove_email.txt", ctx).strip()
-
-            mia_addr = "mia-{}@qa.debian.org".format(self.person.uid)
-
-            from .email import build_django_message
-            msg = build_django_message(
-                from_email=("Debian MIA team", "wat@debian.org"),
-                to=["debian-private@lists.debian.org"],
-                cc=[self.person.email, self.process.archive_email],
-                bcc=[mia_addr, "wat@debian.org"],
-                subject="Debian Project member MIA: {} ({})".format(
-                    self.person.fullname, self.person.uid
-                ),
-                headers={
-                    "X-MIA-Summary": "out; public removal pre-announcement",
-                },
-                body=body)
-            msg.send()
-
+        op = cls(
+                audit_author=self.visitor,
+                process=self.process,
+                is_public=form.cleaned_data["is_public"],
+                statement=form.cleaned_data["statement"])
+        op.execute(self.request)
         return redirect(self.process.get_absolute_url())

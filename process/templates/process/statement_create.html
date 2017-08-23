@@ -51,9 +51,7 @@ somewhere else.</p>
 <p>The signature will be verified using the key {{fpr|fingerprint}}</p>
 
 {% if requirement.type != "sc_dmup" %}
-<p>The statement will be sent to
-   <a data-ml="{{notify_ml}}" href="https://lists.debian.org/debian-private">debian-{{notify_ml}}</a>
-   as <tt>{{visitor.fullname}}
+<p>The statement will be sent to <a href="https://lists.debian.org/debian-newmaint">debian-newmaint</a> as <tt>{{visitor.fullname}}
     {% if "edit_email" in visit_perms %}
       <a href="{% url 'person_edit_email' key=visitor.lookup_key %}">&lt;{{visitor.email}}&gt;</a></tt>.
     {% else %}

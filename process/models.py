@@ -376,11 +376,12 @@ class Requirement(models.Model):
         """
         return RequirementVisitorPermissions(self, visitor)
 
-    def add_log(self, changed_by, logtext, is_public=False, action=""):
+    def add_log(self, changed_by, logtext, is_public=False, action="", logdate=None):
         """
         Add a log entry for this requirement
         """
-        return Log.objects.create(changed_by=changed_by, process=self.process, requirement=self, is_public=is_public, logtext=logtext, action=action)
+        if logdate is None: logdate = now()
+        return Log.objects.create(changed_by=changed_by, process=self.process, requirement=self, is_public=is_public, logtext=logtext, action=action, logdate=logdate)
 
     def compute_status(self):
         """
@@ -526,7 +527,6 @@ class Requirement(models.Model):
             "notes": notes,
             "keycheck": keycheck_results,
         }
-
 
 
 class AMAssignment(models.Model):

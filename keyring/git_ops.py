@@ -132,10 +132,9 @@ class ProcessOperation(Operation):
             logtext = "Closed from keyring changelog {}, RT #{}".format(self.log_entry.shasum, self.rt)
         else:
             logtext = "Closed from keyring changelog {}, RT unknown".format(self.log_entry.shasum)
-        yield pops.CloseProcess(
+        yield pops.ProcessClose(
             process=self.process,
-            logtext=logtext,
-            logdate=self.log_entry.dt,
+            audit_time=self.log_entry.dt,
             audit_author=self.author,
             audit_notes=logtext,
         )
@@ -259,7 +258,10 @@ class AddDM(Add):
                 audit_notes = "Created DM entry, RT #{}".format(self.rt)
             else:
                 audit_notes = "Created DM entry, RT unknown"
-            yield bops.CreateUser(
+            yield bops.CreatePerson(
+                audit_author=self.author,
+                audit_notes=audit_notes,
+                audit_time=self.log_entry.dt,
                 # Dummy username used to avoid unique entry conflicts
                 username="{}@example.org".format(self.fpr),
                 cn=self.cn,
@@ -267,10 +269,6 @@ class AddDM(Add):
                 sn=self.sn,
                 email=self.email,
                 status=const.STATUS_DM,
-                status_changed=self.log_entry.dt,
-                audit_author=self.author,
-                audit_notes=audit_notes,
-
                 fpr=self.fpr,
             )
             return
@@ -299,7 +297,7 @@ class AddDM(Add):
         yield bops.ChangeStatus(
             person=person,
             status=status,
-            status_changed=self.log_entry.dt,
+            audit_time=self.log_entry.dt,
             audit_author=self.author,
             audit_notes=audit_notes)
 
@@ -364,10 +362,9 @@ class AddDD(Add):
                 logtext = "Added to {} keyring, RT #{}".format(self.role, self.rt)
             else:
                 logtext = "Added to {} keyring, RT unknown".format(self.role)
-            yield pops.CloseProcess(
+            yield pops.ProcessClose(
                 process=p,
-                logtext=logtext,
-                logdate=self.log_entry.dt,
+                audit_time=self.log_entry.dt,
                 audit_author=self.author,
                 audit_notes=logtext,
             )
@@ -425,7 +422,7 @@ class RemoveDD(Remove):
             yield bops.ChangeStatus(
                 person=person,
                 status=const.STATUS_EMERITUS_DD,
-                status_changed=self.log_entry.dt,
+                audit_time=self.log_entry.dt,
                 audit_author=self.author,
                 audit_notes=audit_notes)
             #log.info("%s: %s: %s", self.logtag, self.person_link(person), audit_notes)
@@ -480,7 +477,7 @@ class RemoveDM(Remove):
             yield bops.ChangeStatus(
                 person=person,
                 status=new_status,
-                status_changed=self.log_entry.dt,
+                audit_time=self.log_entry.dt,
                 audit_author=self.author,
                 audit_notes=audit_notes)
 

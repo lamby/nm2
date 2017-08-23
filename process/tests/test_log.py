@@ -117,32 +117,31 @@ class TestLog(ProcessFixtureMixin, TestCase):
             self.assertEqual(len(mail.outbox), 1)
 
     def test_process_proc_freeze(self):
-        with patch("process.views.now") as mock_now:
-            mock_now.return_value = mock_ts
-            client = self.make_test_client(self.visitor)
-            logtext = uuid.uuid4().hex
+        now_time = now()
+        client = self.make_test_client(self.visitor)
+        logtext = uuid.uuid4().hex
 
-            with patch.object(pmodels.Process, "permissions_of", return_value=set()):
-                response = client.post(self.url, data={"logtext": logtext, "add_action": "proc_freeze"})
-                self.assertFailed(response, logtext)
-                self.assertEqual(len(mail.outbox), 0)
+        with patch.object(pmodels.Process, "permissions_of", return_value=set()):
+            response = client.post(self.url, data={"logtext": logtext, "add_action": "proc_freeze"})
+            self.assertFailed(response, logtext)
+            self.assertEqual(len(mail.outbox), 0)
 
-            with patch.object(pmodels.Process, "permissions_of", return_value=set(["proc_freeze"])):
-                response = client.post(self.url, data={"logtext": logtext, "add_action": "proc_freeze"})
-                self.assertRedirectMatches(response, self.processes.app.get_absolute_url())
-                entry = self.get_new_log(self.processes.app, logtext)
-                self.assertIsNone(entry.requirement)
-                self.assertTrue(entry.is_public)
-                self.assertEqual(entry.action, "proc_freeze")
-                self.processes.app.refresh_from_db()
-                self.assertEqual(self.processes.app.frozen_by, self.visitor)
-                self.assertEqual(self.processes.app.frozen_time, mock_ts)
-                self.assertEqual(self.processes.app.approved_by, self.persons.fd)
-                self.assertEqual(self.processes.app.approved_time, self.orig_ts)
-                self.assertEqual(self.processes.app.closed, self.orig_ts)
-                self.assertIntentUnchanged()
-                self.assertAmOkUnchanged()
-                self.assertEqual(len(mail.outbox), 0)
+        with patch.object(pmodels.Process, "permissions_of", return_value=set(["proc_freeze"])):
+            response = client.post(self.url, data={"logtext": logtext, "add_action": "proc_freeze"})
+            self.assertRedirectMatches(response, self.processes.app.get_absolute_url())
+            entry = self.get_new_log(self.processes.app, logtext)
+            self.assertIsNone(entry.requirement)
+            self.assertTrue(entry.is_public)
+            self.assertEqual(entry.action, "proc_freeze")
+            self.processes.app.refresh_from_db()
+            self.assertEqual(self.processes.app.frozen_by, self.visitor)
+            self.assertGreaterEqual(self.processes.app.frozen_time, now_time)
+            self.assertEqual(self.processes.app.approved_by, self.persons.fd)
+            self.assertEqual(self.processes.app.approved_time, self.orig_ts)
+            self.assertEqual(self.processes.app.closed, self.orig_ts)
+            self.assertIntentUnchanged()
+            self.assertAmOkUnchanged()
+            self.assertEqual(len(mail.outbox), 0)
 
     def test_process_proc_unfreeze(self):
         with patch("process.views.now") as mock_now:
@@ -173,32 +172,31 @@ class TestLog(ProcessFixtureMixin, TestCase):
                 self.assertEqual(len(mail.outbox), 0)
 
     def test_process_proc_approve(self):
-        with patch("process.views.now") as mock_now:
-            mock_now.return_value = mock_ts
-            client = self.make_test_client(self.visitor)
-            logtext = uuid.uuid4().hex
+        now_time = now()
+        client = self.make_test_client(self.visitor)
+        logtext = uuid.uuid4().hex
 
-            with patch.object(pmodels.Process, "permissions_of", return_value=set()):
-                response = client.post(self.url, data={"logtext": logtext, "add_action": "proc_approve"})
-                self.assertFailed(response, logtext)
-                self.assertEqual(len(mail.outbox), 0)
+        with patch.object(pmodels.Process, "permissions_of", return_value=set()):
+            response = client.post(self.url, data={"logtext": logtext, "add_action": "proc_approve"})
+            self.assertFailed(response, logtext)
+            self.assertEqual(len(mail.outbox), 0)
 
-            with patch.object(pmodels.Process, "permissions_of", return_value=set(["proc_approve"])):
-                response = client.post(self.url, data={"logtext": logtext, "add_action": "proc_approve"})
-                self.assertRedirectMatches(response, self.processes.app.get_absolute_url())
-                entry = self.get_new_log(self.processes.app, logtext)
-                self.assertIsNone(entry.requirement)
-                self.assertTrue(entry.is_public)
-                self.assertEqual(entry.action, "proc_approve")
-                self.processes.app.refresh_from_db()
-                self.assertEqual(self.processes.app.frozen_by, self.persons.fd)
-                self.assertEqual(self.processes.app.frozen_time, self.orig_ts)
-                self.assertEqual(self.processes.app.approved_by, self.visitor)
-                self.assertEqual(self.processes.app.approved_time, mock_ts)
-                self.assertEqual(self.processes.app.closed, self.orig_ts)
-                self.assertIntentUnchanged()
-                self.assertAmOkUnchanged()
-                self.assertEqual(len(mail.outbox), 0)
+        with patch.object(pmodels.Process, "permissions_of", return_value=set(["proc_approve"])):
+            response = client.post(self.url, data={"logtext": logtext, "add_action": "proc_approve"})
+            self.assertRedirectMatches(response, self.processes.app.get_absolute_url())
+            entry = self.get_new_log(self.processes.app, logtext)
+            self.assertIsNone(entry.requirement)
+            self.assertTrue(entry.is_public)
+            self.assertEqual(entry.action, "proc_approve")
+            self.processes.app.refresh_from_db()
+            self.assertEqual(self.processes.app.frozen_by, self.persons.fd)
+            self.assertEqual(self.processes.app.frozen_time, self.orig_ts)
+            self.assertEqual(self.processes.app.approved_by, self.visitor)
+            self.assertGreaterEqual(self.processes.app.approved_time, now_time)
+            self.assertEqual(self.processes.app.closed, self.orig_ts)
+            self.assertIntentUnchanged()
+            self.assertAmOkUnchanged()
+            self.assertEqual(len(mail.outbox), 0)
 
     def test_process_proc_unapprove(self):
         with patch("process.views.now") as mock_now:
@@ -229,30 +227,29 @@ class TestLog(ProcessFixtureMixin, TestCase):
                 self.assertEqual(len(mail.outbox), 0)
 
     def test_process_req_approve(self):
-        with patch("process.views.now") as mock_now:
-            mock_now.return_value = mock_ts
-            client = self.make_test_client(self.visitor)
-            logtext = uuid.uuid4().hex
+        now_time = now()
+        client = self.make_test_client(self.visitor)
+        logtext = uuid.uuid4().hex
 
-            with patch.object(pmodels.Requirement, "permissions_of", return_value=set()):
-                response = client.post(self.url, data={"logtext": logtext, "add_action": "req_approve", "req_type": "intent"})
-                self.assertFailed(response, logtext)
-                self.assertEqual(len(mail.outbox), 0)
+        with patch.object(pmodels.Requirement, "permissions_of", return_value=set()):
+            response = client.post(self.url, data={"logtext": logtext, "add_action": "req_approve", "req_type": "intent"})
+            self.assertFailed(response, logtext)
+            self.assertEqual(len(mail.outbox), 0)
 
-            with patch.object(pmodels.Requirement, "permissions_of", return_value=set(["req_approve"])):
-                response = client.post(self.url, data={"logtext": logtext, "add_action": "req_approve", "req_type": "intent"})
-                self.assertRedirectMatches(response, self.req_intent.get_absolute_url())
-                entry = self.get_new_log(self.processes.app, logtext)
-                self.assertEqual(entry.requirement, self.req_intent)
-                self.assertTrue(entry.is_public)
-                self.assertEqual(entry.action, "req_approve")
-                self.processes.app.refresh_from_db()
-                self.assertProcUnchanged()
-                self.req_intent.refresh_from_db()
-                self.assertEqual(self.req_intent.approved_by, self.visitor)
-                self.assertEqual(self.req_intent.approved_time, mock_ts)
-                self.assertAmOkUnchanged()
-                self.assertEqual(len(mail.outbox), 0)
+        with patch.object(pmodels.Requirement, "permissions_of", return_value=set(["req_approve"])):
+            response = client.post(self.url, data={"logtext": logtext, "add_action": "req_approve", "req_type": "intent"})
+            self.assertRedirectMatches(response, self.req_intent.get_absolute_url())
+            entry = self.get_new_log(self.processes.app, logtext)
+            self.assertEqual(entry.requirement, self.req_intent)
+            self.assertTrue(entry.is_public)
+            self.assertEqual(entry.action, "req_approve")
+            self.processes.app.refresh_from_db()
+            self.assertProcUnchanged()
+            self.req_intent.refresh_from_db()
+            self.assertEqual(self.req_intent.approved_by, self.visitor)
+            self.assertGreaterEqual(self.req_intent.approved_time, now_time)
+            self.assertAmOkUnchanged()
+            self.assertEqual(len(mail.outbox), 0)
 
     def test_process_req_unapprove(self):
         with patch("process.views.now") as mock_now:

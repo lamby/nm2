@@ -1050,140 +1050,6 @@ class Process(models.Model):
         """
         return ProcessVisitorPermissions(self, visitor)
 
-    class DurationStats(object):
-        AM_STATUSES = frozenset((const.PROGRESS_AM_HOLD, const.PROGRESS_AM))
-
-        def __init__(self):
-            self.first = None
-            self.last = None
-            self.last_progress = None
-            self.total_am_time = 0
-            self.total_amhold_time = 0
-            self.last_am_time = 0
-            self.last_amhold_time = 0
-            self.last_am_history = []
-            self.last_log_text = None
-
-        def process_last_am_history(self, end=None):
-            """
-            Compute AM duration stats.
-
-            end is the datetime of the end of the AM stats period. If None, the
-            current datetime is used.
-            """
-            if not self.last_am_history: return
-            if end is None:
-                end = now()
-
-            time_for_progress = dict()
-            period_start = None
-            for l in self.last_am_history:
-                if period_start is None:
-                    period_start = l
-                elif l.progress != period_start.progress:
-                    days = (l.logdate - period_start.logdate).days
-                    time_for_progress[period_start.progress] = \
-                            time_for_progress.get(period_start.progress, 0) + days
-                    period_start = l
-
-            if period_start:
-                days = (end - period_start.logdate).days
-                time_for_progress[period_start.progress] = \
-                        time_for_progress.get(period_start.progress, 0) + days
-
-            self.last_am_time = time_for_progress.get(const.PROGRESS_AM, 0)
-            self.last_amhold_time = time_for_progress.get(const.PROGRESS_AM_HOLD, 0)
-            self.total_am_time += self.last_am_time
-            self.total_amhold_time += self.last_amhold_time
-
-            self.last_am_history = []
-
-        def process_log(self, l):
-            """
-            Process a log entry. Log entries must be processed in cronological
-            order.
-            """
-            if self.first is None: self.first = l
-
-            if l.progress in self.AM_STATUSES:
-                if self.last_progress not in self.AM_STATUSES:
-                    self.last_am_time = 0
-                    self.last_amhold_time = 0
-                self.last_am_history.append(l)
-            elif self.last_progress in self.AM_STATUSES:
-                self.process_last_am_history(end=l.logdate)
-
-            self.last = l
-            self.last_progress = l.progress
-
-        def stats(self):
-            """
-            Compute a dict with statistics
-            """
-            # Process pending AM history items: happens when the last log has
-            # AM_STATUSES status
-            self.process_last_am_history()
-            if self.last is not None and self.first is not None:
-                total_duration = (self.last.logdate-self.first.logdate).days
-            else:
-                total_duration = None
-
-            return dict(
-                # Date the process started
-                log_first=self.first,
-                # Date of the last log entry
-                log_last=self.last,
-                # Total duration in days
-                total_duration=total_duration,
-                # Days spent in AM
-                total_am_time=self.total_am_time,
-                # Days spent in AM_HOLD
-                total_amhold_time=self.total_amhold_time,
-                # Days spent in AM with the last AM
-                last_am_time=self.last_am_time,
-                # Days spent in AM_HOLD with the last AM
-                last_amhold_time=self.last_amhold_time,
-                # Last nonempty log text
-                last_log_text=self.last_log_text,
-            )
-
-    def duration_stats(self):
-        stats_maker = self.DurationStats()
-        for l in self.log.order_by("logdate"):
-            stats_maker.process_log(l)
-        return stats_maker.stats()
-
-    def annotate_with_duration_stats(self):
-        s = self.duration_stats()
-        for k, v in s.items():
-            setattr(self, k, v)
-
-    def finalize(self, logtext, tstamp=None, audit_author=None, audit_notes=None):
-        """
-        Bring the process to completion, by setting its progress to DONE,
-        adding a log entry and updating the person status.
-        """
-        if self.progress != const.PROGRESS_DAM_OK:
-            raise ValueError("cannot finalise progress {}: status is {} instead of {}".format(
-                str(self), self.progress, const.PROGRESS_DAM_OK))
-
-        if tstamp is None:
-            tstamp = now()
-
-        self.progress = const.PROGRESS_DONE
-        self.person.status = self.applying_for
-        self.person.status_changed = tstamp
-        l = Log(
-            changed_by=None,
-            process=self,
-            progress=self.progress,
-            logdate=tstamp,
-            logtext=logtext
-        )
-        l.save()
-        self.save()
-        self.person.save(audit_author=audit_author, audit_notes=audit_notes)
-
 
 class Log(models.Model):
     """
@@ -1208,46 +1074,11 @@ class Log(models.Model):
     def __str__(self):
         return "{}: {}".format(self.logdate, self.logtext)
 
-    @property
-    def previous(self):
-        """
-        Return the previous log entry for this process.
-
-        This fails once every many years when the IDs wrap around, in which
-        case it may say that there are no previous log entries. It is ok if you
-        use it to send a mail notification, just do not use this method to
-        control a nuclear power plant.
-        """
-        try:
-            return Log.objects.filter(id__lt=self.id, process=self.process).order_by("-id")[0]
-        except IndexError:
-            return None
-
     @classmethod
     def for_process(cls, proc, **kw):
         kw.setdefault("process", proc)
         kw.setdefault("progress", proc.progress)
         return cls(**kw)
-
-
-def post_save_log(sender, **kw):
-    log = kw.get('instance', None)
-    if sender is not Log or not log or kw.get('raw', False):
-        return
-    if 'created' not in kw:
-        # this is a django BUG
-        return
-    if kw.get('created'):
-        # checks for progress transition
-        previous_log = log.previous
-        if previous_log is None or previous_log.progress == log.progress:
-            return
-
-        ### evaluate the progress transition to notify applicant
-        ### remember we are during Process.save() method execution
-        maybe_notify_applicant_on_progress(log, previous_log)
-
-post_save.connect(post_save_log, sender=Log, dispatch_uid="Log_post_save_signal")
 
 
 MOCK_FD_COMMENTS = [

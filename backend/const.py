@@ -1,8 +1,3 @@
-# coding: utf-8
-
-
-
-
 from collections import namedtuple
 
 Status = namedtuple("Status", ("code", "tag", "sdesc", "ldesc"))
