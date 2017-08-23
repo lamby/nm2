@@ -447,6 +447,19 @@ class RequestEmeritus(op.Operation):
         from .email import notify_new_statement
         return notify_new_statement(self._statement, request=request, cc_nm=False, notify_ml="private", mia="in, retired; emeritus via nm.d.o")
 
+    def _mock_execute(self, request=None):
+        try:
+            process = pmodels.Process.objects.get(person=self.person, applying_for__in=(const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD))
+            requirement = process.requirements.get(type="intent")
+        except pmodels.Process.DoesNotExist:
+            process = pmodels.Process(self.person, const.STATUS_EMERITUS_DD)
+            process.pk = 1
+            requirement = pmodels.Requirement(process=process, type="ident")
+            requirement.pk = 2
+
+        self._statement = pmodels.Statement(requirement=requirement, uploaded_by=self.audit_author, uploaded_time=self.audit_time, statement=self.statement)
+        self._statement.pk = 3
+
 
 @op.Operation.register
 class ProcessCancel(op.Operation):

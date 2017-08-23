@@ -193,16 +193,6 @@ class TestOps(ProcessFixtureMixin, TestCase):
         o = pops.ProcessApproveRT(audit_author=self.persons.fd, process=self.processes.app)
         self.check_op(o, check_contents)
 
-    def test_request_emeritus(self):
-        def check_contents(o):
-            self.assertEqual(o.audit_author, self.persons.fd)
-            self.assertEqual(o.audit_notes, "Requested to become emeritus")
-            self.assertIsInstance(o.audit_time, datetime.datetime)
-            self.assertEqual(o.person, self.persons.dd_u)
-            self.assertEqual(o.statement, "test bye")
-
-        o = pops.RequestEmeritus(audit_author=self.persons.fd, person=self.persons.dd_u, statement="test bye")
-        self.check_op(o, check_contents)
 
 
 class TestProcessClose(ProcessFixtureMixin, TestCase):
