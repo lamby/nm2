@@ -1,4 +1,8 @@
 from django.utils.timezone import now
+from django.conf import settings
+import requests
+import re
+import os
 from backend import const
 import backend.ops as op
 from .email import notify_new_dd
@@ -305,3 +309,97 @@ class ProcessStatementRemove(op.Operation):
     def _execute(self):
         self.statement.requirement.add_log(self.audit_author, self.audit_notes, True, action="del_statement", logdate=self.audit_time)
         self.statement.delete()
+
+
+@op.Operation.register
+class ProcessApproveRT(op.Operation):
+    class RTError(Exception):
+        def __init__(self, msg, rt_lines):
+            super().__init__(msg)
+            self.rt_lines = rt_lines
+
+    process = ProcessField()
+    rt_id = op.StringField(null=True, default="ticket/new")
+    rt_queue = op.StringField(null=True)
+    rt_requestor = op.StringField(null=True)
+    rt_subject = op.StringField(null=True)
+    rt_cc = op.StringField(null=True)
+    rt_text = op.StringField(null=True)
+
+    def __init__(self, **kw):
+        kw.setdefault("audit_notes", "Process approved")
+        super().__init__(**kw)
+        only_guest_account = self.only_needs_guest_account(self.process)
+
+        if only_guest_account:
+            self.set_null_field("rt_queue", "DSA - Incoming")
+            self.set_null_field("rt_subject", "Guest account on porter machines for {}".format(self.process.person.fullname))
+        else:
+            self.set_null_field("rt_queue", "Keyring")
+            self.set_null_field("rt_subject", "{} to become {}".format(self.process.person.fullname, const.ALL_STATUS_DESCS[self.process.applying_for]))
+
+        cc = [self.process.person.email, self.process.archive_email]
+        if self.process.applying_for == "dm":
+            self.set_null_field("rt_requestor", "nm@debian.org")
+            cc.append("nm@debian.org")
+        else:
+            self.set_null_field("rt_requestor", "da-manager@debian.org")
+            cc.append("da-manager@debian.org")
+        self.set_null_field("rt_cc", ", ".join(cc))
+
+    @classmethod
+    def only_needs_guest_account(cls, process):
+        if process.person.status == const.STATUS_DC:
+            if process.applying_for == const.STATUS_DC_GA:
+                return True
+        elif process.person.status == const.STATUS_DM:
+            if process.applying_for == const.STATUS_DM_GA:
+                return True
+        return False
+
+    def execute(self):
+        # Build RT API request
+        # See https://rt-wiki.bestpractical.com/wiki/REST
+        lines = []
+        lines.append("id: " + self.rt_id)
+        lines.append("Queue: " + self.rt_queue)
+        lines.append("Requestor: " + self.rt_requestor)
+        lines.append("Subject: " + self.rt_subject)
+        lines.append("Cc: " + self.rt_cc)
+        lines.append("Text:")
+        for line in self.rt_text.splitlines():
+            lines.append(" " + line)
+
+        # Submit RT API request
+        args = {"data": { "content": "\n".join(lines) } }
+
+        bundle="/etc/ssl/ca-debian/ca-certificates.crt"
+        if os.path.exists(bundle):
+            args["verify"] = bundle
+
+        rt_user = getattr(settings, "RT_USER", None)
+        rt_pass = getattr(settings, "RT_PASS", None)
+        if rt_user is not None and rt_pass is not None:
+            args["params"] = { "user": rt_user, "pass": rt_pass }
+
+        res = requests.post("https://rt.debian.org/REST/1.0/ticket/new", **args)
+        res.raise_for_status()
+
+        # Validate the RT result
+        res_lines = res.text.splitlines()
+        ver, status, text = res_lines[0].split(None, 2)
+
+        if int(status) != 200:
+            raise self.RTError("RT status code is not 200", res_lines)
+
+        mo = re.match("# Ticket (\d+) created.", res_lines[2])
+        if not mo:
+            raise self.RTError("Could not find ticket number is response", res_lines)
+
+        # Update the process
+        self.process.rt_ticket = int(mo.group(1))
+        self.process.rt_request = self.rt_text
+        self.process.approved_by = self.audit_author
+        self.process.approved_time = self.audit_time
+        self.process.save()
+        self.process.add_log(self.audit_author, self.audit_notes, action="proc_approve", is_public=True, logdate=self.audit_time)

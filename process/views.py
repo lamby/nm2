@@ -8,6 +8,7 @@ from django import forms, http
 from django.core.exceptions import PermissionDenied
 from django.conf import settings
 from django.urls import reverse, reverse_lazy
+from collections import OrderedDict
 from rest_framework import viewsets
 from backend.mixins import VisitorMixin, VisitPersonMixin, TokenAuthMixin
 from backend import const
@@ -495,28 +496,7 @@ class Approve(VisitProcessMixin, FormView):
 
     def load_objects(self):
         super().load_objects()
-        self.only_guest_account = only_needs_guest_account(self.process)
-
-        if self.only_guest_account:
-            subject = "Guest account on porter machines for {}".format(self.person.fullname)
-        else:
-            subject = "{} to become {}".format(self.person.fullname, const.ALL_STATUS_DESCS[self.process.applying_for])
-
-        cc = [self.person.email, self.process.archive_email]
-        if self.process.applying_for == "dm":
-            cc.append("nm@debian.org")
-            requestor = "nm@debian.org"
-        else:
-            requestor = "da-manager@debian.org"
-            cc.append("da-manager@debian.org")
-
-        self.rt_content = {
-            "id": "ticket/new",
-            "Queue": "DSA - Incoming" if self.only_guest_account else "Keyring",
-            "Requestor": requestor,
-            "Subject": subject,
-            "Cc": ", ".join(cc)
-        }
+        self.op = pops.ProcessApproveRT(audit_author=self.visitor, process=self.process)
 
     def check_permissions(self):
         super().check_permissions()
@@ -527,58 +507,30 @@ class Approve(VisitProcessMixin, FormView):
 
     def get_context_data(self, **kw):
         ctx = super().get_context_data(**kw)
-        ctx["rt_content"] = sorted(self.rt_content.items())
+        rt_content = OrderedDict()
+        rt_content["id"] = self.op.rt_id
+        rt_content["Queue"] = self.op.rt_queue
+        rt_content["Requestor"] = self.op.rt_requestor
+        rt_content["Subject"] = self.op.rt_subject
+        rt_content["Cc"] = self.op.rt_cc
+        ctx["rt_content"] = rt_content
         ctx["text"] = make_rt_ticket_text(self.request, self.visitor, self.process)
         return ctx
 
     def form_valid(self, form):
-        signed = form.cleaned_data["signed"]
+        self.op.rt_text = form.cleaned_data["signed"]
 
-        lines = []
-        for key, val in self.rt_content.items():
-            lines.append("{}: {}".format(key, val))
-
-        lines.append("Text:")
-        for line in signed.splitlines():
-            lines.append(" " + line)
-
-        args = {"data": { "content": "\n".join(lines) } }
-        bundle="/etc/ssl/ca-debian/ca-certificates.crt"
-        if os.path.exists(bundle):
-            args["verify"] = bundle
-
-        rt_user = getattr(settings, "RT_USER", None)
-        rt_pass = getattr(settings, "RT_PASS", None)
-        if rt_user is not None and rt_pass is not None:
-            args["params"] = { "user": rt_user, "pass": rt_pass }
-
-        # See https://rt-wiki.bestpractical.com/wiki/REST
-        res = requests.post("https://rt.debian.org/REST/1.0/ticket/new", **args)
-        res.raise_for_status()
-        res_lines = res.text.splitlines()
-        ver, status, text = res_lines[0].split(None, 2)
-
-        def report_error(msg):
+        try:
+            self.op.execute()
+        except self.op.RTError as e:
             out = http.HttpResponse(content_type="text/plain")
             out.status_code = 500
-            print("Error:", msg, file=out)
+            print("Error:", e.msg, file=out)
             print("RT response:", file=out)
-            for line in res_lines:
+            for line in e.rt_lines:
                 print(line, file=out)
             return out
 
-        if int(status) != 200:
-            return report_error("RT status code is not 200")
-
-        mo = re.match("# Ticket (\d+) created.", res_lines[2])
-        if not mo:
-            return report_error("Could not find ticket number is response")
-        self.process.rt_ticket = int(mo.group(1))
-        self.process.rt_request = signed
-        self.process.approved_by = self.visitor
-        self.process.approved_time = now()
-        self.process.save()
-        self.process.add_log(self.visitor, "Process approved", action="proc_approve", is_public=True)
         return redirect(self.process.get_absolute_url())
 
 

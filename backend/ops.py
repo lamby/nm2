@@ -150,11 +150,31 @@ class Operation(metaclass=OperationMeta):
     audit_time = DatetimeField(null=True, default=now)
 
     def __init__(self, **kw):
+        self.fields_null = set()
+
         for name, field in self.fields.items():
             if name not in kw:
                 setattr(self, name, field.get_default())
+                self.fields_null.add(name)
             else:
                 setattr(self, name, field.validate(kw.get(name)))
+
+    def set_field(self, name, value):
+        """
+        Set `self.<name>` to value, validating value using the relevant field.
+        """
+        setattr(self, name, self.fields[name].validate(value))
+
+    def set_null_field(self, name, value):
+        """
+        Set `self.<name>` to value, validating value using the relevant field.
+
+        It does nothing if a value for `name` was provided at construction
+        time.
+        """
+        if name not in self.fields_null: return
+        self.fields_null.remove(name)
+        self.set_field(name, value)
 
     def to_dict(self):
         """
