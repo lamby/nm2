@@ -4,6 +4,7 @@ import requests
 import re
 import os
 from backend import const
+from backend.shortcuts import build_absolute_uri
 import backend.ops as op
 from backend import models as bmodels
 from . import models as pmodels
@@ -458,12 +459,43 @@ class ProcessCancel(op.Operation):
         super().__init__(**kw)
 
     def _execute(self):
-        self._entry = self.process.add_log(self.audit_author, self.statement, action="proc_close", is_public=self.is_public, logdate=self.audit_time)
+        self.process.add_log(self.audit_author, self.statement, action="proc_close", is_public=self.is_public, logdate=self.audit_time)
         self.process.closed = self.audit_time
         self.process.save()
 
+
+@op.Operation.register
+class ProcessCancelEmeritus(ProcessCancel):
     def notify(self, request=None):
-        from .email import notify_new_log_entry
-        if self.process.applying_for in (const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD):
-            # See /srv/qa.debian.org/mia/README
-            notify_new_log_entry(self._entry, request, mia="in, ok; still active via nm.d.o")
+        from .email import build_django_message
+
+        process = self.process
+
+        url = build_absolute_uri(process.get_absolute_url(), request)
+
+        body = """{op.statement}
+
+{op.audit_author.fullname} (via nm.debian.org)
+"""
+        body += "-- \n"
+        body += "{url}\n"
+        body = body.format(op=self, url=url)
+
+        cc = [process.person, process.archive_email]
+        if self.is_public:
+            subject = "{}: new public log entry".format(process.person.fullname)
+        else:
+            subject = "{}: new private log entry".format(process.person.fullname)
+
+        msg = build_django_message(
+            self.audit_author,
+            to="nm@debian.org",
+            cc=cc,
+            bcc=["mia-{}@qa.debian.org".format(process.person.uid)],
+            subject=subject,
+            headers={
+                # See /srv/qa.debian.org/mia/README
+                "X-MIA-Summary": "in, ok; still active via nm.d.o",
+            },
+            body=body)
+        msg.send()

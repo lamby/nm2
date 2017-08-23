@@ -626,7 +626,12 @@ class Cancel(VisitProcessMixin, FormView):
             raise PermissionDenied
 
     def form_valid(self, form):
-        op = pops.ProcessCancel(
+        if self.process.applying_for in (const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD):
+            cls = pops.ProcessCancelEmeritus
+        else:
+            cls = pops.ProcessCancel
+
+        op = cls(
                 audit_author=self.visitor,
                 process=self.process,
                 is_public=form.cleaned_data["is_public"],

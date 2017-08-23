@@ -4,22 +4,7 @@ from backend import const
 from backend.unittest import PersonFixtureMixin
 import datetime
 
-class TestOpMixin:
-    def check_op(self, o, check_contents):
-        cls = o.__class__
-
-        check_contents(o)
-        
-        d = o.to_dict()
-        o = cls(**d)
-        check_contents(o)
-
-        j = o.to_json()
-        o = ops.Operation.from_json(j)
-        check_contents(o)
-
-
-class TestOps(PersonFixtureMixin, TestOpMixin, TestCase):
+class TestOps(PersonFixtureMixin, TestCase):
     def test_change_status(self):
         def check_contents(o):
             self.assertEqual(o.audit_author, self.persons.fd)

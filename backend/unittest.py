@@ -5,6 +5,7 @@ from django.utils.timezone import now
 from django.test import Client
 from rest_framework.test import APIClient
 from collections import defaultdict
+import contextlib
 import datetime
 import os
 import io
@@ -269,7 +270,56 @@ class BaseFixtureMixin(TestBase):
         cls.keys.create("0EED77DC41D760FDE44035FF5556A34E04A3610B")
 
 
-class PersonFixtureMixin(BaseFixtureMixin):
+class OpFixtureMixin(BaseFixtureMixin):
+    def check_op(self, o, check_contents):
+        # FIXME: compatibility, remove when code has been ported
+        return self.assertOperationSerializes(o, check_contents)
+
+    def assertOperationSerializes(self, o, check_contents=None):
+        """
+        When run with check_contents set to a function, it
+        serializes/deserializes o and checks its contents with the
+        check_contents function.
+
+        When run without check_contents, it acts as a decorator, allowing a
+        shorter invocation, like this:
+
+                @self.assertOperationSerializes(operation_to_check)
+		def _(o):
+		    self.assertEqual(o.audit_author, self.persons.fd)
+                    # ...more checks on o...
+        """
+        if check_contents is None:
+            # Act as a decorator
+            def run_test(check_contents):
+                self.assertOperationSerializes(o, check_contents)
+            return run_test
+        else:
+            # Actually run the test
+            from backend import ops
+            cls = o.__class__
+
+            self.assertIsInstance(o.audit_time, datetime.datetime)
+            check_contents(o)
+            
+            d = o.to_dict()
+            o = cls(**d)
+            self.assertIsInstance(o.audit_time, datetime.datetime)
+            check_contents(o)
+
+            j = o.to_json()
+            o = ops.Operation.from_json(j)
+            self.assertIsInstance(o.audit_time, datetime.datetime)
+            check_contents(o)
+
+    @contextlib.contextmanager
+    def collect_operations(self):
+        from backend import ops
+        with ops.Operation.test_collect() as ops:
+            yield ops
+
+
+class PersonFixtureMixin(OpFixtureMixin):
     """
     Pre-create some persons
     """

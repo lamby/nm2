@@ -2,17 +2,16 @@ from django.test import TestCase
 from django.urls import reverse
 from django.core import mail
 from backend.unittest import PersonFixtureMixin
-from backend.tests.test_ops import TestOpMixin
 from backend import const
 import process.models as pmodels
 import process.views as pviews
-from process.tests.common import ProcessFixtureMixin
+from process.unittest import ProcessFixtureMixin
 from backend import ops as bops
 from mia import ops as mops
 import datetime
 
 
-class TestWatPing(PersonFixtureMixin, TestOpMixin, TestCase):
+class TestWatPing(PersonFixtureMixin, TestCase):
     def test_base_op(self):
         def check_contents(o):
             self.assertEqual(o.audit_author, self.persons.fd)
@@ -81,6 +80,7 @@ class TestWatPing(PersonFixtureMixin, TestOpMixin, TestCase):
             self.assertRedirectMatches(response, r"/process/\d+$")
             self.assertEqual(len(ops), 1)
             op = ops[0]
+            self.assertIsInstance(op, mops.WATPing)
             self.assertEqual(op.audit_author, self.persons[visitor])
             self.assertEqual(op.audit_notes, "Sent WAT ping email")
             self.assertEqual(op.person, self.persons[visited])

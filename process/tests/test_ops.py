@@ -5,12 +5,11 @@ from backend import const
 from backend import models as bmodels
 from process import models as pmodels
 from process import ops as pops
-from .common import ProcessFixtureMixin
-from backend.tests.test_ops import TestOpMixin
+from process.unittest import ProcessFixtureMixin
 import datetime
 
 
-class TestOps(ProcessFixtureMixin, TestOpMixin, TestCase):
+class TestOps(ProcessFixtureMixin, TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -203,17 +202,6 @@ class TestOps(ProcessFixtureMixin, TestOpMixin, TestCase):
             self.assertEqual(o.statement, "test bye")
 
         o = pops.RequestEmeritus(audit_author=self.persons.fd, person=self.persons.dd_u, statement="test bye")
-        self.check_op(o, check_contents)
-
-    def test_process_cancel(self):
-        def check_contents(o):
-            self.assertEqual(o.audit_author, self.persons.fd)
-            self.assertEqual(o.audit_notes, "Process canceled")
-            self.assertIsInstance(o.audit_time, datetime.datetime)
-            self.assertEqual(o.process, self.processes.app)
-            self.assertEqual(o.statement, "test statement")
-
-        o = pops.ProcessCancel(audit_author=self.persons.fd, process=self.processes.app, is_public=False, statement="test statement")
         self.check_op(o, check_contents)
 
 

@@ -218,12 +218,7 @@ def notify_new_log_entry(entry, request=None, mia=None):
     """
     process = entry.process
 
-    if request is None:
-        url = "https://{}{}".format(
-            Site.objects.get_current().domain,
-            process.get_absolute_url())
-    else:
-        url = build_absolute_uri(process.get_absolute_url(), request)
+    url = build_absolute_uri(process.get_absolute_url(), request)
 
     body = """{entry.logtext}
 
