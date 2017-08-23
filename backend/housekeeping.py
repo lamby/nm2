@@ -274,6 +274,7 @@ class CheckEnums(hk.Task):
     DEPENDS = [MakeLink]
 
     def run_main(self, stage):
+        import process.models as pmodels
         statuses = [x.tag for x in const.ALL_STATUS]
         progresses = [x.tag for x in const.ALL_PROGRESS]
 
