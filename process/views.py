@@ -591,62 +591,10 @@ So long, and thanks for all the fish.
         if self.expired:
             raise PermissionDenied
 
-        text = form.cleaned_data["statement"]
+        op = pops.RequestEmeritus(audit_author=self.visitor, person=self.person, statement=form.cleaned_data["statement"])
+        op.execute()
 
-        with transaction.atomic():
-            if self.process is None:
-                self.process = pmodels.Process.objects.create(self.person, const.STATUS_EMERITUS_DD)
-                self.process.add_log(self.visitor, "Process created", is_public=True)
-
-            requirement = self.process.requirements.get(type="intent")
-            if requirement.statements.exists():
-                return redirect(self.process.get_absolute_url())
-
-            statement = pmodels.Statement(requirement=requirement)
-            statement.uploaded_by = self.visitor
-            statement.uploaded_time = now()
-            statement.statement = text
-            statement.save()
-            # See /srv/qa.debian.org/mia/README
-            file_statement(self.request, self.visitor, requirement, statement, replace=False, notify_ml="private", mia="in, retired; emeritus via nm.d.o")
-
-        return redirect(self.process.get_absolute_url())
-
-
-def file_statement(request, visitor, requirement, statement, replace=False, notify_ml="newmaint", mia=None):
-    if replace:
-        action = "Updated"
-        log_action = "update_statement"
-    else:
-        action = "Added"
-        log_action = "add_statement"
-
-    requirement.add_log(visitor, "{} a signed statement".format(action), True, action=log_action)
-
-    # Check if the requirement considers itself satisfied now, and
-    # auto-mark approved accordingly
-    status = requirement.compute_status()
-    if status["satisfied"]:
-        try:
-            robot = bmodels.Person.objects.get(username="__housekeeping__")
-        except bmodels.Person.DoesNotExist:
-            robot = visitor
-        requirement.approved_by = robot
-        requirement.approved_time = now()
-    else:
-        requirement.approved_by = None
-        requirement.approved_time = None
-    requirement.save()
-
-    if requirement.approved_by:
-        requirement.add_log(requirement.approved_by, "New statement received, the requirement seems satisfied", True, action="req_approve")
-
-    if requirement.type in ("intent", "advocate", "am_ok"):
-        msg = statement.rfc3156
-        if msg is None:
-            from .email import notify_new_statement
-            return notify_new_statement(statement, request=request, cc_nm=(requirement.type=="am_ok"), notify_ml=notify_ml, mia=mia)
-    return None
+        return redirect(op._statement.requirement.process.get_absolute_url())
 
 
 class CancelForm(forms.Form):

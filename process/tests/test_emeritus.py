@@ -72,17 +72,25 @@ class TestEmeritus(ProcessFixtureMixin, TestCase):
         self.assertEqual(mail.outbox[0].to, ["debian-private@lists.debian.org"])
         self.assertCountEqual(mail.outbox[0].cc, ["{} <{}>".format(process.person.fullname, process.person.email), process.archive_email, "mia-{}@qa.debian.org".format(process.person.uid)])
         self.assertEqual(mail.outbox[0].extra_headers["X-MIA-Summary"], "in, retired; emeritus via nm.d.o")
+        self.assertIn(stm.statement, mail.outbox[0].body)
 
-        # Submit again, no statement is added/posted
+        # Submit again, it adds a new one
         mail.outbox = []
         response = client.post(url, data={"statement": "test statement1"})
         self.assertRedirectMatches(response, r"/process/\d+$")
         req.refresh_from_db()
-        self.assertEqual(req.statements.count(), 1)
-        stm = req.statements.get()
-        self.assertEqual(stm.statement, "test statement")
-        self.assertEqual(len(mail.outbox), 0)
+        status = req.compute_status()
+        self.assertTrue(status["satisfied"])
+        self.assertEqual(req.statements.count(), 2)
 
+        stm = req.statements.get(statement="test statement1")
+        self.assertIsNone(stm.fpr)
+        self.assertEqual(stm.uploaded_by, visitor)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["debian-private@lists.debian.org"])
+        self.assertCountEqual(mail.outbox[0].cc, ["{} <{}>".format(process.person.fullname, process.person.email), process.archive_email, "mia-{}@qa.debian.org".format(process.person.uid)])
+        self.assertEqual(mail.outbox[0].extra_headers["X-MIA-Summary"], "in, retired; emeritus via nm.d.o")
+        self.assertIn(stm.statement, mail.outbox[0].body)
 
         # check for closed EMERITUS_DD process
         process.closed = now()

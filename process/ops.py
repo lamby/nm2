@@ -357,7 +357,7 @@ class ProcessApproveRT(op.Operation):
                 return True
         return False
 
-    def execute(self):
+    def _execute(self):
         # Build RT API request
         # See https://rt-wiki.bestpractical.com/wiki/REST
         lines = []
@@ -403,3 +403,45 @@ class ProcessApproveRT(op.Operation):
         self.process.approved_time = self.audit_time
         self.process.save()
         self.process.add_log(self.audit_author, self.audit_notes, action="proc_approve", is_public=True, logdate=self.audit_time)
+
+
+@op.Operation.register
+class RequestEmeritus(op.Operation):
+    person = op.PersonField()
+    statement = op.StringField()
+
+    def __init__(self, **kw):
+        kw.setdefault("audit_notes", "Requested to become emeritus")
+        super().__init__(**kw)
+        self._statement = None
+
+    def _execute(self):
+        try:
+            process = pmodels.Process.objects.get(person=self.person, applying_for__in=(const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD))
+        except pmodels.Process.DoesNotExist:
+            process = pmodels.Process.objects.create(self.person, const.STATUS_EMERITUS_DD)
+            process.add_log(self.audit_author, self.audit_notes, is_public=True, logdate=self.audit_time)
+
+        if process.applying_for == const.STATUS_REMOVED_DD:
+            raise RuntimeError("emeritus process is now a process for account removal: please contact wat@debian.org")
+
+        requirement = process.requirements.get(type="intent")
+
+        statement = pmodels.Statement(requirement=requirement)
+        statement.uploaded_by = self.audit_author
+        statement.uploaded_time = self.audit_time
+        statement.statement = self.statement
+        statement.save()
+        requirement.add_log(self.audit_author, "Added a statement", True, action="add_statement", logdate=self.audit_time)
+
+        requirement.approved_by = self.audit_author
+        requirement.approved_time = self.audit_time
+        requirement.save()
+        requirement.add_log(self.audit_author, "Requirement automatically approved", True, action="req_approve", logdate=self.audit_time)
+
+        self._statement = statement
+
+    def notify(self, request=None):
+        # See /srv/qa.debian.org/mia/README
+        from .email import notify_new_statement
+        return notify_new_statement(self._statement, request=request, cc_nm=False, notify_ml="private", mia="in, retired; emeritus via nm.d.o")
