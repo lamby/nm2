@@ -508,12 +508,13 @@ class Approve(VisitProcessMixin, FormView):
 
     def get_context_data(self, **kw):
         ctx = super().get_context_data(**kw)
-        rt_content = OrderedDict()
-        rt_content["id"] = self.op.rt_id
-        rt_content["Queue"] = self.op.rt_queue
-        rt_content["Requestor"] = self.op.rt_requestor
-        rt_content["Subject"] = self.op.rt_subject
-        rt_content["Cc"] = self.op.rt_cc
+        rt_content = [
+            ("id", self.op.rt_id),
+            ("Queue", self.op.rt_queue),
+            ("Requestor", self.op.rt_requestor),
+            ("Subject", self.op.rt_subject),
+            ("Cc", self.op.rt_cc),
+        ]
         ctx["rt_content"] = rt_content
         ctx["text"] = make_rt_ticket_text(self.request, self.visitor, self.process)
         return ctx

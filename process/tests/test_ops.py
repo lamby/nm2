@@ -177,23 +177,6 @@ class TestOps(ProcessFixtureMixin, TestCase):
         o = pops.ProcessStatementRemove(audit_author=self.persons.fd, statement=st)
         self.check_op(o, check_contents)
 
-    def test_process_approve_rt(self):
-        def check_contents(o):
-            self.assertEqual(o.audit_author, self.persons.fd)
-            self.assertEqual(o.audit_notes, "Process approved")
-            self.assertIsInstance(o.audit_time, datetime.datetime)
-            self.assertEqual(o.process, self.processes.app)
-            self.assertEqual(o.rt_id, "ticket/new")
-            self.assertEqual(o.rt_queue, "Keyring")
-            self.assertEqual(o.rt_requestor, "da-manager@debian.org")
-            self.assertEqual(o.rt_subject, "Dc to become Debian Developer, uploading")
-            self.assertEqual(o.rt_cc, "dc@example.org, archive-{}@nm.debian.org, da-manager@debian.org".format(self.processes.app.pk))
-            self.assertIsNone(o.rt_text)
-
-        o = pops.ProcessApproveRT(audit_author=self.persons.fd, process=self.processes.app)
-        self.check_op(o, check_contents)
-
-
 
 class TestProcessClose(ProcessFixtureMixin, TestCase):
     @classmethod
