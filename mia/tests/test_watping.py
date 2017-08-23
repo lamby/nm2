@@ -67,8 +67,9 @@ class TestWatPing(PersonFixtureMixin, TestOpMixin, TestCase):
                 cls._add_method(cls._test_success, visitor, visited)
 
     def _test_success(self, visitor, visited):
+        client = self.make_test_client(visitor)
+
         with bops.Operation.test_collect() as ops:
-            client = self.make_test_client(visitor)
             response = client.get(reverse("mia_wat_ping", args=[self.persons[visited].lookup_key]))
             self.assertEqual(response.status_code, 200)
             # get the mail from context form initial value
