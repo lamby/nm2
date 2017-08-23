@@ -11,17 +11,6 @@ import datetime
 
 
 class TestOps(ProcessFixtureMixin, TestOpMixin, TestCase):
-    def test_wat_ping(self):
-        def check_contents(o):
-            self.assertEqual(o.audit_author, self.persons.fd)
-            self.assertEqual(o.audit_notes, "test message")
-            self.assertIsInstance(o.audit_time, datetime.datetime)
-            self.assertEqual(o.person, self.persons.dd_u)
-            self.assertEqual(o.text, "test ping")
-
-        o = mops.WATPing(audit_author=self.persons.fd, audit_notes="test message", person=self.persons.dd_u, text="test ping")
-        self.check_op(o, check_contents)
-
     def test_wat_remove(self):
         op_ping = mops.WATPing(audit_author=self.persons.fd, person=self.persons.dd_u, text="test ping")
         op_ping.execute()

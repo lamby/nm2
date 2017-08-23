@@ -3,6 +3,7 @@ from django.db import transaction
 from backend import const
 from process.email import notify_new_dd
 from . import models as bmodels
+import contextlib
 import datetime
 import logging
 import json
@@ -144,6 +145,7 @@ class OperationMeta(type):
 
 class Operation(metaclass=OperationMeta):
     classes = {}
+    _test_collect = None
 
     audit_author = PersonField()
     audit_notes = StringField()
@@ -192,9 +194,21 @@ class Operation(metaclass=OperationMeta):
         return json.dumps(res, **kw)
 
     def execute(self, request=None):
+        if self._test_collect is not None:
+            self._mock_execute()
+            self._test_collect.append(self)
+            return
+
         with transaction.atomic():
             self._execute()
         self.notify(request)
+
+    def _mock_execute(self, request=None):
+        """
+        This gets run instead of _execute and notify when _test_collect is
+        active
+        """
+        pass
 
     def notify(self, request=None):
         """
@@ -204,6 +218,21 @@ class Operation(metaclass=OperationMeta):
         """
         # By default, do nothing
         pass
+
+    @classmethod
+    @contextlib.contextmanager
+    def test_collect(cls):
+        """
+        While this context manager is in use, all Operation.execute() calls
+        will just append self to a list and exit without doing anything.
+
+        This can be used to test if a view would have executed the right
+        operation, testing the actual side effects separately.
+        """
+        orig_target = cls._test_collect
+        cls._test_collect = []
+        yield cls._test_collect
+        cls._test_collect = orig_target
 
     @classmethod
     def register(cls, _class):

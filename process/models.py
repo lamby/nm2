@@ -529,7 +529,6 @@ class Requirement(models.Model):
         }
 
 
-
 class AMAssignment(models.Model):
     """
     AM assignment on a process

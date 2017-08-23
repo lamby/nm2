@@ -29,6 +29,10 @@ class WATPing(op.Operation):
         self._process = pmodels.Process.objects.create(self.person, const.STATUS_EMERITUS_DD)
         self._process.add_log(self.audit_author, self.audit_notes, is_public=True, logdate=self.audit_time)
 
+    def _mock_execute(self):
+        self._process = pmodels.Process(self.person, const.STATUS_EMERITUS_DD)
+        self._process.pk = 0
+
     def notify(self, request=None):
         import process.views
         ctx = {
