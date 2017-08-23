@@ -7,9 +7,10 @@ from backend import models as bmodels
 from backend.unittest import PersonFixtureMixin
 import process.models as pmodels
 from unittest.mock import patch
-from .common import (ProcessFixtureMixin,
+from process.unittest import (ProcessFixtureMixin,
                      test_fingerprint1, test_fpr1_signed_valid_text,
                      test_fingerprint2, test_fpr2_signed_valid_text)
+from process import ops as pops
 
 
 class TestProcessStatementCreate(ProcessFixtureMixin, TestCase):
@@ -25,6 +26,39 @@ class TestProcessStatementCreate(ProcessFixtureMixin, TestCase):
         cls.visitor = cls.persons.dc
         cls.fingerprints.create("visitor", person=cls.visitor, fpr=test_fingerprint1, is_active=True, audit_skip=True)
 
+    def test_basic_op(self):
+        req = self.processes.app.requirements.get(type="intent")
+        o = pops.ProcessStatementAdd(audit_author=self.persons.fd, requirement=req, statement="test statement")
+        @self.assertOperationSerializes(o)
+        def _(o):
+            self.assertEqual(o.audit_author, self.persons.fd)
+            self.assertEqual(o.audit_notes, "Added a new statement")
+            self.assertEqual(o.requirement, req)
+            self.assertEqual(o.statement, "test statement")
+
+    def test_op(self):
+        mail.outbox = []
+        proc = self.processes.app
+        req = self.processes.app.requirements.get(type="intent")
+        o = pops.ProcessStatementAdd(audit_author=self.visitor, requirement=req, statement="test statement")
+        o.execute()
+
+        req.refresh_from_db()
+        self.assertEqual(pmodels.Statement.objects.count(), 1)
+        st = req.statements.get()
+        self.assertEqual(st.fpr, self.fingerprints.visitor)
+        self.assertEqual(st.statement, "test statement")
+        self.assertEqual(st.uploaded_by, self.visitor)
+        self.assertEqual(st.uploaded_time, o.audit_time)
+
+        self.assertEqual(len(mail.outbox), 1)
+        m = mail.outbox[0]
+        self.assertEqual(mail.outbox[0].to, ["debian-newmaint@lists.debian.org"])
+        self.assertCountEqual(mail.outbox[0].cc, ["{} <{}>".format(proc.person.fullname, proc.person.email), proc.archive_email])
+        self.assertEqual(mail.outbox[0].subject, "App: Declaration of intent")
+        self.assertIn("test statement", mail.outbox[0].body)
+        self.assertIn(self.processes.app.get_absolute_url(), mail.outbox[0].body)
+
     @classmethod
     def __add_extra_tests__(cls):
         for req_type in ("intent", "sc_dmup", "advocate", "am_ok"):
@@ -33,47 +67,49 @@ class TestProcessStatementCreate(ProcessFixtureMixin, TestCase):
 
     def _test_create_success(self, req_type, visit_perms):
         url = reverse("process_statement_create", args=[self.processes.app.pk, req_type])
+        client = self.make_test_client(self.visitor)
         with patch.object(pmodels.Requirement, "permissions_of", return_value=visit_perms):
-            client = self.make_test_client(self.visitor)
-            response = client.get(url)
-            self.assertEqual(response.status_code, 200)
-            self.assertEqual(pmodels.Statement.objects.count(), 0)
+            with self.collect_operations() as ops:
+                response = client.get(url)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(len(ops), 0)
 
-            # Post a signature done with the wrong key
-            response = client.post(url, data={"statement": test_fpr2_signed_valid_text})
-            self.assertEqual(response.status_code, 200)
-            self.assertFormErrorMatches(response, "form", "statement", "NO_PUBKEY")
-            self.assertEqual(pmodels.Statement.objects.count(), 0)
+                # Post a signature done with the wrong key
+                response = client.post(url, data={"statement": test_fpr2_signed_valid_text})
+                self.assertEqual(response.status_code, 200)
+                self.assertFormErrorMatches(response, "form", "statement", "NO_PUBKEY")
+                self.assertEqual(len(ops), 0)
 
-            # Post an invalid signature
-            text = test_fpr1_signed_valid_text.replace("I agree", "I do not agree")
-            response = client.post(url, data={"statement": text})
-            self.assertEqual(response.status_code, 200)
-            self.assertFormErrorMatches(response, "form", "statement", "BADSIG")
-            self.assertEqual(pmodels.Statement.objects.count(), 0)
+                # Post an invalid signature
+                text = test_fpr1_signed_valid_text.replace("I agree", "I do not agree")
+                response = client.post(url, data={"statement": text})
+                self.assertEqual(response.status_code, 200)
+                self.assertFormErrorMatches(response, "form", "statement", "BADSIG")
+                self.assertEqual(len(ops), 0)
 
-            # Post a valid signature
-            response = client.post(url, data={"statement": test_fpr1_signed_valid_text})
-            req = self.processes.app.requirements.get(type=req_type)
-            self.assertRedirectMatches(response, req.get_absolute_url())
-            self.assertEqual(pmodels.Statement.objects.count(), 1)
-            st = pmodels.Statement.objects.get(requirement=req)
-            self.assertEqual(st.requirement, req)
-            self.assertEqual(st.fpr, self.fingerprints.visitor)
-            self.assertEqual(st.statement, test_fpr1_signed_valid_text.strip())
-            self.assertEqual(st.uploaded_by, self.visitor)
-            self.assertIsNotNone(st.uploaded_time)
+                # Post a valid signature
+                response = client.post(url, data={"statement": test_fpr1_signed_valid_text})
+                req = self.processes.app.requirements.get(type=req_type)
+                self.assertRedirectMatches(response, req.get_absolute_url())
+                self.assertEqual(len(ops), 1)
+
+        op = ops[0]
+        self.assertEqual(op.audit_author, self.visitor)
+        self.assertEqual(op.audit_notes, "Added a new statement")
+        self.assertEqual(op.requirement, self.processes.app.requirements.get(type=req_type))
+        self.assertEqual(op.statement, test_fpr1_signed_valid_text.strip())
 
     def _test_create_forbidden(self, req_type, visit_perms=set()):
+        client = self.make_test_client(self.visitor)
         with patch.object(pmodels.Requirement, "permissions_of", return_value=visit_perms):
-            client = self.make_test_client(self.visitor)
-            response = client.get(reverse("process_statement_create", args=[self.processes.app.pk, req_type]))
-            self.assertPermissionDenied(response)
-            self.assertEqual(pmodels.Statement.objects.count(), 0)
+            with self.collect_operations() as ops:
+                response = client.get(reverse("process_statement_create", args=[self.processes.app.pk, req_type]))
+                self.assertPermissionDenied(response)
+                self.assertEqual(len(ops), 0)
 
-            response = client.post(reverse("process_statement_create", args=[self.processes.app.pk, req_type]), data={"statement": test_fpr1_signed_valid_text})
-            self.assertPermissionDenied(response)
-            self.assertEqual(pmodels.Statement.objects.count(), 0)
+                response = client.post(reverse("process_statement_create", args=[self.processes.app.pk, req_type]), data={"statement": test_fpr1_signed_valid_text})
+                self.assertPermissionDenied(response)
+                self.assertEqual(len(ops), 0)
 
     def test_encoding(self):
         # Test with Ondřej Nový's key which has non-ascii characters
@@ -104,10 +140,11 @@ v85pPGXRppmFCX/Pk+U=
         url = reverse("process_statement_create", args=[self.processes.app.pk, "intent"])
         client = self.make_test_client(self.persons.app)
         # Post an invalid signature
-        response = client.post(url, data={"statement": statement})
-        self.assertEqual(response.status_code, 200)
-        self.assertFormErrorMatches(response, "form", "statement", "Ondřej Nový <novy@ondrej.org>")
-        self.assertEqual(pmodels.Statement.objects.count(), 0)
+        with self.collect_operations() as ops:
+            response = client.post(url, data={"statement": statement})
+            self.assertEqual(response.status_code, 200)
+            self.assertFormErrorMatches(response, "form", "statement", "Ondřej Nový <novy@ondrej.org>")
+            self.assertEqual(len(ops), 0)
 
     def test_encoding1(self):
         bmodels.Fingerprint.objects.create(person=self.persons.app, fpr="3D983C52EB85980C46A56090357312559D1E064B", is_active=True, audit_skip=True)
@@ -115,36 +152,59 @@ v85pPGXRppmFCX/Pk+U=
         url = reverse("process_statement_create", args=[self.processes.app.pk, "intent"])
         client = self.make_test_client(self.persons.app)
         # Post an invalid signature
-        response = client.post(url, data={"statement": statement})
-        self.assertEqual(response.status_code, 200)
-        self.assertFormErrorMatches(response, "form", "statement", "OpenPGP MIME data not found")
-        self.assertEqual(pmodels.Statement.objects.count(), 0)
+        with self.collect_operations() as ops:
+            response = client.post(url, data={"statement": statement})
+            self.assertEqual(response.status_code, 200)
+            self.assertFormErrorMatches(response, "form", "statement", "OpenPGP MIME data not found")
+            self.assertEqual(len(ops), 0)
 
     def test_description(self):
         self.fingerprints.create("dam", person=self.persons.dam, fpr=test_fingerprint2, is_active=True, audit_skip=True)
         client = self.make_test_client("dam")
         url = reverse("process_statement_create", args=[self.processes.app.pk, "intent"])
-        response = client.get(url)
-        self.assertContains(response, 'The statement will be sent to <a href="https://lists.debian.org/debian-newmaint">debian-newmaint</a> as <tt>Dam')
+        with self.collect_operations() as ops:
+            response = client.get(url)
+            self.assertContains(response, 'The statement will be sent to <a href="https://lists.debian.org/debian-newmaint">debian-newmaint</a> as <tt>Dam')
+            self.assertEqual(len(ops), 0)
 
-        mail.outbox = []
-        response = client.post(reverse("process_statement_create", args=[self.processes.app.pk, "intent"]), data={"statement": test_fpr2_signed_valid_text})
-        self.assertRedirectMatches(response, self.processes.app.requirements.get(type="intent").get_absolute_url())
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(mail.outbox[0].to, ["debian-newmaint@lists.debian.org"])
+        with self.collect_operations() as ops:
+            response = client.post(reverse("process_statement_create", args=[self.processes.app.pk, "intent"]), data={"statement": test_fpr2_signed_valid_text})
+            self.assertRedirectMatches(response, self.processes.app.requirements.get(type="intent").get_absolute_url())
+            self.assertEqual(len(ops), 1)
+
+        op = ops[0]
+        self.assertEqual(op.audit_author, self.persons.dam)
+        self.assertEqual(op.audit_notes, "Added a new statement")
+        self.assertEqual(op.requirement, self.processes.app.requirements.get(type="intent"))
+        self.assertEqual(op.statement, test_fpr2_signed_valid_text.strip())
 
         self.processes.app.applying_for = const.STATUS_EMERITUS_DD
         self.processes.app.save()
-        response = client.get(url)
-        self.assertPermissionDenied(response)
+        with self.collect_operations() as ops:
+            response = client.get(url)
+            self.assertPermissionDenied(response)
+            self.assertEqual(len(ops), 0)
 
         self.processes.app.applying_for = const.STATUS_REMOVED_DD
         self.processes.app.save()
-        response = client.get(url)
-        self.assertPermissionDenied(response)
+        with self.collect_operations() as ops:
+            response = client.get(url)
+            self.assertPermissionDenied(response)
+            self.assertEqual(len(ops), 0)
 
 
 class TestProcessStatementDelete(ProcessFixtureMixin, TestCase):
+    def test_basic_op(self):
+        req = self.processes.app.requirements.get(type="intent")
+        st = pmodels.Statement.objects.create(requirement=req, statement="test", uploaded_by=self.persons.fd, uploaded_time=now())
+
+        o = pops.ProcessStatementRemove(audit_author=self.persons.fd, statement=st)
+        @self.assertOperationSerializes(o)
+        def _(o):
+            self.assertEqual(o.audit_author, self.persons.fd)
+            self.assertEqual(o.audit_notes, "Removed a statement")
+            self.assertEqual(o.statement, st)
+
     @classmethod
     def setUpClass(cls):
         super(TestProcessStatementDelete, cls).setUpClass()
@@ -161,38 +221,68 @@ class TestProcessStatementDelete(ProcessFixtureMixin, TestCase):
             req = cls.processes.app.requirements.get(type=req_type)
             cls.statements.create(req_type, requirement=req, fpr=cls.fingerprints.visitor, statement=test_fpr1_signed_valid_text, uploaded_by=cls.visitor, uploaded_time=now())
 
+    def test_op(self):
+        mail.outbox = []
+
+        o = pops.ProcessStatementRemove(audit_author=self.persons.fd, statement=self.statements.intent)
+        o.execute()
+        self.assertFalse(pmodels.Statement.objects.filter(pk=self.statements.intent.pk).exists())
+
+        o = pops.ProcessStatementRemove(audit_author=self.persons.fd, statement=self.statements.sc_dmup)
+        o.execute()
+        self.assertFalse(pmodels.Statement.objects.filter(pk=self.statements.sc_dmup.pk).exists())
+
+        o = pops.ProcessStatementRemove(audit_author=self.persons.fd, statement=self.statements.advocate)
+        o.execute()
+        self.assertFalse(pmodels.Statement.objects.filter(pk=self.statements.advocate.pk).exists())
+
+        o = pops.ProcessStatementRemove(audit_author=self.persons.fd, statement=self.statements.am_ok)
+        o.execute()
+        self.assertFalse(pmodels.Statement.objects.filter(pk=self.statements.am_ok.pk).exists())
+
+        self.assertEqual(len(mail.outbox), 0)
+
+        # Notice that the statements were removed, so tearDownClass does not fail trying to remove them again
+        self.statements.refresh()
+
     @classmethod
     def __add_extra_tests__(cls):
         for req_type in ("intent", "sc_dmup", "advocate", "am_ok"):
-            cls._add_method(cls._test_delete_forbidden, req_type, set())
-            cls._add_method(cls._test_delete_success, req_type, { "edit_statements" })
+            cls._add_method(cls._test_delete_forbidden, req_type, visit_perms=set())
+            cls._add_method(cls._test_delete_success, req_type, visit_perms={"edit_statements"})
 
     def _test_delete_success(self, req_type, visit_perms):
+        client = self.make_test_client(self.visitor)
+        statement = self.statements[req_type]
+        url = reverse("process_statement_delete", args=[self.processes.app.pk, req_type, statement.pk])
         with patch.object(pmodels.Requirement, "permissions_of", return_value=visit_perms):
-            client = self.make_test_client(self.visitor)
-            statement = self.statements[req_type]
-            url = reverse("process_statement_delete", args=[self.processes.app.pk, req_type, statement.pk])
-            response = client.get(url)
-            self.assertEqual(response.status_code, 200)
-            self.assertTrue(pmodels.Statement.objects.filter(pk=statement.pk).exists())
+            with self.collect_operations() as ops:
+                response = client.get(url)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(len(ops), 0)
 
-            response = client.post(url)
-            req = self.processes.app.requirements.get(type=req_type)
-            self.assertRedirectMatches(response, req.get_absolute_url())
-            self.assertFalse(pmodels.Statement.objects.filter(pk=statement.pk).exists())
+                response = client.post(url)
+                self.assertRedirectMatches(response, statement.requirement.get_absolute_url())
+                self.assertEqual(len(ops), 1)
+
+        op = ops[0]
+        self.assertEqual(op.audit_author, client.visitor)
+        self.assertEqual(op.audit_notes, "Removed a statement")
+        self.assertEqual(op.statement, statement)
 
     def _test_delete_forbidden(self, req_type, visit_perms=set()):
+        client = self.make_test_client(self.visitor)
+        statement = self.statements[req_type]
+        url = reverse("process_statement_delete", args=[self.processes.app.pk, req_type, statement.pk])
         with patch.object(pmodels.Requirement, "permissions_of", return_value=visit_perms):
-            client = self.make_test_client(self.visitor)
-            statement = self.statements[req_type]
-            url = reverse("process_statement_delete", args=[self.processes.app.pk, req_type, statement.pk])
-            response = client.get(url)
-            self.assertPermissionDenied(response)
-            self.assertTrue(pmodels.Statement.objects.filter(pk=statement.pk).exists())
+            with self.collect_operations() as ops:
+                response = client.get(url)
+                self.assertPermissionDenied(response)
+                self.assertEqual(len(ops), 0)
 
-            response = client.post(url)
-            self.assertPermissionDenied(response)
-            self.assertTrue(pmodels.Statement.objects.filter(pk=statement.pk).exists())
+                response = client.post(url)
+                self.assertPermissionDenied(response)
+                self.assertEqual(len(ops), 0)
 
 
 class TestProcessStatementRaw(ProcessFixtureMixin, TestCase):
