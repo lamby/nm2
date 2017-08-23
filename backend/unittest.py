@@ -309,6 +309,7 @@ class OpFixtureMixin(BaseFixtureMixin):
 
             j = o.to_json()
             o = ops.Operation.from_json(j)
+            self.assertIsInstance(o, cls)
             self.assertIsInstance(o.audit_time, datetime.datetime)
             check_contents(o)
 

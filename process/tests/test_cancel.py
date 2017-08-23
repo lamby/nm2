@@ -25,6 +25,14 @@ class TestCancel(ProcessFixtureMixin, TestCase):
             self.assertEqual(o.process, self.processes.proc)
             self.assertEqual(o.statement, "test statement")
 
+        o = pops.ProcessCancelEmeritus(audit_author=self.persons.fd, process=self.processes.proc, is_public=False, statement="test statement")
+        @self.assertOperationSerializes(o)
+        def _(o):
+            self.assertEqual(o.audit_author, self.persons.fd)
+            self.assertEqual(o.audit_notes, "Process canceled")
+            self.assertEqual(o.process, self.processes.proc)
+            self.assertEqual(o.statement, "test statement")
+
     def test_op_regular(self):
         mail.outbox = []
         o = pops.ProcessCancel(audit_author=self.persons.fd, process=self.processes.proc, is_public=True, statement="test statement")
