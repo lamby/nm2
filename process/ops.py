@@ -445,3 +445,25 @@ class RequestEmeritus(op.Operation):
         # See /srv/qa.debian.org/mia/README
         from .email import notify_new_statement
         return notify_new_statement(self._statement, request=request, cc_nm=False, notify_ml="private", mia="in, retired; emeritus via nm.d.o")
+
+
+@op.Operation.register
+class ProcessCancel(op.Operation):
+    process = ProcessField()
+    is_public = op.BooleanField()
+    statement = op.StringField()
+
+    def __init__(self, **kw):
+        kw.setdefault("audit_notes", "Process canceled")
+        super().__init__(**kw)
+
+    def _execute(self):
+        self._entry = self.process.add_log(self.audit_author, self.statement, action="proc_close", is_public=self.is_public, logdate=self.audit_time)
+        self.process.closed = self.audit_time
+        self.process.save()
+
+    def notify(self, request=None):
+        from .email import notify_new_log_entry
+        if self.process.applying_for in (const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD):
+            # See /srv/qa.debian.org/mia/README
+            notify_new_log_entry(self._entry, request, mia="in, ok; still active via nm.d.o")

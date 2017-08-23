@@ -625,16 +625,12 @@ class Cancel(VisitProcessMixin, FormView):
             raise PermissionDenied
 
     def form_valid(self, form):
-        text = form.cleaned_data["statement"]
-        with transaction.atomic():
-            entry = self.process.add_log(self.visitor, text, action="proc_close", is_public=form.cleaned_data["is_public"])
-            self.process.closed = now()
-            self.process.save()
-
-            from .email import notify_new_log_entry
-            # See /srv/qa.debian.org/mia/README
-            notify_new_log_entry(entry, self.request, mia="in, ok; still active via nm.d.o")
-
+        op = pops.ProcessCancel(
+                audit_author=self.visitor,
+                process=self.process,
+                is_public=form.cleaned_data["is_public"],
+                statement=form.cleaned_data["statement"])
+        op.execute()
         return redirect(self.process.get_absolute_url())
 
 
