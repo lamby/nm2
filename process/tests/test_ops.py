@@ -37,7 +37,7 @@ class TestOps(ProcessFixtureMixin, TestOpMixin, TestCase):
             self.assertIsNone(o.requirement)
             self.assertFalse(o.is_public)
 
-        o = pops.LogStatement(audit_author=self.persons.fd, audit_notes="test log", process=self.processes.app, is_public=False)
+        o = pops.ProcessAddLogEntry(audit_author=self.persons.fd, audit_notes="test log", process=self.processes.app, is_public=False)
         self.check_op(o, check_contents)
 
     def test_log_statement_public(self):
@@ -51,7 +51,7 @@ class TestOps(ProcessFixtureMixin, TestOpMixin, TestCase):
             self.assertEqual(o.requirement, req)
             self.assertTrue(o.is_public)
 
-        o = pops.LogStatement(audit_author=self.persons.fd, audit_notes="test log", requirement=req, is_public=True)
+        o = pops.ProcessAddLogEntry(audit_author=self.persons.fd, audit_notes="test log", requirement=req, is_public=True)
         self.check_op(o, check_contents)
 
     def test_requirement_approve(self):

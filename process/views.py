@@ -122,7 +122,7 @@ class AddProcessLog(VisitProcessMixin, View):
                     op_args["requirement"] = requirement
                 else:
                     op_args["process"] = self.process
-                op = pops.LogStatement(
+                op = pops.ProcessAddLogEntry(
                     audit_author=self.visitor,
                     audit_notes=logtext,
                     is_public=action == "log_public",
@@ -251,7 +251,7 @@ class StatementCreate(StatementMixin, FormView):
 
     def get_initial(self):
         if self.statement is None:
-            return super(StatementCreate, self).get_initial()
+            return super().get_initial()
         else:
             return { "statement": self.statement.statement }
 
@@ -259,7 +259,7 @@ class StatementCreate(StatementMixin, FormView):
         return re.sub("\s+", " ", text).lower().strip()
 
     def get_context_data(self, **kw):
-        ctx = super(StatementCreate, self).get_context_data(**kw)
+        ctx = super().get_context_data(**kw)
         ctx["blurb"] = [shlex_quote(x) for x in self.blurb] if self.blurb else None
         ctx["wikihelp"] = "https://wiki.debian.org/nm.debian.org/Statements"
         ctx["notify_ml"] = self.notify_ml

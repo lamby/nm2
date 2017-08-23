@@ -48,14 +48,14 @@ class AMAssignmentField(op.OperationField):
 
 
 @op.Operation.register
-class LogStatement(op.Operation):
+class ProcessAddLogEntry(op.Operation):
     is_public = op.BooleanField()
     process = ProcessField(null=True)
     requirement = RequirementField(null=True)
 
     def __init__(self, **kw):
         if kw.get("process") is None and kw.get("requirement") is None:
-            raise TypeError("one of `process` or `requirement` must be set in a LogStatement operation")
+            raise TypeError("one of `process` or `requirement` must be set in a ProcessAddLogEntry operation")
         super().__init__(**kw)
         self._log_entry = None
 
