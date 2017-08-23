@@ -5,7 +5,7 @@ from backend.unittest import PersonFixtureMixin
 from backend import const
 import process.models as pmodels
 import process.views as pviews
-from .common import (ProcessFixtureMixin,
+from process.tests.common import (ProcessFixtureMixin,
                      test_fingerprint1, test_fpr1_signed_valid_text,
                      test_fingerprint2, test_fpr2_signed_valid_text)
 
@@ -27,14 +27,14 @@ class TestMiaRemove(ProcessFixtureMixin, TestCase):
     def _test_success(self, visitor):
         mail.outbox = []
         client = self.make_test_client(visitor)
-        response = client.get(reverse("process_mia_remove", args=[self.processes.proc.pk]))
+        response = client.get(reverse("mia_wat_remove", args=[self.processes.proc.pk]))
         self.assertEqual(response.status_code, 200)
 
         # get the mail from context form initial value
         email = response.context["form"].initial["email"]
         self.assertIsNotNone(email)
 
-        response = client.post(reverse("process_mia_remove", args=[self.processes.proc.pk]), data={"email": email})
+        response = client.post(reverse("mia_wat_remove", args=[self.processes.proc.pk]), data={"email": email})
         self.assertRedirectMatches(response, r"/process/\d+$")
 
         process = self.processes.proc
@@ -81,7 +81,7 @@ class TestMiaRemove(ProcessFixtureMixin, TestCase):
 
     def _test_forbidden(self, visitor):
         mail.outbox = []
-        url = reverse("process_mia_remove", args=[self.processes.proc.pk])
+        url = reverse("mia_wat_remove", args=[self.processes.proc.pk])
         client = self.make_test_client(visitor)
         response = client.get(url)
         self.assertPermissionDenied(response)

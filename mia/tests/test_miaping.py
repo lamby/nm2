@@ -5,7 +5,7 @@ from backend.unittest import PersonFixtureMixin
 from backend import const
 import process.models as pmodels
 import process.views as pviews
-from .common import (ProcessFixtureMixin,
+from process.tests.common import (ProcessFixtureMixin,
                      test_fingerprint1, test_fpr1_signed_valid_text,
                      test_fingerprint2, test_fpr2_signed_valid_text)
 
@@ -26,14 +26,14 @@ class TestMiaPing(PersonFixtureMixin, TestCase):
     def _test_success(self, visitor, visited):
         mail.outbox = []
         client = self.make_test_client(visitor)
-        response = client.get(reverse("process_mia_ping", args=[self.persons[visited].lookup_key]))
+        response = client.get(reverse("mia_wat_ping", args=[self.persons[visited].lookup_key]))
         self.assertEqual(response.status_code, 200)
 
         # get the mail from context form initial value
         email = response.context["form"].initial["email"]
         self.assertIsNotNone(email)
 
-        response = client.post(reverse("process_mia_ping", args=[self.persons[visited].lookup_key]), data={"email": email})
+        response = client.post(reverse("mia_wat_ping", args=[self.persons[visited].lookup_key]), data={"email": email})
         self.assertRedirectMatches(response, r"/process/\d+$")
 
         process = pmodels.Process.objects.get(person=self.persons[visited], applying_for=const.STATUS_EMERITUS_DD, closed__isnull=True)

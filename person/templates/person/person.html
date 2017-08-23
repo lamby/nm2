@@ -12,7 +12,7 @@
   {{block.super}}
 {% if person.is_dd %}
   <br>
-  {% if visitor.is_admin %}<a href="{% url 'process_mia_ping' key=person.lookup_key %}">WAT ping</a>{% endif %}
+  {% if visitor.is_admin %}<a href="{% url 'mia_wat_ping' key=person.lookup_key %}">WAT ping</a>{% endif %}
 {% endif %}
 {% endblock %}
 

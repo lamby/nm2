@@ -25,7 +25,6 @@ from . import models as pmodels
 from .forms import StatementForm
 from .serializers import ProcessSerializer
 from . import ops as pops
-from mia import ops as mops
 
 
 class ProcessViewSet(viewsets.ReadOnlyModelViewSet):
@@ -632,63 +631,5 @@ class Cancel(VisitProcessMixin, FormView):
                 process=self.process,
                 is_public=form.cleaned_data["is_public"],
                 statement=form.cleaned_data["statement"])
-        op.execute(self.request)
-        return redirect(self.process.get_absolute_url())
-
-
-class MIAPingForm(forms.Form):
-    email = forms.CharField(
-        required=True,
-        label=_("Email introduction"),
-        widget=forms.Textarea(attrs=dict(rows=10, cols=80))
-    )
-
-
-class MIAPing(VisitPersonMixin, FormView):
-    require_visitor = "admin"
-    template_name = "process/miaping.html"
-    form_class = MIAPingForm
-
-    def get_initial(self):
-        initial = super().get_initial()
-        initial["email"] = """
-We are currently in the process of checking the activity of accounts
-in the Debian LDAP, after the MIA team has contacted you already.
-""".strip()
-        return initial
-
-    def form_valid(self, form):
-        op = mops.WATPing(audit_author=self.visitor, person=self.person, text=form.cleaned_data["email"])
-        op.execute(self.request)
-        return redirect(op._process.get_absolute_url())
-
-
-class MIARemoveForm(forms.Form):
-    email = forms.CharField(
-        required=True,
-        label=_("Email introduction"),
-        widget=forms.Textarea(attrs=dict(rows=10, cols=80))
-    )
-
-
-class MIARemove(VisitProcessMixin, FormView):
-    require_visitor = "admin"
-    template_name = "process/miaremove.html"
-    form_class = MIARemoveForm
-
-    def get_context_data(self, **kw):
-        ctx = super().get_context_data(**kw)
-        ctx["status"] = self.compute_process_status()
-        return ctx
-
-    def get_initial(self):
-        initial = super().get_initial()
-        initial["email"] = """
-We've sent the last warning email on {:%Y-%m-%d}, with no response.
-""".format(self.process.started).strip()
-        return initial
-
-    def form_valid(self, form):
-        op = mops.WATRemove(audit_author=self.visitor, process=self.process, text=form.cleaned_data["email"])
         op.execute(self.request)
         return redirect(self.process.get_absolute_url())

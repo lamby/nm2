@@ -1,5 +1,6 @@
 from backend import const
 from backend.email import template_to_email
+from backend.shortcuts import build_absolute_uri
 import backend.models as bmodels
 from django.core.mail import send_mail, EmailMessage
 from django.utils.timezone import now
@@ -123,7 +124,7 @@ def notify_new_process(process, request=None):
             Site.objects.get_current().domain,
             process.get_absolute_url())
     else:
-        url = request.build_absolute_uri(process.get_absolute_url())
+        url = build_absolute_uri(process.get_absolute_url(), request)
 
     body = """Hello,
 
@@ -171,7 +172,7 @@ def notify_new_statement(statement, request=None, cc_nm=True, notify_ml="newmain
             Site.objects.get_current().domain,
             process.get_absolute_url())
     else:
-        url = request.build_absolute_uri(process.get_absolute_url())
+        url = build_absolute_uri(process.get_absolute_url(), request)
 
     body = """{statement.statement}
 
@@ -222,7 +223,7 @@ def notify_new_log_entry(entry, request=None, mia=None):
             Site.objects.get_current().domain,
             process.get_absolute_url())
     else:
-        url = request.build_absolute_uri(process.get_absolute_url())
+        url = build_absolute_uri(process.get_absolute_url(), request)
 
     body = """{entry.logtext}
 
@@ -272,7 +273,7 @@ def notify_am_assigned(assignment, request=None):
             Site.objects.get_current().domain,
             process.get_absolute_url())
     else:
-        url = request.build_absolute_uri(process.get_absolute_url())
+        url = build_absolute_uri(process.get_absolute_url(), request)
 
     body = """Hello,
 
@@ -319,7 +320,7 @@ def notify_new_dd(process, request=None):
             Site.objects.get_current().domain,
             process.get_absolute_url())
     else:
-        url = request.build_absolute_uri(process.get_absolute_url())
+        url = build_absolute_uri(process.get_absolute_url(), request)
 
     body = """Hello,
 
@@ -356,7 +357,7 @@ def ping_process(pinger, process, message=None, request=None):
             Site.objects.get_current().domain,
             process.get_absolute_url())
     else:
-        url = request.build_absolute_uri(process.get_absolute_url())
+        url = build_absolute_uri(process.get_absolute_url(), request)
 
     format_args = {
         "process": process,
