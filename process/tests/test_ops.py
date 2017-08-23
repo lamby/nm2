@@ -152,6 +152,32 @@ class TestOps(ProcessFixtureMixin, TestOpMixin, TestCase):
         o = pops.ProcessUnassignAM(audit_author=self.persons.fd, assignment=assignment)
         self.check_op(o, check_contents)
 
+    def test_process_statement_add(self):
+        req = self.processes.app.requirements.get(type="intent")
+
+        def check_contents(o):
+            self.assertEqual(o.audit_author, self.persons.fd)
+            self.assertEqual(o.audit_notes, "Added a new statement")
+            self.assertIsInstance(o.audit_time, datetime.datetime)
+            self.assertEqual(o.requirement, req)
+            self.assertEqual(o.statement, "test statement")
+
+        o = pops.ProcessStatementAdd(audit_author=self.persons.fd, requirement=req, statement="test statement")
+        self.check_op(o, check_contents)
+
+    def test_process_statement_remove(self):
+        req = self.processes.app.requirements.get(type="intent")
+        st = pmodels.Statement.objects.create(requirement=req, statement="test", uploaded_by=self.persons.fd, uploaded_time=now())
+
+        def check_contents(o):
+            self.assertEqual(o.audit_author, self.persons.fd)
+            self.assertEqual(o.audit_notes, "Removed a statement")
+            self.assertIsInstance(o.audit_time, datetime.datetime)
+            self.assertEqual(o.statement, st)
+
+        o = pops.ProcessStatementRemove(audit_author=self.persons.fd, statement=st)
+        self.check_op(o, check_contents)
+
 
 class TestProcessClose(ProcessFixtureMixin, TestCase):
     @classmethod

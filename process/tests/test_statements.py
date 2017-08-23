@@ -125,7 +125,7 @@ v85pPGXRppmFCX/Pk+U=
         client = self.make_test_client("dam")
         url = reverse("process_statement_create", args=[self.processes.app.pk, "intent"])
         response = client.get(url)
-        self.assertContains(response, '<a data-ml="newmaint"')
+        self.assertContains(response, 'The statement will be sent to <a href="https://lists.debian.org/debian-newmaint">debian-newmaint</a> as <tt>Dam')
 
         mail.outbox = []
         response = client.post(reverse("process_statement_create", args=[self.processes.app.pk, "intent"]), data={"statement": test_fpr2_signed_valid_text})
@@ -136,13 +136,12 @@ v85pPGXRppmFCX/Pk+U=
         self.processes.app.applying_for = const.STATUS_EMERITUS_DD
         self.processes.app.save()
         response = client.get(url)
-        self.assertContains(response, '<a data-ml="private"')
+        self.assertPermissionDenied(response)
 
-        mail.outbox = []
-        response = client.post(reverse("process_statement_create", args=[self.processes.app.pk, "intent"]), data={"statement": test_fpr2_signed_valid_text})
-        self.assertRedirectMatches(response, self.processes.app.requirements.get(type="intent").get_absolute_url())
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(mail.outbox[0].to, ["debian-private@lists.debian.org"])
+        self.processes.app.applying_for = const.STATUS_REMOVED_DD
+        self.processes.app.save()
+        response = client.get(url)
+        self.assertPermissionDenied(response)
 
 
 class TestProcessStatementDelete(ProcessFixtureMixin, TestCase):

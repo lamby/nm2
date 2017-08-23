@@ -219,7 +219,7 @@ class UnassignAM(RequirementMixin, View):
         return redirect(self.requirement.get_absolute_url())
 
 
-class StatementCreate(StatementMixin, FormView):
+class StatementCreate(RequirementMixin, FormView):
     form_class = StatementForm
     require_visit_perms = "edit_statements"
     template_name = "process/statement_create.html"
@@ -229,10 +229,16 @@ class StatementCreate(StatementMixin, FormView):
         self.blurb = self.get_blurb()
         if self.blurb:
             self.blurb = ["For nm.debian.org, at {:%Y-%m-%d}:".format(now())] + self.blurb
-        if self.requirement.process.applying_for == const.STATUS_EMERITUS_DD:
-            self.notify_ml = "private"
-        else:
-            self.notify_ml = "newmaint"
+
+    def check_permissions(self):
+        super().check_permissions()
+        if self.requirement.process.applying_for in (const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD):
+            raise PermissionDenied
+
+    def get_form_kwargs(self):
+        kw = super().get_form_kwargs()
+        kw["fpr"] = self.visitor.fpr
+        return kw
 
     def get_blurb(self):
         """
@@ -249,74 +255,21 @@ class StatementCreate(StatementMixin, FormView):
         #    ]
         return None
 
-    def get_initial(self):
-        if self.statement is None:
-            return super().get_initial()
-        else:
-            return { "statement": self.statement.statement }
-
-    def normalise_text(self, text):
-        return re.sub("\s+", " ", text).lower().strip()
-
     def get_context_data(self, **kw):
         ctx = super().get_context_data(**kw)
         ctx["blurb"] = [shlex_quote(x) for x in self.blurb] if self.blurb else None
         ctx["wikihelp"] = "https://wiki.debian.org/nm.debian.org/Statements"
-        ctx["notify_ml"] = self.notify_ml
         return ctx
 
     @transaction.atomic
     def form_valid(self, form):
-        statement = self.statement
-        if statement is None:
-            statement = pmodels.Statement(requirement=self.requirement, fpr=self.visitor.fingerprint)
-            replace = False
-        else:
-            replace = True
-        statement.uploaded_by = self.visitor
-        statement.uploaded_time = now()
-        statement.statement, plaintext = form.cleaned_data["statement"]
-        statement.save()
-
-        file_statement(self.request, self.visitor, self.requirement, statement, replace=replace, notify_ml=self.notify_ml)
-
+        statement, plaintext = form.cleaned_data["statement"]
+        op = pops.ProcessStatementAdd(
+                audit_author=self.visitor,
+                requirement=self.requirement,
+                statement=statement)
+        op.execute()
         return redirect(self.requirement.get_absolute_url())
-
-
-def file_statement(request, visitor, requirement, statement, replace=False, notify_ml="newmaint", mia=None):
-    if replace:
-        action = "Updated"
-        log_action = "update_statement"
-    else:
-        action = "Added"
-        log_action = "add_statement"
-
-    requirement.add_log(visitor, "{} a signed statement".format(action), True, action=log_action)
-
-    # Check if the requirement considers itself satisfied now, and
-    # auto-mark approved accordingly
-    status = requirement.compute_status()
-    if status["satisfied"]:
-        try:
-            robot = bmodels.Person.objects.get(username="__housekeeping__")
-        except bmodels.Person.DoesNotExist:
-            robot = visitor
-        requirement.approved_by = robot
-        requirement.approved_time = now()
-    else:
-        requirement.approved_by = None
-        requirement.approved_time = None
-    requirement.save()
-
-    if requirement.approved_by:
-        requirement.add_log(requirement.approved_by, "New statement received, the requirement seems satisfied", True, action="req_approve")
-
-    if requirement.type in ("intent", "advocate", "am_ok"):
-        msg = statement.rfc3156
-        if msg is None:
-            from .email import notify_new_statement
-            return notify_new_statement(statement, request=request, cc_nm=(requirement.type=="am_ok"), notify_ml=notify_ml, mia=mia)
-    return None
 
 
 class StatementDelete(StatementMixin, TemplateView):
@@ -324,7 +277,8 @@ class StatementDelete(StatementMixin, TemplateView):
     template_name = "process/statement_delete.html"
 
     def post(self, request, *args, **kw):
-        self.statement.delete()
+        op = pops.ProcessStatementRemove(audit_author=self.visitor, statement=self.statement)
+        op.execute()
         return redirect(self.requirement.get_absolute_url())
 
 
@@ -705,6 +659,42 @@ So long, and thanks for all the fish.
             file_statement(self.request, self.visitor, requirement, statement, replace=False, notify_ml="private", mia="in, retired; emeritus via nm.d.o")
 
         return redirect(self.process.get_absolute_url())
+
+
+def file_statement(request, visitor, requirement, statement, replace=False, notify_ml="newmaint", mia=None):
+    if replace:
+        action = "Updated"
+        log_action = "update_statement"
+    else:
+        action = "Added"
+        log_action = "add_statement"
+
+    requirement.add_log(visitor, "{} a signed statement".format(action), True, action=log_action)
+
+    # Check if the requirement considers itself satisfied now, and
+    # auto-mark approved accordingly
+    status = requirement.compute_status()
+    if status["satisfied"]:
+        try:
+            robot = bmodels.Person.objects.get(username="__housekeeping__")
+        except bmodels.Person.DoesNotExist:
+            robot = visitor
+        requirement.approved_by = robot
+        requirement.approved_time = now()
+    else:
+        requirement.approved_by = None
+        requirement.approved_time = None
+    requirement.save()
+
+    if requirement.approved_by:
+        requirement.add_log(requirement.approved_by, "New statement received, the requirement seems satisfied", True, action="req_approve")
+
+    if requirement.type in ("intent", "advocate", "am_ok"):
+        msg = statement.rfc3156
+        if msg is None:
+            from .email import notify_new_statement
+            return notify_new_statement(statement, request=request, cc_nm=(requirement.type=="am_ok"), notify_ml=notify_ml, mia=mia)
+    return None
 
 
 class CancelForm(forms.Form):

@@ -2,6 +2,7 @@ from django.utils.timezone import now
 from backend import const
 import backend.ops as op
 from .email import notify_new_dd
+from backend import models as bmodels
 from . import models as pmodels
 import logging
 
@@ -28,6 +29,19 @@ class RequirementField(op.OperationField):
             return val
         else:
             return pmodels.Requirement.objects.get(pk=val)
+
+    def to_json(self, val):
+        if val is None: return val
+        return val.pk
+
+
+class StatementField(op.OperationField):
+    def validate(self, val):
+        if val is None: return val
+        if isinstance(val, pmodels.Statement):
+            return val
+        else:
+            return pmodels.Statement.objects.get(pk=val)
 
     def to_json(self, val):
         if val is None: return val
@@ -234,3 +248,60 @@ class ProcessUnassignAM(op.Operation):
         self.assignment.unassigned_time = self.audit_time
         self.assignment.save()
         requirement.add_log(self.audit_author, self.audit_notes, is_public=True, action="unassign_am", logdate=self.audit_time)
+
+
+@op.Operation.register
+class ProcessStatementAdd(op.Operation):
+    requirement = RequirementField()
+    statement = op.StringField()
+
+    def __init__(self, **kw):
+        kw.setdefault("audit_notes", "Added a new statement")
+        super().__init__(**kw)
+        self._statement = None
+
+    def _execute(self):
+        self._statement = pmodels.Statement(requirement=self.requirement, fpr=self.audit_author.fingerprint)
+        self._statement.uploaded_by = self.audit_author
+        self._statement.uploaded_time = self.audit_time
+        self._statement.statement = self.statement
+        self._statement.save()
+
+        self.requirement.add_log(self.audit_author, self.audit_notes, True, action="add_statement", logdate=self.audit_time)
+
+        # Check if the requirement considers itself satisfied now, and
+        # auto-mark approved accordingly
+        status = self.requirement.compute_status()
+        if status["satisfied"]:
+            try:
+                robot = bmodels.Person.objects.get(username="__housekeeping__")
+            except bmodels.Person.DoesNotExist:
+                robot = self.audit_author
+            self.requirement.approved_by = robot
+            self.requirement.approved_time = self.audit_time
+        else:
+            self.requirement.approved_by = None
+            self.requirement.approved_time = None
+        self.requirement.save()
+
+        if self.requirement.approved_by:
+            self.requirement.add_log(self.requirement.approved_by, "New statement received, the requirement seems satisfied", True, action="req_approve", logdate=self.audit_time)
+
+    def notify(self, request=None):
+        if self.requirement.type not in ("intent", "advocate", "am_ok"):
+            return
+        from .email import notify_new_statement
+        notify_new_statement(self._statement, request=request, cc_nm=(self.requirement.type=="am_ok"), notify_ml="newmaint")
+
+
+@op.Operation.register
+class ProcessStatementRemove(op.Operation):
+    statement = StatementField()
+
+    def __init__(self, **kw):
+        kw.setdefault("audit_notes", "Removed a statement")
+        super().__init__(**kw)
+
+    def _execute(self):
+        self.statement.requirement.add_log(self.audit_author, self.audit_notes, True, action="del_statement", logdate=self.audit_time)
+        self.statement.delete()

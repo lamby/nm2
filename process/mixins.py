@@ -145,11 +145,6 @@ class StatementMixin(RequirementMixin):
         else:
             self.statement = None
 
-    def get_form_kwargs(self):
-        kw = super(StatementMixin, self).get_form_kwargs()
-        kw["fpr"] = self.visitor.fpr
-        return kw
-
     def get_context_data(self, **kw):
         ctx = super(StatementMixin, self).get_context_data(**kw)
         ctx["fpr"] = self.visitor.fpr
