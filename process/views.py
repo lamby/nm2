@@ -10,6 +10,7 @@ from django.conf import settings
 from django.urls import reverse, reverse_lazy
 from collections import OrderedDict
 from rest_framework import viewsets
+from backend.shortcuts import build_absolute_uri
 from backend.mixins import VisitorMixin, VisitPersonMixin, TokenAuthMixin
 from backend import const
 import backend.models as bmodels
@@ -458,7 +459,7 @@ def make_rt_ticket_text(request, visitor, process):
     ctx["intents"] = "\n".join(wrapped)
     ctx["intents_from"] = ", ".join(x.uid for x in sorted(intents_from))
 
-    ctx["process_url"] = request.build_absolute_uri(process.get_absolute_url())
+    ctx["process_url"] = build_absolute_uri(process.get_absolute_url(), request)
 
     from django.template.loader import render_to_string
     return render_to_string("process/rt_ticket.txt", ctx).strip()
@@ -586,7 +587,7 @@ So long, and thanks for all the fish.
             raise RuntimeError("cannot generate an Emeritus url for a user without uid")
         url = reverse("process_emeritus") + "?" + cls.make_token(person.uid)
         if not request: return url
-        return request.build_absolute_uri(url)
+        return build_absolute_uri(url, request)
 
     def form_valid(self, form):
         if self.expired:

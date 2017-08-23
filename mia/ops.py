@@ -6,6 +6,7 @@ import datetime
 import re
 import os
 from backend import const
+from backend.shortcuts import build_absolute_uri
 import backend.ops as op
 import process.ops as pops
 from backend import models as bmodels
@@ -34,9 +35,9 @@ class WATPing(op.Operation):
             "visitor": self.audit_author,
             "person": self.person,
             "process": self._process,
-            "process_url": request.build_absolute_uri(self._process.get_absolute_url()),
+            "process_url": build_absolute_uri(self._process.get_absolute_url(), request),
             "emeritus_url": process.views.Emeritus.get_nonauth_url(self.person, request),
-            "cancel_url": request.build_absolute_uri(reverse("process_cancel", args=[self._process.pk])),
+            "cancel_url": build_absolute_uri(reverse("process_cancel", args=[self._process.pk]), request),
             "deadline": self.audit_time + datetime.timedelta(days=30),
             "text": self.text,
         }
@@ -93,9 +94,9 @@ class WATRemove(op.Operation):
             "visitor": self.audit_author,
             "person": self.process.person,
             "process": self.process,
-            "process_url": request.build_absolute_uri(self.process.get_absolute_url()),
+            "process_url": build_absolute_uri(self.process.get_absolute_url(), request),
             "emeritus_url": process.views.Emeritus.get_nonauth_url(self.process.person, request),
-            "cancel_url": request.build_absolute_uri(reverse("process_cancel", args=[self.process.pk])),
+            "cancel_url": build_absolute_uri(reverse("process_cancel", args=[self.process.pk]), request),
             "deadline": self.audit_time + datetime.timedelta(days=15),
             "text": self.text,
         }
