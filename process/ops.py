@@ -5,7 +5,6 @@ import re
 import os
 from backend import const
 import backend.ops as op
-from .email import notify_new_dd
 from backend import models as bmodels
 from . import models as pmodels
 import logging
@@ -197,6 +196,7 @@ class ProcessClose(op.Operation):
         self.process.person.save(audit_author=self.audit_author, audit_notes=self.audit_notes)
         # Mail leader@debian.org as requested by mehdi via IRC on 2016-07-14
         if self.process.applying_for in (const.STATUS_DD_NU, const.STATUS_DD_U):
+            from .email import notify_new_dd
             notify_new_dd(self.process)
 
 

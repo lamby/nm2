@@ -52,7 +52,7 @@ class TestMiaRemove(ProcessFixtureMixin, TestCase):
         self.assertEqual(log.requirement, intent)
         self.assertTrue(log.is_public)
         self.assertEqual(log.action, "add_statement")
-        self.assertEquals(log.logtext, "Added intent to remove")
+        self.assertEquals(log.logtext, "Started remove process")
 
         log = process.log.order_by("pk")[1]
         self.assertEqual(log.changed_by, self.persons[visitor])
@@ -60,7 +60,7 @@ class TestMiaRemove(ProcessFixtureMixin, TestCase):
         self.assertEqual(log.requirement, intent)
         self.assertTrue(log.is_public)
         self.assertEqual(log.action, "req_approve")
-        self.assertEquals(log.logtext, "Requirement satisfied with intent to remove")
+        self.assertEquals(log.logtext, "Requirement automatically satisfied")
 
         self.assertEqual(intent.approved_by, self.persons[visitor])
         self.assertEqual(intent.statements.count(), 1)

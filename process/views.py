@@ -24,6 +24,7 @@ from . import models as pmodels
 from .forms import StatementForm
 from .serializers import ProcessSerializer
 from . import ops as pops
+from mia import ops as mops
 
 
 class ProcessViewSet(viewsets.ReadOnlyModelViewSet):
@@ -269,7 +270,7 @@ class StatementCreate(RequirementMixin, FormView):
                 audit_author=self.visitor,
                 requirement=self.requirement,
                 statement=statement)
-        op.execute()
+        op.execute(self.request)
         return redirect(self.requirement.get_absolute_url())
 
 
@@ -279,7 +280,7 @@ class StatementDelete(StatementMixin, TemplateView):
 
     def post(self, request, *args, **kw):
         op = pops.ProcessStatementRemove(audit_author=self.visitor, statement=self.statement)
-        op.execute()
+        op.execute(self.request)
         return redirect(self.requirement.get_absolute_url())
 
 
@@ -521,7 +522,7 @@ class Approve(VisitProcessMixin, FormView):
         self.op.rt_text = form.cleaned_data["signed"]
 
         try:
-            self.op.execute()
+            self.op.execute(self.request)
         except self.op.RTError as e:
             out = http.HttpResponse(content_type="text/plain")
             out.status_code = 500
@@ -592,7 +593,7 @@ So long, and thanks for all the fish.
             raise PermissionDenied
 
         op = pops.RequestEmeritus(audit_author=self.visitor, person=self.person, statement=form.cleaned_data["statement"])
-        op.execute()
+        op.execute(self.request)
 
         return redirect(op._statement.requirement.process.get_absolute_url())
 
@@ -630,7 +631,7 @@ class Cancel(VisitProcessMixin, FormView):
                 process=self.process,
                 is_public=form.cleaned_data["is_public"],
                 statement=form.cleaned_data["statement"])
-        op.execute()
+        op.execute(self.request)
         return redirect(self.process.get_absolute_url())
 
 
@@ -656,41 +657,9 @@ in the Debian LDAP, after the MIA team has contacted you already.
         return initial
 
     def form_valid(self, form):
-        text = form.cleaned_data["email"]
-
-        process = pmodels.Process.objects.create(self.person, const.STATUS_EMERITUS_DD)
-        process.add_log(self.visitor, "Sent ping email", is_public=True)
-
-        ctx = {
-            "visitor": self.visitor,
-            "person": process.person,
-            "process": process,
-            "process_url": self.request.build_absolute_uri(process.get_absolute_url()),
-            "emeritus_url": Emeritus.get_nonauth_url(process.person, self.request),
-            "cancel_url": self.request.build_absolute_uri(reverse("process_cancel", args=[process.pk])),
-            "deadline": now() + datetime.timedelta(days=30),
-            "text": text,
-        }
-
-        from django.template.loader import render_to_string
-        body = render_to_string("process/mia_ping_email.txt", ctx).strip()
-
-        mia_addr = "mia-{}@qa.debian.org".format(self.person.uid)
-
-        from .email import build_django_message
-        msg = build_django_message(
-            from_email=("Debian MIA team", "wat@debian.org"),
-            to=[self.person.email],
-            cc=[process.archive_email],
-            bcc=[mia_addr, "wat@debian.org"],
-            subject="WAT: Are you still active in Debian? ({})".format(self.person.uid),
-            headers={
-                "X-MIA-Summary": "out, wat; WAT by nm.d.o",
-            },
-            body=body)
-        msg.send()
-
-        return redirect(process.get_absolute_url())
+        op = mops.WATPing(audit_author=self.visitor, person=self.person, text=form.cleaned_data["email"])
+        op.execute(self.request)
+        return redirect(op._process.get_absolute_url())
 
 
 class MIARemoveForm(forms.Form):
@@ -719,56 +688,6 @@ We've sent the last warning email on {:%Y-%m-%d}, with no response.
         return initial
 
     def form_valid(self, form):
-        text = form.cleaned_data["email"]
-
-        with transaction.atomic():
-            self.process.applying_for = const.STATUS_REMOVED_DD
-            self.process.save()
-
-            requirement = self.process.requirements.get(type="intent")
-
-            statement = pmodels.Statement(requirement=requirement)
-            statement.uploaded_by = self.visitor
-            statement.uploaded_time = now()
-            statement.statement = text
-            statement.save()
-
-            requirement.add_log(self.visitor, "Added intent to remove", True, action="add_statement")
-            requirement.approved_by = self.visitor
-            requirement.approved_time = now()
-            requirement.save()
-
-            requirement.add_log(self.visitor, "Requirement satisfied with intent to remove", True, action="req_approve")
-
-            ctx = {
-                "visitor": self.visitor,
-                "person": self.process.person,
-                "process": self.process,
-                "process_url": self.request.build_absolute_uri(self.process.get_absolute_url()),
-                "emeritus_url": Emeritus.get_nonauth_url(self.process.person, self.request),
-                "cancel_url": self.request.build_absolute_uri(reverse("process_cancel", args=[self.process.pk])),
-                "deadline": now() + datetime.timedelta(days=15),
-                "text": text,
-            }
-
-            from django.template.loader import render_to_string
-            body = render_to_string("process/mia_remove_email.txt", ctx).strip()
-
-            mia_addr = "mia-{}@qa.debian.org".format(self.person.uid)
-
-            from .email import build_django_message
-            msg = build_django_message(
-                from_email=("Debian MIA team", "wat@debian.org"),
-                to=["debian-private@lists.debian.org"],
-                cc=[self.person.email, self.process.archive_email],
-                bcc=[mia_addr, "wat@debian.org"],
-                subject="Debian Project member MIA: {} ({})".format(
-                    self.person.fullname, self.person.uid
-                ),
-                headers={
-                    "X-MIA-Summary": "out; public removal pre-announcement",
-                },
-                body=body)
-            msg.send()
-
+        op = mops.WATRemove(audit_author=self.visitor, process=self.process, text=form.cleaned_data["email"])
+        op.execute(self.request)
         return redirect(self.process.get_absolute_url())
