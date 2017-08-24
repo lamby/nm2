@@ -127,19 +127,22 @@ class TestEmeritus(ProcessFixtureMixin, TestCase):
         process = self.processes.dd_u
 
         # check for closed EMERITUS_DD process
-        process.closed = now()
+        process.closed_by = self.persons.dam
+        process.closed_time = now()
         process.save()
         self._test_blocked_request(client, url)
 
         # check that if the process is turned into REMOVED_DD, the visitor can
         # no longer insert statements
-        process.closed = None
+        process.closed_by = None
+        process.closed_time = None
         process.applying_for = const.STATUS_REMOVED_DD
         process.save()
         self._test_blocked_request(client, url)
 
         # check for closed REMOVED_DD process
-        process.closed = now()
+        process.closed_by = self.persons.dam
+        process.closed_time = now()
         process.save()
         self._test_blocked_request(client, url)
 

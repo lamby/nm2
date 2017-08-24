@@ -31,7 +31,7 @@ class ProcessViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Export process information
     """
-    queryset = pmodels.Process.objects.filter(closed__isnull=True).order_by("started")
+    queryset = pmodels.Process.objects.filter(closed_time__isnull=True).order_by("started")
     serializer_class = ProcessSerializer
 
 
@@ -43,9 +43,9 @@ class List(VisitorMixin, TemplateView):
 
     def get_context_data(self, **kw):
         ctx = super(List, self).get_context_data(**kw)
-        ctx["current"] = pmodels.Process.objects.filter(closed__isnull=True).order_by("applying_for").select_related("person")
+        ctx["current"] = pmodels.Process.objects.filter(closed_time__isnull=True).order_by("applying_for").select_related("person")
         cutoff = now() - datetime.timedelta(days=30)
-        ctx["last"] = pmodels.Process.objects.filter(closed__gte=cutoff).order_by("-closed").select_related("person")
+        ctx["last"] = pmodels.Process.objects.filter(closed_time__gte=cutoff).order_by("-closed_time").select_related("person")
         return ctx
 
 
@@ -105,7 +105,7 @@ class AMDashboard(VisitorMixin, TemplateView):
         import process.models as pmodels
         processes = []
         approved_processes = []
-        for p in pmodels.Process.objects.filter(closed__isnull=True).order_by("applying_for"):
+        for p in pmodels.Process.objects.filter(closed_time__isnull=True).order_by("applying_for"):
             if not self._show_process(p): continue
             if p.approved:
                 approved_processes.append(p)
@@ -116,7 +116,7 @@ class AMDashboard(VisitorMixin, TemplateView):
 
         ctx["am_available"] = bmodels.AM.list_available(free_only=True)
 
-        for a in pmodels.AMAssignment.objects.filter(am=self.visitor.am, process__closed__isnull=True, unassigned_by__isnull=True) \
+        for a in pmodels.AMAssignment.objects.filter(am=self.visitor.am, process__closed_time__isnull=True, unassigned_by__isnull=True) \
                         .select_related("process") \
                         .order_by("process__started"):
             if a.paused:
@@ -137,7 +137,7 @@ class Create(VisitPersonMixin, FormView):
     def get_context_data(self, **kw):
         ctx = super(Create, self).get_context_data(**kw)
         current = []
-        current.extend(pmodels.Process.objects.filter(person=self.person, closed__isnull=True))
+        current.extend(pmodels.Process.objects.filter(person=self.person, closed_time__isnull=True))
         ctx["current"] = current
         ctx["wikihelp"] = "https://wiki.debian.org/nm.debian.org/Process/Start"
         return ctx
@@ -650,7 +650,7 @@ So long, and thanks for all the fish.
 
         self.expired = self.process is not None and (
                 self.process.applying_for == const.STATUS_REMOVED_DD
-                or self.process.closed is not None
+                or self.process.closed
         )
 
     def get_context_data(self, **kw):

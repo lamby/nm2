@@ -80,12 +80,13 @@ class TestCreate(ProcessFixtureMixin, TestCase):
         self.assertEqual(response.status_code, 200)
         response = client.post(reverse("process_create", args=[self.persons[visited].lookup_key]), data={"applying_for": target})
         self.assertRedirectMatches(response, r"/process/\d+$")
-        p = pmodels.Process.objects.get(person=self.persons[visited], applying_for=target, closed__isnull=True)
+        p = pmodels.Process.objects.get(person=self.persons[visited], applying_for=target, closed_time__isnull=True)
         self.assertIsNone(p.frozen_by)
         self.assertIsNone(p.frozen_time)
         self.assertIsNone(p.approved_by)
         self.assertIsNone(p.approved_time)
-        self.assertIsNone(p.closed)
+        self.assertIsNone(p.closed_by)
+        self.assertIsNone(p.closed_time)
         self.assertEqual(p.fd_comment, "")
 
         from django.core import mail
@@ -108,7 +109,7 @@ class TestCreate(ProcessFixtureMixin, TestCase):
 
         response = client.post(reverse("process_create", args=[self.persons[visited].lookup_key]), data={"applying_for": target})
         self.assertEqual(response.status_code, 200)
-        self.assertFalse(pmodels.Process.objects.filter(person=self.persons[visited], applying_for=target, closed__isnull=True).exists())
+        self.assertFalse(pmodels.Process.objects.filter(person=self.persons[visited], applying_for=target, closed_time__isnull=True).exists())
         self.assertIn("Select a valid choice.", response.context["form"].errors["applying_for"][0])
 
     def _test_forbidden(self, visitor, visited, target):
@@ -118,4 +119,4 @@ class TestCreate(ProcessFixtureMixin, TestCase):
 
         response = client.post(reverse("process_create", args=[self.persons[visited].lookup_key]), data={"applying_for": target})
         self.assertPermissionDenied(response)
-        self.assertFalse(pmodels.Process.objects.filter(person=self.persons[visited], applying_for=target, closed__isnull=True).exists())
+        self.assertFalse(pmodels.Process.objects.filter(person=self.persons[visited], applying_for=target, closed_time__isnull=True).exists())

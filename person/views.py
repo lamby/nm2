@@ -21,7 +21,7 @@ class Person(VisitPersonMixin, TemplateView):
                 .order_by("is_active", "ended")
 
         import process.models as pmodels
-        processes2 = pmodels.Process.objects.filter(person=self.person).order_by("-closed")
+        processes2 = pmodels.Process.objects.filter(person=self.person).order_by("-closed_time")
 
         adv_processes2 = []
         for req in pmodels.Requirement.objects.filter(type="advocate", statements__uploaded_by=self.person).distinct().select_related("process"):

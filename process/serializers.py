@@ -12,7 +12,7 @@ class ProcessSerializer(serializers.HyperlinkedModelSerializer):
             'id', 'person', 'applying_for', 'started',
             'frozen_by', 'frozen_time',
             'approved_by', 'approved_time',
-            'closed',
+            'closed_by', 'closed_time',
             'fd_comment',
             'rt_request', 'rt_ticket')
 
@@ -28,7 +28,8 @@ class ProcessSerializer(serializers.HyperlinkedModelSerializer):
             'id', 'person', 'applying_for', 'started',
             'frozen_by', 'frozen_time',
             'approved_by', 'approved_time',
-            'closed', 'rt_ticket'))
+            'closed_by', 'closed_time',
+            'rt_ticket'))
 
         request = kw["context"].get("request")
         if request is not None and not request.user.is_anonymous:

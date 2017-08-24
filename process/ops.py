@@ -190,7 +190,8 @@ class ProcessClose(op.Operation):
 
     def _execute(self):
         self.process.add_log(self.audit_author, self.audit_notes, is_public=True, action="done", logdate=self.audit_time)
-        self.process.closed = self.audit_time
+        self.process.closed_by = self.audit_author
+        self.process.closed_time = self.audit_time
         self.process.save()
         self.process.person.status = self.process.applying_for
         self.process.person.status_changed = self.audit_time
@@ -473,7 +474,8 @@ class ProcessCancel(op.Operation):
 
     def _execute(self):
         self.process.add_log(self.audit_author, self.statement, action="proc_close", is_public=self.is_public, logdate=self.audit_time)
-        self.process.closed = self.audit_time
+        self.process.closed_by = self.audit_author
+        self.process.closed_time = self.audit_time
         self.process.save()
 
 

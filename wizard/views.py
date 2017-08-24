@@ -1,8 +1,3 @@
-# coding: utf-8
-
-
-
-
 from django.utils.translation import ugettext_lazy as _
 from django import forms, http
 from django.views.generic import TemplateView, FormView, View
@@ -41,7 +36,7 @@ class Advocate(VisitorMixin, FormView):
 
             if people:
                 processes = OrderedDict()
-                for process in pmodels.Process.objects.filter(closed__isnull=True).order_by("person__uid", "person__cn", "applying_for"):
+                for process in pmodels.Process.objects.filter(closed_time__isnull=True).order_by("person__uid", "person__cn", "applying_for"):
                     person = people.pop(process.person, None)
                     if person is None: continue
                     try:

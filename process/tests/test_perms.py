@@ -137,11 +137,12 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         self.processes.app.approved_time = now()
         self.processes.app.save()
 
-    def _close_process(self):
+    def _close_process(self, visitor):
         """
         Finalize a process
         """
-        self.processes.app.closed = now()
+        self.processes.app.closed_by = self.persons[visitor]
+        self.processes.app.closed_time = now()
         self.processes.app.save()
         self.persons.app.status = self.processes.app.applying_for
         self.persons.app.save(audit_skip=True)
@@ -177,7 +178,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         expected.patch_generic_process_approved()
 
         # Finalize
-        self._close_process()
+        self._close_process("dam")
         expected.patch_generic_process_closed()
         expected.starts.patch("-dc_ga -dm +dm_ga")
         expected.proc.patch("fd dam", "-edit_ldap")
@@ -213,7 +214,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         expected.patch_generic_process_approved()
 
         # Finalize
-        self._close_process()
+        self._close_process("dam")
         expected.patch_generic_process_closed()
         expected.starts.patch("-dm_ga")
         expected.proc.patch("fd dam", "-edit_ldap")
@@ -248,7 +249,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         expected.patch_generic_process_approved()
 
         # Finalize
-        self._close_process()
+        self._close_process("dam")
         expected.patch_generic_process_closed()
         expected.proc.patch("app activeam", "+edit_ldap")
         expected.starts.patch("-dc_ga -dm +dm_ga")
@@ -290,7 +291,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         expected.patch_generic_process_approved()
 
         # Finalize
-        self._close_process()
+        self._close_process("dam")
         expected.patch_generic_process_closed()
         expected.starts.patch("-dc_ga -dm -dd_nu +dd_u +dd_e")
         expected.proc.patch("fd dam", "-edit_ldap")
@@ -331,7 +332,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         expected.patch_generic_process_approved()
 
         # Finalize
-        self._close_process()
+        self._close_process("dam")
         expected.patch_generic_process_closed()
         expected.starts.patch("-dm_ga -dd_nu +dd_u +dd_e")
         self.assertPerms(expected)
@@ -372,7 +373,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         expected.patch_generic_process_approved()
 
         # Finalize
-        self._close_process()
+        self._close_process("dam")
         expected.patch_generic_process_closed()
         expected.starts.patch("-dc_ga -dm -dd_nu -dd_u +dd_e")
         expected.proc.patch("fd dam", "-edit_ldap")
@@ -414,7 +415,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         expected.patch_generic_process_approved()
 
         # Finalize
-        self._close_process()
+        self._close_process("dam")
         expected.patch_generic_process_closed()
         expected.starts.patch("-dm_ga -dd_nu -dd_u")
         expected.proc.patch("app fd dam", "-edit_ldap")
@@ -457,7 +458,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         expected.patch_generic_process_approved()
 
         # Finalize
-        self._close_process()
+        self._close_process("dam")
         expected.patch_generic_process_closed()
         expected.starts.patch("-dm_ga -dd_nu -dd_u")
         expected.proc.patch("fd dam", "-edit_ldap")
@@ -501,7 +502,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         expected.patch_generic_process_approved()
 
         # Finalize
-        self._close_process()
+        self._close_process("dam")
         expected.patch_generic_process_closed()
         expected.proc.patch("app fd dam", "+request_new_status")
         expected.starts.patch("+dd_e")
@@ -541,7 +542,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         expected.patch_generic_process_approved()
 
         # Finalize
-        self._close_process()
+        self._close_process("dam")
         expected.patch_generic_process_closed()
         expected.proc.patch("app fd dam", "+request_new_status")
         expected.starts.patch("+dd_u +dd_nu")
@@ -581,7 +582,7 @@ class TestVisitApplicant(ProcessFixtureMixin, TestCase):
         expected.patch_generic_process_approved()
 
         # Finalize
-        self._close_process()
+        self._close_process("dam")
         expected.patch_generic_process_closed()
         expected.proc.patch("app fd dam", "+request_new_status")
         expected.starts.patch("+dd_u +dd_nu")

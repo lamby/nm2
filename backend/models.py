@@ -57,7 +57,7 @@ class PersonVisitorPermissions(VisitorPermissions):
         # True if there are active processes currently frozen for review
         self.person_has_frozen_processes = False
         import process.models as pmodels
-        if pmodels.Process.objects.filter(person=self.person, frozen_by__isnull=False, closed__isnull=True).exists():
+        if pmodels.Process.objects.filter(person=self.person, frozen_by__isnull=False, closed_time__isnull=True).exists():
             self.person_has_frozen_processes = True
 
         if self.visitor is None:
@@ -472,7 +472,7 @@ class Person(PermissionsMixin, models.Model):
         blacklist = []
         if statuses:
             import process.models as pmodels
-            for proc in pmodels.Process.objects.filter(person=self, closed__isnull=True):
+            for proc in pmodels.Process.objects.filter(person=self, closed_time__isnull=True):
                 blacklist.append(proc.applying_for)
         if const.STATUS_DD_U in blacklist: blacklist.append(const.STATUS_DD_NU)
         if const.STATUS_DD_NU in blacklist: blacklist.append(const.STATUS_DD_U)
@@ -816,7 +816,7 @@ class AM(models.Model):
             else:
                 am.proc_active.append(p)
 
-        for p in pmodels.AMAssignment.objects.filter(unassigned_by__isnull=True, process__frozen_by__isnull=True, process__approved_by__isnull=True, process__closed__isnull=True).select_related("am"):
+        for p in pmodels.AMAssignment.objects.filter(unassigned_by__isnull=True, process__frozen_by__isnull=True, process__approved_by__isnull=True, process__closed_time__isnull=True).select_related("am"):
             am = ams[p.am]
             if p.paused:
                 am.proc_held.append(p)

@@ -9,7 +9,7 @@
 {% endif %}
 
 {% if process.closed %}
-<div class="important"><p>This process has been closed on {{process.closed|date:"Y-m-d"}}: no further modifications are possible.</p></div>
+<div class="important"><p>This process has been closed by {{process.closed_by.a_link}} on {{process.closed_time|date:"Y-m-d"}}: no further modifications are possible.</p></div>
 {% elif process.approved_by %}
 <div class="important"><p>This process has been approved by {{process.approved_by.a_link}} on {{process.approved_time|date:"Y-m-d"}}: no further modifications are possible.</p></div>
 {% elif process.frozen_by %}

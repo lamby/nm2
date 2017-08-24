@@ -11,7 +11,8 @@ class ProcessFieldsMixin(PersonFieldsMixin):
         'id', 'person', 'applying_for', 'started',
         'frozen_by', 'frozen_time',
         'approved_by', 'approved_time',
-        'closed', 'rt_ticket',
+        'closed_by', 'closed_time',
+        'rt_ticket',
     )
     PROCESS_ADMIN_FIELDS = ('fd_comment', 'rt_request')
 

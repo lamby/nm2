@@ -300,7 +300,8 @@ class ChangeStatus(Operation):
             frozen_time=self.audit_time,
             approved_by=self.audit_author,
             approved_time=self.audit_time,
-            closed=self.audit_time,
+            closed_by=self.audit_author,
+            closed_time=self.audit_time,
             skip_requirements=True,
         )
         process.add_log(

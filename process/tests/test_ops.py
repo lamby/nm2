@@ -148,8 +148,9 @@ class TestProcessClose(ProcessFixtureMixin, TestCase):
         self.persons.app.refresh_from_db()
         self.processes.app.refresh_from_db()
         self.assertEqual(self.persons.app.status, const.STATUS_DM)
-        self.assertEqual(self.persons.app.status_changed, self.now)
-        self.assertEqual(self.processes.app.closed, self.now)
+        self.assertEqual(self.persons.app.status_changed, op.audit_time)
+        self.assertEqual(self.processes.app.closed_by, op.audit_author)
+        self.assertEqual(self.processes.app.closed_time, op.audit_time)
         self.assertEqual(len(mail.outbox), 0)
 
     def test_close_process_dd_nu(self):
@@ -165,7 +166,8 @@ class TestProcessClose(ProcessFixtureMixin, TestCase):
         self.processes.app.refresh_from_db()
         self.assertEqual(self.persons.app.status, const.STATUS_DD_NU)
         self.assertEqual(self.persons.app.status_changed, self.now)
-        self.assertEqual(self.processes.app.closed, self.now)
+        self.assertEqual(self.processes.app.closed_by, op.audit_author)
+        self.assertEqual(self.processes.app.closed_time, self.now)
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, ["leader@debian.org"])
 
@@ -182,6 +184,7 @@ class TestProcessClose(ProcessFixtureMixin, TestCase):
         self.processes.app.refresh_from_db()
         self.assertEqual(self.persons.app.status, const.STATUS_DD_U)
         self.assertEqual(self.persons.app.status_changed, self.now)
-        self.assertEqual(self.processes.app.closed, self.now)
+        self.assertEqual(self.processes.app.closed_by, op.audit_author)
+        self.assertEqual(self.processes.app.closed_time, self.now)
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, ["leader@debian.org"])

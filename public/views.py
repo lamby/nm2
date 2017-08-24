@@ -52,7 +52,7 @@ class Managers(VisitorTemplateView):
             cursor.execute("""
             SELECT am.id,
                    count(*) as total,
-                   sum(case when p.closed is null then 1 else 0 end) as active,
+                   sum(case when p.closed_time is null then 1 else 0 end) as active,
                    sum(case when pam.paused then 1 else 0 end) as held
               FROM am
               JOIN process_amassignment pam ON pam.am_id=am.id
@@ -189,7 +189,7 @@ class Stats(VisitorTemplateView):
         # Build process list
         import process.models as pmodels
         from process.mixins import compute_process_status
-        for p in pmodels.Process.objects.filter(closed__isnull=True):
+        for p in pmodels.Process.objects.filter(closed_time__isnull=True):
             active_processes.append((p, compute_process_status(p, self.visitor)))
         active_processes.sort(key=lambda x:(x[1]["log_first"].logdate if x[1]["log_first"] else None))
         ctx["active_processes"] = active_processes

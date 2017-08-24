@@ -120,7 +120,7 @@ class ComputeActiveAM(hk.Task):
         for a in am_assignments:
             if not a.process.closed:
                 return True
-            if a.process.closed > threshold:
+            if a.process.closed_time > threshold:
                 return True
         return False
 
@@ -254,11 +254,13 @@ class CheckStatusProgressMatch(hk.Task):
             elif existing.closed < p.closed:
                 process_byperson[p.person] = p
 
-        for p in pmodels.Process.objects.filter(closed__isnull=False, approved_by__isnull=False).select_related("person"):
+        for p in pmodels.Process.objects.filter(closed_time__isnull=False, approved_by__isnull=False).select_related("person"):
             existing = process_byperson.get(p.person, None)
             if existing is None:
                 process_byperson[p.person] = p
-            elif existing.closed < p.closed:
+            elif isinstance(existing, bmodels.Process) and existing.closed < p.closed_time:
+                process_byperson[p.person] = p
+            elif isinstance(existing, pmodels.Process) and existing.closed_time < p.closed_time:
                 process_byperson[p.person] = p
 
         for person, process in list(process_byperson.items()):

@@ -179,7 +179,7 @@ class ProcessManager(models.Manager):
             raise RuntimeError("Invalid applying_for value {} for a person whose account is still pending".format(applying_for))
 
         # Check that no active process of the same kind exists
-        if self.filter(person=person, applying_for=applying_for, closed__isnull=True).exists():
+        if self.filter(person=person, applying_for=applying_for, closed_time__isnull=True).exists():
             raise RuntimeError("there is already an active process for {} to become {}".format(person, applying_for))
 
         # Compute requirements
@@ -205,7 +205,7 @@ class ProcessManager(models.Manager):
         an unapproved intent, sc_dmup or advocate requirement.
         """
         reqs = Requirement.objects.filter(type__in=("intent", "sc_dmup", "advocate"), approved_by__isnull=True).exclude(process__applying_for__in=(const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD))
-        return self.get_queryset().filter(closed__isnull=True, frozen_by__isnull=True, approved_by__isnull=True, requirements__in=reqs).distinct()
+        return self.get_queryset().filter(closed_time__isnull=True, frozen_by__isnull=True, approved_by__isnull=True, requirements__in=reqs).distinct()
 
 
 class Process(models.Model):
@@ -216,7 +216,8 @@ class Process(models.Model):
     frozen_time = models.DateTimeField(null=True, blank=True, help_text=_("Date the process was frozen for review, or NULL if it is still being worked on"))
     approved_by = models.ForeignKey(bmodels.Person, related_name="+", blank=True, null=True, help_text=_("Person that reviewed this process and considered it complete, or NULL if not yet reviewed"))
     approved_time = models.DateTimeField(null=True, blank=True, help_text=_("Date the process was reviewed and considered complete, or NULL if not yet reviewed"))
-    closed = models.DateTimeField(null=True, blank=True, help_text=_("Date the process was closed, or NULL if still open"))
+    closed_by = models.ForeignKey(bmodels.Person, related_name="+", blank=True, null=True, help_text=_("Person that closed this process, or NULL if still open"))
+    closed_time = models.DateTimeField(null=True, blank=True, help_text=_("Date the process was closed, or NULL if still open"))
     fd_comment = models.TextField("Front Desk comments", blank=True, default="")
     rt_request = models.TextField("RT request text", blank=True, default="")
     rt_ticket =  models.IntegerField("RT request ticket", null=True, blank=True)
@@ -233,12 +234,16 @@ class Process(models.Model):
         return reverse("admin:process_process_change", args=[self.pk])
 
     @property
+    def frozen(self):
+        return self.frozen_by is not None
+
+    @property
     def approved(self):
         return self.approved_by is not None
 
     @property
-    def frozen(self):
-        return self.frozen_by is not None
+    def closed(self):
+        return self.closed_by is not None
 
     @property
     def a_link(self):

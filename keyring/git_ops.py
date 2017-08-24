@@ -357,7 +357,7 @@ class AddDD(Add):
         applying_for = role_status_map[self.role]
 
         found = False
-        for p in pmodels.Process.objects.filter(person=person, applying_for=applying_for, closed__isnull=True):
+        for p in pmodels.Process.objects.filter(person=person, applying_for=applying_for, closed_time__isnull=True):
             if self.rt:
                 logtext = "Added to {} keyring, RT #{}".format(self.role, self.rt)
             else:

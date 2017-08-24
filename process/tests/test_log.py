@@ -29,7 +29,8 @@ class TestLog(ProcessFixtureMixin, TestCase):
         cls.processes.app.frozen_time = cls.orig_ts
         cls.processes.app.approved_by = cls.persons.fd
         cls.processes.app.approved_time = cls.orig_ts
-        cls.processes.app.closed = cls.orig_ts
+        cls.processes.app.closed_by = cls.persons.dam
+        cls.processes.app.closed_time = cls.orig_ts
         cls.processes.app.save()
 
         cls.req_intent.approved_by = cls.persons.fd
@@ -55,7 +56,8 @@ class TestLog(ProcessFixtureMixin, TestCase):
         self.assertEqual(self.processes.app.frozen_time, self.orig_ts)
         self.assertEqual(self.processes.app.approved_by, self.persons.fd)
         self.assertEqual(self.processes.app.approved_time, self.orig_ts)
-        self.assertEqual(self.processes.app.closed, self.orig_ts)
+        self.assertEqual(self.processes.app.closed_by, self.persons.dam)
+        self.assertEqual(self.processes.app.closed_time, self.orig_ts)
 
     def assertIntentUnchanged(self):
         self.req_intent.refresh_from_db()
@@ -138,7 +140,8 @@ class TestLog(ProcessFixtureMixin, TestCase):
             self.assertGreaterEqual(self.processes.app.frozen_time, now_time)
             self.assertEqual(self.processes.app.approved_by, self.persons.fd)
             self.assertEqual(self.processes.app.approved_time, self.orig_ts)
-            self.assertEqual(self.processes.app.closed, self.orig_ts)
+            self.assertEqual(self.processes.app.closed_by, self.persons.dam)
+            self.assertEqual(self.processes.app.closed_time, self.orig_ts)
             self.assertIntentUnchanged()
             self.assertAmOkUnchanged()
             self.assertEqual(len(mail.outbox), 0)
@@ -166,7 +169,8 @@ class TestLog(ProcessFixtureMixin, TestCase):
                 self.assertIsNone(self.processes.app.frozen_time)
                 self.assertEqual(self.processes.app.approved_by, self.persons.fd)
                 self.assertEqual(self.processes.app.approved_time, self.orig_ts)
-                self.assertEqual(self.processes.app.closed, self.orig_ts)
+                self.assertEqual(self.processes.app.closed_by, self.persons.dam)
+                self.assertEqual(self.processes.app.closed_time, self.orig_ts)
                 self.assertIntentUnchanged()
                 self.assertAmOkUnchanged()
                 self.assertEqual(len(mail.outbox), 0)
@@ -193,7 +197,8 @@ class TestLog(ProcessFixtureMixin, TestCase):
             self.assertEqual(self.processes.app.frozen_time, self.orig_ts)
             self.assertEqual(self.processes.app.approved_by, self.visitor)
             self.assertGreaterEqual(self.processes.app.approved_time, now_time)
-            self.assertEqual(self.processes.app.closed, self.orig_ts)
+            self.assertEqual(self.processes.app.closed_by, self.persons.dam)
+            self.assertEqual(self.processes.app.closed_time, self.orig_ts)
             self.assertIntentUnchanged()
             self.assertAmOkUnchanged()
             self.assertEqual(len(mail.outbox), 0)
@@ -221,7 +226,8 @@ class TestLog(ProcessFixtureMixin, TestCase):
                 self.assertEqual(self.processes.app.frozen_time, self.orig_ts)
                 self.assertIsNone(self.processes.app.approved_by)
                 self.assertIsNone(self.processes.app.approved_time)
-                self.assertEqual(self.processes.app.closed, self.orig_ts)
+                self.assertEqual(self.processes.app.closed_by, self.persons.dam)
+                self.assertEqual(self.processes.app.closed_time, self.orig_ts)
                 self.assertIntentUnchanged()
                 self.assertAmOkUnchanged()
                 self.assertEqual(len(mail.outbox), 0)

@@ -32,7 +32,7 @@ class TestWatPing(PersonFixtureMixin, TestCase):
         process = o._process
         self.assertIsNone(process.frozen_by)
         self.assertIsNone(process.approved_by)
-        self.assertIsNone(process.closed)
+        self.assertIsNone(process.closed_by)
         log = process.log.order_by("-logdate")[0]
         self.assertEqual(log.changed_by, self.persons.fd)
         self.assertEqual(log.process, process)

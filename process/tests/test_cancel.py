@@ -40,7 +40,7 @@ class TestCancel(ProcessFixtureMixin, TestCase):
 
         proc = self.processes.proc
         proc.refresh_from_db()
-        self.assertIsNotNone(proc.closed)
+        self.assertTrue(proc.closed)
         log = proc.log.order_by("-logdate")[0]
         self.assertEqual(log.changed_by, self.persons.fd)
         self.assertIsNone(log.requirement)
@@ -57,7 +57,7 @@ class TestCancel(ProcessFixtureMixin, TestCase):
 
         proc = self.processes.proc
         proc.refresh_from_db()
-        self.assertIsNotNone(proc.closed)
+        self.assertTrue(proc.closed)
         log = proc.log.order_by("-logdate")[0]
         self.assertEqual(log.changed_by, self.persons.fd)
         self.assertIsNone(log.requirement)
@@ -77,7 +77,7 @@ class TestCancel(ProcessFixtureMixin, TestCase):
 
         proc = self.processes.proc
         proc.refresh_from_db()
-        self.assertIsNotNone(proc.closed)
+        self.assertTrue(proc.closed)
         log = proc.log.order_by("-logdate")[0]
         self.assertEqual(log.changed_by, self.persons.fd)
         self.assertIsNone(log.requirement)
@@ -101,7 +101,7 @@ class TestCancel(ProcessFixtureMixin, TestCase):
 
         proc = self.processes.proc
         proc.refresh_from_db()
-        self.assertIsNotNone(proc.closed)
+        self.assertTrue(proc.closed)
         log = proc.log.order_by("-logdate")[0]
         self.assertEqual(log.changed_by, self.persons.fd)
         self.assertIsNone(log.requirement)

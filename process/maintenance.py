@@ -1,8 +1,3 @@
-# coding: utf-8
-
-
-
-
 from django.utils.timezone import now
 import datetime
 from . import models as pmodels
@@ -33,7 +28,8 @@ A week has passed from the last ping with no action, I'll now close the
 process. Feel free to reapply in the future.
 """)
             process.add_log(audit_author, "closing for inactivity", action="proc_close", logdate=logdate)
-            process.closed = logdate
+            process.closed_by = audit_author
+            process.closed_time = logdate
             process.save()
 
 
