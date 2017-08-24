@@ -27,10 +27,13 @@ class WATPing(op.Operation):
 
     def _execute(self):
         self._process = pmodels.Process.objects.create(self.person, const.STATUS_EMERITUS_DD)
+        self._process.hide_until = self.audit_time + datetime.timedelta(days=30)
+        self._process.save()
         self._process.add_log(self.audit_author, self.audit_notes, is_public=True, logdate=self.audit_time)
 
     def _mock_execute(self):
         self._process = pmodels.Process(self.person, const.STATUS_EMERITUS_DD)
+        self._process.hide_until = self.audit_time + datetime.timedelta(days=30)
         self._process.pk = 0
 
     def notify(self, request=None):
@@ -42,12 +45,12 @@ class WATPing(op.Operation):
             "process_url": build_absolute_uri(self._process.get_absolute_url(), request),
             "emeritus_url": process.views.Emeritus.get_nonauth_url(self.person, request),
             "cancel_url": build_absolute_uri(reverse("process_cancel", args=[self._process.pk]), request),
-            "deadline": self.audit_time + datetime.timedelta(days=30),
+            "deadline": self._process.hide_until,
             "text": self.text,
         }
 
         from django.template.loader import render_to_string
-        body = render_to_string("process/mia_ping_email.txt", ctx).strip()
+        body = render_to_string("mia/mia_ping_email.txt", ctx).strip()
 
         mia_addr = "mia-{}@qa.debian.org".format(self.person.uid)
 
@@ -76,6 +79,7 @@ class WATRemove(op.Operation):
 
     def _execute(self):
         self.process.applying_for = const.STATUS_REMOVED_DD
+        self.process.hide_until = self.audit_time + datetime.timedelta(days=15)
         self.process.save()
 
         requirement = self.process.requirements.get(type="intent")
@@ -101,12 +105,12 @@ class WATRemove(op.Operation):
             "process_url": build_absolute_uri(self.process.get_absolute_url(), request),
             "emeritus_url": process.views.Emeritus.get_nonauth_url(self.process.person, request),
             "cancel_url": build_absolute_uri(reverse("process_cancel", args=[self.process.pk]), request),
-            "deadline": self.audit_time + datetime.timedelta(days=15),
+            "deadline": self.process.hide_until,
             "text": self.text,
         }
 
         from django.template.loader import render_to_string
-        body = render_to_string("process/mia_remove_email.txt", ctx).strip()
+        body = render_to_string("mia/mia_remove_email.txt", ctx).strip()
 
         mia_addr = "mia-{}@qa.debian.org".format(self.process.person.uid)
 

@@ -60,41 +60,28 @@ class AMDashboard(VisitorMixin, TemplateView):
         """
         if process.frozen_by_id is not None or process.approved_by_id is not None: return True
 
-        if process.applying_for == const.STATUS_EMERITUS_DD:
-            inactive_threshold = now() - datetime.timedelta(days=30)
-            confirmed_threshold = now() - datetime.timedelta(days=5)
-            intent = process.requirements.get(type="intent")
-            status = intent.compute_status()
-            if status["satisfied"]:
-                # if intent is satisfied, the person requested emeritus, show
-                # it after 5 days it's been satisfied
-                #if not for_ga and req.approved_time + datetime.timedelta(days=4) > now(): return False
-                if intent.statement.uploaded_time > confirmed_threshold:
-                    return False
-            else:
-                # if intent is not satisfied, MIA pinged and we wait a
-                # month before showing the process
-                if process.started > inactive_threshold:
-                    return False
-        else:
-            for_ga = process.applying_for in (const.STATUS_DC_GA, const.STATUS_DM_GA)
+        if process.hide_until and process.hide_until > now(): return False
 
-            needs_am_report = False
-            for req in process.requirements.all():
-                if req.type == "intent":
-                    if not req.approved_by_id: return False
-                    # Hide all processes with a statement of intent approved less
-                    # than 4 days ago
-                    if not for_ga and req.approved_time + datetime.timedelta(days=4) > now(): return False
-                elif req.type == "sc_dmup":
-                    if not req.approved_by_id: return False
-                elif req.type == "advocate":
-                    if not req.approved_by_id: return False
-                elif req.type == "am_ok":
-                    needs_am_report = req.approved_by_id is None
+        if process.applying_for in (const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD): return True
 
-            if needs_am_report and process.current_am_assignment:
-                return False
+        for_ga = process.applying_for in (const.STATUS_DC_GA, const.STATUS_DM_GA)
+
+        needs_am_report = False
+        for req in process.requirements.all():
+            if req.type == "intent":
+                if not req.approved_by_id: return False
+                # Hide all processes with a statement of intent approved less
+                # than 4 days ago
+                if not for_ga and req.approved_time + datetime.timedelta(days=4) > now(): return False
+            elif req.type == "sc_dmup":
+                if not req.approved_by_id: return False
+            elif req.type == "advocate":
+                if not req.approved_by_id: return False
+            elif req.type == "am_ok":
+                needs_am_report = req.approved_by_id is None
+
+        if needs_am_report and process.current_am_assignment:
+            return False
 
         return True
 

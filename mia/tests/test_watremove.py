@@ -39,6 +39,7 @@ class TestWatRemove(ProcessFixtureMixin, TestCase):
         self.assertIsNone(process.frozen_by)
         self.assertIsNone(process.approved_by)
         self.assertIsNone(process.closed_by)
+        self.assertEqual(process.hide_until, o.audit_time + datetime.timedelta(days=15))
 
         intent = process.requirements.get(type="intent")
 

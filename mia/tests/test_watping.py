@@ -33,6 +33,7 @@ class TestWatPing(PersonFixtureMixin, TestCase):
         self.assertIsNone(process.frozen_by)
         self.assertIsNone(process.approved_by)
         self.assertIsNone(process.closed_by)
+        self.assertEqual(process.hide_until, o.audit_time + datetime.timedelta(days=30))
         log = process.log.order_by("-logdate")[0]
         self.assertEqual(log.changed_by, self.persons.fd)
         self.assertEqual(log.process, process)

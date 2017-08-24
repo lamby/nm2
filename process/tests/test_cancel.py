@@ -1,6 +1,7 @@
 from django.test import TestCase
 from django.urls import reverse
 from django.core import mail
+from django.utils.timezone import now
 from unittest.mock import patch
 from backend.unittest import PersonFixtureMixin
 from backend import const
@@ -8,6 +9,7 @@ import process.models as pmodels
 import process.views as pviews
 from process.unittest import ProcessFixtureMixin
 from process import ops as pops
+import datetime
 
 
 class TestCancel(ProcessFixtureMixin, TestCase):
@@ -35,12 +37,14 @@ class TestCancel(ProcessFixtureMixin, TestCase):
 
     def test_op_regular(self):
         mail.outbox = []
+        self.processes.proc.hide_until = now() + datetime.timedelta(days=30)
         o = pops.ProcessCancel(audit_author=self.persons.fd, process=self.processes.proc, is_public=True, statement="test statement")
         o.execute()
 
         proc = self.processes.proc
         proc.refresh_from_db()
         self.assertTrue(proc.closed)
+        self.assertIsNone(proc.hide_until)
         log = proc.log.order_by("-logdate")[0]
         self.assertEqual(log.changed_by, self.persons.fd)
         self.assertIsNone(log.requirement)
@@ -58,6 +62,7 @@ class TestCancel(ProcessFixtureMixin, TestCase):
         proc = self.processes.proc
         proc.refresh_from_db()
         self.assertTrue(proc.closed)
+        self.assertIsNone(proc.hide_until)
         log = proc.log.order_by("-logdate")[0]
         self.assertEqual(log.changed_by, self.persons.fd)
         self.assertIsNone(log.requirement)
@@ -78,6 +83,7 @@ class TestCancel(ProcessFixtureMixin, TestCase):
         proc = self.processes.proc
         proc.refresh_from_db()
         self.assertTrue(proc.closed)
+        self.assertIsNone(proc.hide_until)
         log = proc.log.order_by("-logdate")[0]
         self.assertEqual(log.changed_by, self.persons.fd)
         self.assertIsNone(log.requirement)
@@ -102,6 +108,7 @@ class TestCancel(ProcessFixtureMixin, TestCase):
         proc = self.processes.proc
         proc.refresh_from_db()
         self.assertTrue(proc.closed)
+        self.assertIsNone(proc.hide_until)
         log = proc.log.order_by("-logdate")[0]
         self.assertEqual(log.changed_by, self.persons.fd)
         self.assertIsNone(log.requirement)

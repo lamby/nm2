@@ -1,6 +1,7 @@
 from django.utils.timezone import now
 from django.conf import settings
 import requests
+import datetime
 import re
 import os
 from backend import const
@@ -441,6 +442,9 @@ class RequestEmeritus(op.Operation):
         requirement.save()
         requirement.add_log(self.audit_author, "Requirement automatically approved", True, action="req_approve", logdate=self.audit_time)
 
+        process.hide_until = self.audit_time + datetime.timedelta(days=5)
+        process.save()
+
         self._statement = statement
 
     def notify(self, request=None):
@@ -476,6 +480,7 @@ class ProcessCancel(op.Operation):
         self.process.add_log(self.audit_author, self.statement, action="proc_close", is_public=self.is_public, logdate=self.audit_time)
         self.process.closed_by = self.audit_author
         self.process.closed_time = self.audit_time
+        self.process.hide_until = None
         self.process.save()
 
 

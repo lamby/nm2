@@ -221,6 +221,7 @@ class Process(models.Model):
     fd_comment = models.TextField("Front Desk comments", blank=True, default="")
     rt_request = models.TextField("RT request text", blank=True, default="")
     rt_ticket =  models.IntegerField("RT request ticket", null=True, blank=True)
+    hide_until = models.DateTimeField(null=True, blank=True, help_text=_("Hide this process from the AM dashboard until the given date"))
 
     objects = ProcessManager()
 

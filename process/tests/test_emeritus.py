@@ -10,6 +10,7 @@ import process.models as pmodels
 import process.views as pviews
 from process.unittest import ProcessFixtureMixin
 from process import ops as pops
+import datetime
 
 
 class TestEmeritus(ProcessFixtureMixin, TestCase):
@@ -40,6 +41,9 @@ class TestEmeritus(ProcessFixtureMixin, TestCase):
         req = stm.requirement
         process = req.process
 
+        process.refresh_from_db()
+        self.assertEquals(process.hide_until, o.audit_time + datetime.timedelta(days=5))
+
         status = req.compute_status()
         self.assertTrue(status["satisfied"])
         self.assertEqual(req.statements.count(), 1)
@@ -57,6 +61,10 @@ class TestEmeritus(ProcessFixtureMixin, TestCase):
         mail.outbox = []
         o = pops.RequestEmeritus(audit_author=self.persons.fd, person=self.persons.dd_u, statement="test bye 1")
         o.execute()
+
+        process.refresh_from_db()
+        self.assertEquals(process.hide_until, o.audit_time + datetime.timedelta(days=5))
+
         req.refresh_from_db()
         status = req.compute_status()
         self.assertTrue(status["satisfied"])
