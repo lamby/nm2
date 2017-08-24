@@ -1,13 +1,10 @@
-# coding: utf-8
-
-
-
-
+from django import http, forms
+from django.views.generic import TemplateView, View
+from django.views.generic.edit import UpdateView, FormView
+from django.core.exceptions import PermissionDenied
+from backend.mixins import VisitorMixin, VisitPersonMixin
 import backend.models as bmodels
 from backend import const
-from django.views.generic import TemplateView, View
-from django.views.generic.edit import UpdateView
-from backend.mixins import VisitorMixin, VisitPersonMixin
 import markdown
 import json
 
@@ -141,3 +138,60 @@ class EditEmail(VisitPersonMixin, UpdateView):
         self.object = form.save(commit=False)
         self.object.save(audit_author=self.visitor, audit_notes="edited email")
         return super(EditEmail, self).form_valid(form)
+
+
+class AMProfile(VisitPersonMixin, FormView):
+    # Require DD instead of AM to give access to inactive AMs
+    require_visitor = "dd"
+    template_name = "person/amprofile.html"
+
+    def load_objects(self):
+        super(AMProfile, self).load_objects()
+        try:
+            self.am = bmodels.AM.objects.get(person=self.person)
+        except bmodels.AM.DoesNotExist:
+            self.am = None
+
+        try:
+            self.visitor_am = bmodels.AM.objects.get(person=self.visitor)
+        except bmodels.AM.DoesNotExist:
+            self.visitor_am = None
+
+    def check_permissions(self):
+        super(AMProfile, self).check_permissions()
+        if self.am is None: raise PermissionDenied
+        if self.visitor_am is None: raise PermissionDenied
+        if self.person.pk != self.visitor.pk and not self.visitor.is_admin:
+            raise PermissionDenied
+
+    def get_form_class(self):
+        includes = ["slots", "is_am"]
+
+        if self.visitor_am.is_fd:
+            includes.append("is_fd")
+        if self.visitor_am.is_dam:
+            includes.append("is_dam")
+        if self.visitor_am.is_admin:
+            includes.append("fd_comment")
+
+        class AMForm(forms.ModelForm):
+            class Meta:
+                model = bmodels.AM
+                fields = includes
+        return AMForm
+
+    def get_form_kwargs(self):
+        res = super(AMProfile, self).get_form_kwargs()
+        res["instance"] = self.am
+        return res
+
+    def get_context_data(self, **kw):
+        from django.db.models import Min
+        ctx = super(AMProfile, self).get_context_data(**kw)
+        ctx["am"] = self.am
+        ctx["processes"] = bmodels.Process.objects.filter(manager=self.am).annotate(started=Min("log__logdate")).order_by("-started")
+        return ctx
+
+    def form_valid(self, form):
+        form.save()
+        return self.render_to_response(self.get_context_data(form=form))

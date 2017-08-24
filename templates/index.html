@@ -42,7 +42,7 @@
 
 <ul>
   <li><a href="{% url 'process_am_dashboard' %}">{% trans "AM main page" %}</a></li>
-  <li><a href="{% url 'restricted_amprofile' %}">{% trans "AM personal settings" %}</a></li>
+  <li><a href="{% url 'person_amprofile' visitor.lookup_key %}">{% trans "AM personal settings" %}</a></li>
   <li><a href="{% url 'restricted_db_export' %}">{% trans "Database export you can use to setup a development site" %}</a></li>
 </ul>
 {% endif %}

@@ -61,7 +61,7 @@ $(function() {
             {% if am.is_am_ctte %}am ctte,{% endif %}
             {{person.am.processed.count}} applicants processed
             {% if visitor.am == am or visitor.is_admin %}
-            <a href="{% url 'restricted_amprofile' key=am.person.lookup_key %}">[preferences]</a>
+            <a href="{% url 'person_amprofile' key=am.person.lookup_key %}">[preferences]</a>
             {% endif %}
             {% if visitor.is_admin %}
             <a href="{% url 'admin:backend_am_change' am.id %}">[admin]</a>
@@ -77,7 +77,7 @@ $(function() {
 
 {% if am %}
 {% if visitor == person or visitor.is_am or visitor.is_admin %}
-<a href="{% url 'restricted_amprofile' key=person.lookup_key %}">edit AM</a>
+<a href="{% url 'person_amprofile' key=person.lookup_key %}">edit AM</a>
 {% endif %}
 {% endif %}
 

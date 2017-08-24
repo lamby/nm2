@@ -34,7 +34,7 @@ $(function() {
 {% block breadcrumbs %}{{block.super}} / <a href="{% url 'process_am_dashboard' %}">am dashboard</a>{% endblock %}
 
 {% block relatedpages %}
-<a href="{% url 'restricted_amprofile' visitor.lookup_key %}">am settings</a>
+<a href="{% url 'person_amprofile' visitor.lookup_key %}">am settings</a>
 {{block.super}}
 {% endblock %}
 
@@ -71,7 +71,7 @@ $(function() {
 <p>The following managers have free slots (#free/#slots):</p>
 <ul class="horizontal">
     {% for a in am_available %}
-    <li><a href="{% url 'restricted_amprofile' key=a.person.lookup_key %}">{{a.person.uid}}</a>
+    <li><a href="{% url 'person_amprofile' key=a.person.lookup_key %}">{{a.person.uid}}</a>
         ({{a.stats_free}}/{{a.slots}})</li>
     {% endfor %}
 </ul>

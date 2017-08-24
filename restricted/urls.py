@@ -5,8 +5,6 @@ from backend.mixins import VisitorTemplateView
 
 urlpatterns = [
     url(r'^$', VisitorTemplateView.as_view(template_name='restricted/index.html'), name="restricted_index"),
-    # AM preferences editor
-    url(r'^amprofile(?:/(?P<key>[^/]+))?$', views.AMProfile.as_view(), name="restricted_amprofile"),
     # Show changelogs (minechangelogs)
     url(r'^minechangelogs/(?P<key>[^/]+)?$', views.MineChangelogs.as_view(), name="restricted_minechangelogs"),
     # Impersonate a user
@@ -22,4 +20,5 @@ urlpatterns = [
 
     # Compatibility
     url(r'^ammain$', RedirectView.as_view(url="/process/am-dashboard", permanent=True)),
+    url(r'^amprofile(?:/(?P<key>[^/]+))?$', RedirectView.as_view(url="/person/%(key)s/amprofile", permanent=True)),
 ]
