@@ -1,4 +1,4 @@
-{% extends "restricted/base.html" %}
+{% extends "process/base.html" %}
 {% load js %}
 {% load nm %}
 
@@ -31,7 +31,7 @@ $(function() {
 </script>
 {% endblock %}
 
-{% block breadcrumbs %}{{block.super}} / <a href="{% url 'restricted_ammain' %}">ammain</a>{% endblock %}
+{% block breadcrumbs %}{{block.super}} / <a href="{% url 'process_am_dashboard' %}">am dashboard</a>{% endblock %}
 
 {% block relatedpages %}
 <a href="{% url 'restricted_amprofile' visitor.lookup_key %}">am settings</a>

@@ -61,7 +61,7 @@
  {% endif %}
 {% else %}
  {% if visitor.is_am %}
-  <a href="{% url 'restricted_ammain' %}">am dashboard</a>
+  <a href="{% url 'process_am_dashboard' %}">am dashboard</a>
  {% endif %}
  <a href="{{visitor.get_absolute_url}}">{{visitor.lookup_key}}</a>
 {% endif %}

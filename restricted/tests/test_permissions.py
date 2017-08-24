@@ -12,16 +12,6 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
         self.am = self.make_user("am", const.STATUS_DD_NU)
         self.proc = self.make_process(self.app, const.STATUS_DD_NU, const.PROGRESS_AM, advocates=[self.adv], manager=self.am)
 
-    def test_ammain(self):
-        class WhenView(NMTestUtilsWhen):
-            url = reverse("restricted_ammain")
-        allowed = frozenset(("am", "fd", "dam"))
-        self.assertVisit(WhenView(), ThenForbidden())
-        for u in self.users.keys() - allowed:
-            self.assertVisit(WhenView(user=self.users[u]), ThenForbidden())
-        for u in allowed:
-            self.assertVisit(WhenView(user=self.users[u]), ThenSuccess())
-
     def test_impersonate(self):
         class WhenView(NMTestUtilsWhen):
             url = reverse("impersonate", kwargs={ "key": self.users["app"].lookup_key })

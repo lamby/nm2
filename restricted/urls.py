@@ -1,11 +1,12 @@
 from django.conf.urls import *
+from django.views.generic import RedirectView
 from . import views
 from backend.mixins import VisitorTemplateView
 
 urlpatterns = [
     url(r'^$', VisitorTemplateView.as_view(template_name='restricted/index.html'), name="restricted_index"),
     # AM Personal page
-    url(r'^ammain$', views.AMMain.as_view(), name="restricted_ammain"),
+    url(r'^ammain$', RedirectView.as_view(url="/process/am-dashboard", permanent=True)),
     # AM preferences editor
     url(r'^amprofile(?:/(?P<key>[^/]+))?$', views.AMProfile.as_view(), name="restricted_amprofile"),
     # Show changelogs (minechangelogs)
