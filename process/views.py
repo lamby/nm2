@@ -571,6 +571,13 @@ class Approve(VisitProcessMixin, FormView):
         if self.process.approved:
             raise PermissionDenied
 
+    def get(self, request, *args, **kw):
+        from django.middleware.csrf import get_token
+        if request.GET.get("format") == "json":
+            return http.JsonResponse(self.get_context_data(csrf_token=get_token(request)))
+        else:
+            return super().get(request, *args, **kw)
+
     def get_context_data(self, **kw):
         ctx = super().get_context_data(**kw)
         rt_content = [
