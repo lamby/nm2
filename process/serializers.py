@@ -13,7 +13,7 @@ class ProcessSerializer(serializers.HyperlinkedModelSerializer):
             'frozen_by', 'frozen_time',
             'approved_by', 'approved_time',
             'closed_by', 'closed_time',
-            'fd_comment',
+            'fd_comment', 'hide_until',
             'rt_request', 'rt_ticket')
 
 
