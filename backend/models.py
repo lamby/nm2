@@ -11,7 +11,6 @@ from django.forms.models import model_to_dict
 from . import const
 from .fields import *
 from .utils import cached_property
-from backend.notifications import maybe_notify_applicant_on_progress
 import datetime
 import urllib.request, urllib.parse, urllib.error
 import os.path
@@ -954,7 +953,7 @@ class Process(models.Model):
 
     @models.permalink
     def get_absolute_url(self):
-        return ("public_process", (), dict(key=self.lookup_key))
+        return ("legacy_process", (), dict(key=self.lookup_key))
 
     def get_admin_url(self):
         return reverse("admin:backend_process_change", args=[self.pk])

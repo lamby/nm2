@@ -78,120 +78,6 @@ class Managers(VisitorTemplateView):
         return ctx
 
 
-def make_statusupdateform(editor):
-    if editor.is_fd:
-        choices = [(x.tag, "%s - %s" % (x.tag, x.ldesc)) for x in const.ALL_PROGRESS]
-    else:
-        choices = [(x.tag, x.ldesc) for x in const.ALL_PROGRESS if x[0] in ("PROGRESS_APP_OK", "PROGRESS_AM", "PROGRESS_AM_HOLD", "PROGRESS_AM_OK")]
-
-    class StatusUpdateForm(forms.Form):
-        progress = forms.ChoiceField(
-            required=True,
-            label=_("Progress"),
-            choices=choices
-        )
-        logtext = forms.CharField(
-            required=False,
-            label=_("Log text"),
-            widget=forms.Textarea(attrs=dict(rows=5, cols=80))
-        )
-        log_is_public = forms.BooleanField(
-            required=False,
-            label=_("Log is public")
-        )
-    return StatusUpdateForm
-
-
-class Process(VisitProcessTemplateView):
-    template_name = "public/process.html"
-
-    def get_context_data(self, **kw):
-        ctx = super(Process, self).get_context_data(**kw)
-
-        # Process form ASAP, so we compute the rest with updated values
-        am = self.visitor.am_or_none if self.visitor else None
-
-        log = list(self.process.log.order_by("logdate", "progress"))
-        if log:
-            ctx["started"] = log[0].logdate
-            ctx["last_change"] = log[-1].logdate
-        else:
-            ctx["started"] = datetime.datetime(1970, 1, 1, 0, 0, 0)
-            ctx["last_change"] = datetime.datetime(1970, 1, 1, 0, 0, 0)
-
-        if am:
-            ctx["log"] = log
-        else:
-            # Summarise log for privacy
-            distilled_log = []
-            last_progress = None
-            for l in log:
-                if last_progress != l.progress:
-                    distilled_log.append(dict(
-                        progress=l.progress,
-                        changed_by=l.changed_by,
-                        logdate=l.logdate,
-                    ))
-                    last_progress = l.progress
-            ctx["log"] = distilled_log
-
-        # Mailbox statistics
-        # TODO: move saving per-process stats into a JSON field in Process
-        try:
-            with open(os.path.join(settings.DATA_DIR, 'mbox_stats.json'), "rt") as infd:
-                stats = json.load(infd)
-        except OSError:
-            stats = {}
-
-        stats = stats.get("process", {})
-        stats = stats.get(self.process.lookup_key, {})
-        if stats:
-            stats["date_first_py"] = datetime.datetime.fromtimestamp(stats["date_first"])
-            stats["date_last_py"] = datetime.datetime.fromtimestamp(stats["date_last"])
-            if "median" not in stats or stats["median"] is None:
-                stats["median_py"] = None
-            else:
-                stats["median_py"] = datetime.timedelta(seconds=stats["median"])
-                stats["median_hours"] = stats["median_py"].seconds // 3600
-        ctx["mbox_stats"] = stats
-
-        # Key information for active processes
-        if self.process.is_active and self.process.person.fpr:
-            from keyring.models import Key
-            try:
-                key = Key.objects.get_or_download(self.process.person.fpr)
-            except RuntimeError as e:
-                key = None
-                key_error = str(e)
-            if key is not None:
-                keycheck = key.keycheck()
-                uids = []
-                for ku in keycheck.uids:
-                    uids.append({
-                        "name": ku.uid.name.replace("@", ", "),
-                        "remarks": " ".join(sorted(ku.errors)) if ku.errors else "ok",
-                        "sigs_ok": len(ku.sigs_ok),
-                        "sigs_no_key": len(ku.sigs_no_key),
-                        "sigs_bad": len(ku.sigs_bad)
-                    })
-
-                ctx["keycheck"] = {
-                    "main": {
-                        "remarks": " ".join(sorted(keycheck.errors)) if keycheck.errors else "ok",
-                    },
-                    "uids": uids,
-                    "updated": key.check_sigs_updated,
-                }
-            else:
-                ctx["keycheck"] = {
-                    "main": {
-                        "remarks": key_error
-                    }
-                }
-
-        return ctx
-
-
 SIMPLIFY_STATUS = {
     const.STATUS_DC: "new",
     const.STATUS_DC_GA: "new",
@@ -242,6 +128,7 @@ class People(VisitorTemplateView):
             status_ldesc=status_ldesc,
         )
         return ctx
+
 
 class AuditLog(VisitorTemplateView):
     template_name = "public/audit_log.html"
@@ -355,6 +242,7 @@ def make_findperson_form(request, visitor):
             return bmodels.FingerprintField.clean_fingerprint(self.cleaned_data['fpr'])
 
     return FindpersonForm
+
 
 class Findperson(VisitorMixin, FormView):
     template_name = "public/findperson.html"

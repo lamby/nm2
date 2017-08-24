@@ -120,6 +120,7 @@ INSTALLED_APPS = [
     # https://github.com/spanezz/django-housekeeping
     'django_housekeeping',
     'rest_framework',
+    'legacy',
     'keyring',
     'dsa',
     'deblayout',

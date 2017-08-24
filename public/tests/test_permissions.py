@@ -106,42 +106,8 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
         for u in self.users.values():
             self.assertVisit(WhenView(user=u), ThenSuccess())
 
-    def test_process(self):
-        """
-        process works for all users
-        """
-        class WhenViewOther(NMTestUtilsWhen):
-            def setUp(self, fixture):
-                super(WhenViewOther, self).setUp(fixture)
-                self.person = bmodels.Person.objects.create_user(cn="Other", email="other@example.org", status=const.STATUS_DD_NU, audit_skip=True)
-                self.process = bmodels.Process.objects.create(person=self.person,
-                                               applying_as=const.STATUS_DC,
-                                               applying_for=const.STATUS_DD_NU,
-                                               progress=const.PROGRESS_DONE,
-                                               is_active=False)
-                self.url = reverse("public_process", kwargs={ "key": self.process.lookup_key })
-
-            def tearDown(self, fixture):
-                super(WhenViewOther, self).setUp(fixture)
-                self.process.delete()
-                self.person.delete()
-
-        self.assertVisit(WhenViewOther(), ThenSuccess())
-        for u in self.users.values():
-            self.assertVisit(WhenViewOther(user=u), ThenSuccess())
-
-        # TODO: test visiting various combinations (applicant, dd, advocate and
-        #       so on) and check what info are present in the page
-        # TODO: test submission of info changes
-
-
 # TODO: url(r'^newnm/resend_challenge/(?P<key>[^/]+)$', 'newnm_resend_challenge', name="public_newnm_resend_challenge"),
 # TODO: url(r'^newnm/confirm/(?P<nonce>[^/]+)$', 'newnm_confirm', name="public_newnm_confirm"),
-
-# TODO: Compatibility
-#    url(r'^whoisam$', 'managers', name="public_whoisam"),
-#    url(r'^nmstatus/(?P<key>[^/]+)$', 'process', name="public_nmstatus"),
-#    url(r'^nmlist$', 'processes', name="public_nmlist"),
 
 
 class ManagersTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):

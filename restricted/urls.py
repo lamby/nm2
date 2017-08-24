@@ -5,8 +5,6 @@ from backend.mixins import VisitorTemplateView
 
 urlpatterns = [
     url(r'^$', VisitorTemplateView.as_view(template_name='restricted/index.html'), name="restricted_index"),
-    # AM Personal page
-    url(r'^ammain$', RedirectView.as_view(url="/process/am-dashboard", permanent=True)),
     # AM preferences editor
     url(r'^amprofile(?:/(?P<key>[^/]+))?$', views.AMProfile.as_view(), name="restricted_amprofile"),
     # Show changelogs (minechangelogs)
@@ -21,4 +19,7 @@ urlpatterns = [
     url(r'^display-mail-archive/(?P<key>[^/]+)$', views.DisplayMailArchive.as_view(), name="display_mail_archive"),
     # Mailbox stats
     url(r'^mailbox-stats$', views.MailboxStats.as_view(), name="mailbox_stats"),
+
+    # Compatibility
+    url(r'^ammain$', RedirectView.as_view(url="/process/am-dashboard", permanent=True)),
 ]
