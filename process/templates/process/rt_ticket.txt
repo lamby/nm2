@@ -1,4 +1,5 @@
 {% load nm %}
+{% autoescape off %}
 Hi
 
 {{request}}
@@ -24,3 +25,4 @@ Thank you,
 {% else %}
 {{visitor.fullname}} (as DAM)
 {% endif %}
+{% endautoescape %}
