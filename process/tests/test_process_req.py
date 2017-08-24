@@ -47,6 +47,8 @@ class TestProcessReqMixin(ProcessFixtureMixin):
         cls.page_elements.add_id("req_unapprove")
         cls.page_elements.add_id("statement_add")
         cls.page_elements.add_class("statement_delete")
+        cls.page_elements.add_id("emeritus")
+        cls.page_elements.add_id("removal_notice")
 
         cls.req = cls.processes.app.requirements.get(type=cls.req_type)
 
@@ -111,6 +113,40 @@ class TestProcessReqMixin(ProcessFixtureMixin):
 
 class TestProcessReqIntent(TestProcessReqMixin, TestCase):
     req_type = "intent"
+
+class TestProcessReqIntentEmeritus(TestProcessReqMixin, TestCase):
+    req_type = "intent"
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.processes.app.applying_for = const.STATUS_EMERITUS_DD
+        cls.processes.app.save()
+
+    def compute_wanted_page_elements(self, visit_perms):
+        wanted = super().compute_wanted_page_elements(visit_perms)
+        if "statement_add" in wanted:
+            wanted.remove("statement_add")
+            wanted.append("emeritus")
+        return wanted
+
+
+class TestProcessReqIntentRemoved(TestProcessReqMixin, TestCase):
+    req_type = "intent"
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.processes.app.applying_for = const.STATUS_REMOVED_DD
+        cls.processes.app.save()
+
+    def compute_wanted_page_elements(self, visit_perms):
+        wanted = super().compute_wanted_page_elements(visit_perms)
+        if "statement_add" in wanted:
+            wanted.remove("statement_add")
+            wanted.append("removal_notice")
+        return wanted
+
 
 class TestProcessReqScDmup(TestProcessReqMixin, TestCase):
     req_type = "sc_dmup"

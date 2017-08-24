@@ -30,7 +30,13 @@
   <tfoot>
     <tr>
       <td colspan="3">
+        {% if process.applying_for == "dd_e" %}
+        <a id="emeritus" href="{% url 'process_emeritus' process.person.lookup_key %}">add</a>
+        {% elif process.applying_for == "dd_r" %}
+        <span id="removal_notice">to comment on this process, please contact <a href="mailto:nm@debian.org">nm@debian.org</a> or add a log entry below</span>
+        {% else %}
         <a id="statement_add" href="{% url 'process_statement_create' pk=process.pk type=requirement.type %}">add</a>
+        {% endif %}
       </td>
     </tr>
   </tfoot>
