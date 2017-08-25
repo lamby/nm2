@@ -169,7 +169,7 @@ $(function() {
             {% if visitor.is_am %}
             <td class="col_activity">
               {% if p.mbox_stats %}
-              <a href="{% url 'display_mail_archive' key=p.lookup_key %}">
+              <a href="{% url 'legacy_display_mail_archive' key=p.lookup_key %}">
                 <span class="mbox_sparkline" values="{{p.mbox_stats|join:","}}"></span>
               </a>
               {% else %}
