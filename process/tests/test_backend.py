@@ -40,14 +40,16 @@ class TestRequirements(PersonFixtureMixin, TestCase):
         self.assertRequirements("dm_ga", const.STATUS_DD_NU, ["intent", "sc_dmup", "advocate", "keycheck", "am_ok"])
         self.assertRequirements("dm_ga", const.STATUS_DD_U, ["intent", "sc_dmup", "advocate", "keycheck", "am_ok"])
 
-        for dest in all_statuses - set([const.STATUS_DD_U, const.STATUS_EMERITUS_DD]):
+        for dest in all_statuses - set([const.STATUS_DD_U, const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD]):
             self.assertInvalid("dd_nu", dest)
         self.assertRequirements("dd_nu", const.STATUS_DD_U, ["intent", "sc_dmup", "advocate"])
         self.assertRequirements("dd_nu", const.STATUS_EMERITUS_DD, ["intent"])
+        self.assertRequirements("dd_nu", const.STATUS_REMOVED_DD, ["intent"])
 
-        for dest in all_statuses - set([const.STATUS_EMERITUS_DD]):
+        for dest in all_statuses - set([const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD]):
             self.assertInvalid("dd_u", dest)
         self.assertRequirements("dd_u", const.STATUS_EMERITUS_DD, ["intent"])
+        self.assertRequirements("dd_u", const.STATUS_REMOVED_DD, ["intent"])
 
         for dest in all_statuses - { const.STATUS_DD_NU, const.STATUS_DD_U }:
             self.assertInvalid("dd_e", dest)

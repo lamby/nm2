@@ -26,6 +26,10 @@ class TestApproveOp(ProcessFixtureMixin, TestCase):
         cls._add_method(cls._test_process_approve_dam_keyring, "dm_ga", const.STATUS_DD_NU)
         cls._add_method(cls._test_process_approve_dam_keyring, "dm_ga", const.STATUS_DD_U)
         cls._add_method(cls._test_process_approve_dam_keyring, "dd_nu", const.STATUS_DD_U)
+        cls._add_method(cls._test_process_approve_dam_keyring, "dd_nu", const.STATUS_EMERITUS_DD)
+        cls._add_method(cls._test_process_approve_dam_keyring, "dd_nu", const.STATUS_REMOVED_DD)
+        cls._add_method(cls._test_process_approve_dam_keyring, "dd_u", const.STATUS_EMERITUS_DD)
+        cls._add_method(cls._test_process_approve_dam_keyring, "dd_u", const.STATUS_REMOVED_DD)
 
     def assertApproveCommon(self, o):
         self.assertEqual(o.audit_author, self.persons.fd)
@@ -76,15 +80,27 @@ class TestApproveOp(ProcessFixtureMixin, TestCase):
             self.assertEqual(o.rt_cc, "{}, archive-{}@nm.debian.org, da-manager@debian.org".format(person.email, process.pk))
 
 
-class TestApprove(ProcessFixtureMixin, TestCase):
+class TestApproveCommon(ProcessFixtureMixin):
+    APPLICANT = None
+    APPLYING_FOR = None
+
+    class MockResponse:
+        text = "\n".join([
+            "RT/3.4.5 200 Ok",
+            "",
+            "# Ticket 1 created.",
+        ])
+        def raise_for_status(self):
+            pass
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.processes.create("proc", person=cls.persons.dc, applying_for=const.STATUS_DD_U)
+        cls.applicant = cls.persons[cls.APPLICANT]
+        cls.processes.create("proc", person=cls.applicant, applying_for=cls.APPLYING_FOR)
 
-    def test_op(self):
-        mail.outbox = []
-        o = pops.ProcessApproveRT(
+    def _make_op(self):
+        return pops.ProcessApproveRT(
                 audit_author=self.persons.fd,
                 process=self.processes.proc,
                 rt_id="test id",
@@ -94,19 +110,10 @@ class TestApprove(ProcessFixtureMixin, TestCase):
                 rt_cc="test cc",
                 rt_text="test text")
 
-        class MockResponse:
-            text = "\n".join([
-                "RT/3.4.5 200 Ok",
-                "",
-                "# Ticket 1 created.",
-            ])
-            def raise_for_status(self):
-                pass
-
-
+    def _execute_op(self, o):
         with self.settings(RT_USER="rtuser", RT_PASS="rtpass"):
             with patch('requests.post') as mock_post:
-                mock_post.return_value = MockResponse()
+                mock_post.return_value = self.MockResponse()
                 o.execute()
 
                 post_args, post_kw = mock_post.call_args
@@ -139,7 +146,50 @@ class TestApprove(ProcessFixtureMixin, TestCase):
         self.assertEqual(log.logdate, o.audit_time)
         self.assertEqual(log.action, "proc_approve")
         self.assertEqual(log.logtext, "Process approved")
+
+
+class TestApprove(TestApproveCommon, TestCase):
+    APPLICANT = "dc"
+    APPLYING_FOR = const.STATUS_DD_U
+
+    def test_op(self):
+        mail.outbox = []
+
+        o = self._make_op()
+        self._execute_op(o)
         self.assertEqual(len(mail.outbox), 0)
+
+
+class TestApproveEmeritus(TestApproveCommon, TestCase):
+    APPLICANT = "dd_u"
+    APPLYING_FOR = const.STATUS_EMERITUS_DD
+
+    def test_op(self):
+        mail.outbox = []
+
+        o = self._make_op()
+        self._execute_op(o)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["mia-dd_u@qa.debian.org"])
+        self.assertEqual(mail.outbox[0].cc, [self.processes.proc.archive_email])
+        self.assertEqual(mail.outbox[0].extra_headers["X-MIA-Summary"], "in, retired; emeritus via nm.d.o")
+        self.assertIn("test text", mail.outbox[0].body)
+
+
+class TestApproveRemoved(TestApproveCommon, TestCase):
+    APPLICANT = "dd_u"
+    APPLYING_FOR = const.STATUS_REMOVED_DD
+
+    def test_op(self):
+        mail.outbox = []
+
+        o = self._make_op()
+        self._execute_op(o)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["mia-dd_u@qa.debian.org"])
+        self.assertEqual(mail.outbox[0].cc, [self.processes.proc.archive_email])
+        self.assertEqual(mail.outbox[0].extra_headers["X-MIA-Summary"], "in, removed; removed via nm.d.o")
+        self.assertIn("test text", mail.outbox[0].body)
 
 
 class TestApprovePerms(ProcessFixtureMixin, TestCase):

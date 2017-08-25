@@ -407,6 +407,25 @@ class ProcessApproveRT(op.Operation):
         self.process.save()
         self.process.add_log(self.audit_author, self.audit_notes, action="proc_approve", is_public=True, logdate=self.audit_time)
 
+    def notify(self, request=None):
+        from process.email import _to_django_addr
+        from django.core.mail import EmailMessage
+
+        if self.process.applying_for in (const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD):
+            if self.process.applying_for == const.STATUS_EMERITUS_DD:
+                mia_summary = "in, retired; emeritus via nm.d.o"
+            elif self.process.applying_for == const.STATUS_REMOVED_DD:
+                mia_summary = "in, removed; removed via nm.d.o"
+            msg = EmailMessage(
+                from_email=_to_django_addr(self.audit_author),
+                to=["mia-{}@qa.debian.org".format(self.process.person.uid)],
+                cc=[self.process.archive_email],
+                subject=self.rt_subject,
+                body=self.rt_text,
+                headers={"X-MIA-Summary": mia_summary},
+            )
+            msg.send()
+
 
 @op.Operation.register
 class RequestEmeritus(op.Operation):

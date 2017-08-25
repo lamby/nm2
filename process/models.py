@@ -159,10 +159,10 @@ class ProcessManager(models.Manager):
                 requirements.append("am_ok")
             if status not in (const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD):
                 requirements.append("advocate")
-        elif applying_for == const.STATUS_EMERITUS_DD:
+        elif applying_for in (const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD):
             if status not in (const.STATUS_DD_NU, const.STATUS_DD_U):
                 raise RuntimeError("Invalid applying_for value {} for a person with status {}".format(applying_for, status))
-            # Only intent is required to become emeritus
+            # Only intent is required to become emeritus or removed
             requirements = ["intent"]
         else:
             raise RuntimeError("Invalid applying_for value {}".format(applying_for))
@@ -179,7 +179,10 @@ class ProcessManager(models.Manager):
             raise RuntimeError("Invalid applying_for value {} for a person whose account is still pending".format(applying_for))
 
         # Check that no active process of the same kind exists
-        if self.filter(person=person, applying_for=applying_for, closed_time__isnull=True).exists():
+        conflicts_with = [applying_for]
+        if applying_for == const.STATUS_EMERITUS_DD: conflicts_with.append(const.STATUS_REMOVED_DD)
+        if applying_for == const.STATUS_REMOVED_DD: conflicts_with.append(const.STATUS_EMERITUS_DD)
+        if self.filter(person=person, applying_for__in=conflicts_with, closed_time__isnull=True).exists():
             raise RuntimeError("there is already an active process for {} to become {}".format(person, applying_for))
 
         # Compute requirements
