@@ -62,51 +62,6 @@ class Impersonate(View):
             return redirect(url)
 
 
-class MailArchive(VisitProcessMixin, View):
-    require_visit_perms = "view_mbox"
-
-    def get(self, request, key, *args, **kw):
-        fname = self.process.mailbox_file
-        if fname is None:
-            from django.http import Http404
-            raise Http404
-
-        user_fname = "%s.mbox" % (self.process.person.uid or self.process.person.email)
-
-        res = http.HttpResponse(content_type="application/octet-stream")
-        res["Content-Disposition"] = "attachment; filename=%s.gz" % user_fname
-
-        # Compress the mailbox and pass it to the request
-        from gzip import GzipFile
-        import os.path
-        import shutil
-        # The last mtime argument seems to only be supported in python 2.7
-        outfd = GzipFile(user_fname, "wb", 9, res) #, os.path.getmtime(fname))
-        try:
-            with open(fname) as infd:
-                shutil.copyfileobj(infd, outfd)
-        finally:
-            outfd.close()
-        return res
-
-
-class DisplayMailArchive(VisitProcessMixin, TemplateView):
-    template_name = "restricted/display-mail-archive.html"
-    require_visit_perms = "view_mbox"
-
-    def get_context_data(self, **kw):
-        ctx = super(DisplayMailArchive, self).get_context_data(**kw)
-
-        fname = self.process.mailbox_file
-        if fname is None:
-            from django.http import Http404
-            raise Http404
-
-        ctx["mails"] = backend.email.get_mbox_as_dicts(fname)
-        ctx["class"] = "clickable"
-        return ctx
-
-
 class MailboxStats(VisitorTemplateView):
     template_name = "restricted/mailbox-stats.html"
     require_visitor = "admin"

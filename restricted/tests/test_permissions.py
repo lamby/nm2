@@ -41,25 +41,3 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
             self.assertVisit(WhenView(user=self.users[u]), ThenForbidden())
         for u in allowed:
             self.assertVisit(WhenView(user=self.users[u]), ThenSuccess())
-
-    def test_mail_archive(self):
-        class WhenView(NMTestUtilsWhen):
-            url = reverse("download_mail_archive", kwargs={ "key": self.users["app"].lookup_key })
-        allowed = frozenset(("app", "adv", "am", "fd", "dam"))
-        self.assertVisit(WhenView(), ThenForbidden())
-        for u in self.users.keys() - allowed:
-            self.assertVisit(WhenView(user=self.users[u]), ThenForbidden())
-        # Success is a 404 because we did not create the file on disk
-        for u in allowed:
-            self.assertVisit(WhenView(user=self.users[u]), ThenNotFound())
-
-    def test_display_mail_archive(self):
-        class WhenView(NMTestUtilsWhen):
-            url = reverse("display_mail_archive", kwargs={ "key": self.users["app"].lookup_key })
-        allowed = frozenset(("app", "adv", "am", "fd", "dam"))
-        self.assertVisit(WhenView(), ThenForbidden())
-        for u in self.users.keys() - allowed:
-            self.assertVisit(WhenView(user=self.users[u]), ThenForbidden())
-        # Success is a 404 because we did not create the file on disk
-        for u in allowed:
-            self.assertVisit(WhenView(user=self.users[u]), ThenNotFound())

@@ -78,7 +78,7 @@ $(function() {
         <td>
             <tt><a href="mailto:{{process.archive_email}}">{{process.archive_email}}</a></tt>
             {% if process.mailbox_file %}
-            <a href="{% url 'download_mail_archive' key=process.lookup_key %}">(download mail archive)</a>
+            <a href="{% url 'legacy_download_mail_archive' key=process.lookup_key %}">(download mail archive)</a>
             <a href="{% url 'display_mail_archive' key=process.lookup_key %}">(display mail archive)</a>
             {% else %}
             (no mail archive yet)

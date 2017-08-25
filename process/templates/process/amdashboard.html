@@ -83,14 +83,14 @@ $(function() {
 
 <p>The following applicants have been approved by the NM committee and the FD
 but a DAM has not fully processed them yet (sorted by FD approval):</p>
-{% include "restricted/process_table.html" with p=p progs=prog_fd_ok extras="m" only %}
+{% include "process/process_table.html" with p=p progs=prog_fd_ok extras="m" only %}
 
 <p>Applicants approved by a DAM, but for which no account has been created yet:</p>
-{% include "restricted/process_table.html" with p=p progs=prog_dam_ok extras="m" only %}
+{% include "process/process_table.html" with p=p progs=prog_dam_ok extras="m" only %}
 
 <p>These are applications that have been put on hold at the DAM stage
 (sorted by hold date):</p>
-{% include "restricted/process_table.html" with p=p progs=prog_dam_hold extras="m" only %}
+{% include "process/process_table.html" with p=p progs=prog_dam_hold extras="m" only %}
 
 {% endif %}
 

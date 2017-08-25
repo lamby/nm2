@@ -20,7 +20,7 @@ class TestAMDashboard(ProcessFixtureMixin, TestCase):
     def __add_extra_tests__(cls):
         for visitor in None, "pending", "dc", "dc_ga", "dm", "dm_ga", "dd_nu", "dd_u", "dd_e", "dd_r", "activeam", "fd", "dam":
             cls._add_method(cls._test_success, visitor)
-        
+
     def _test_success(self, visitor):
         client = self.make_test_client(visitor)
         response = client.get(self.url)

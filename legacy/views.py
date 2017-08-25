@@ -5,16 +5,18 @@ from django.shortcuts import redirect, get_object_or_404
 from django.urls import reverse
 from django.core.exceptions import PermissionDenied
 from django.utils.timezone import now
+from django.views.generic import View, TemplateView
 import backend.models as bmodels
 from backend import const
-from backend.mixins import VisitProcessTemplateView
+from backend.mixins import VisitProcessMixin, VisitProcessTemplateView
+import backend.email
 import datetime
 import os
 import json
 
 
 class Process(VisitProcessTemplateView):
-    template_name = "public/process.html"
+    template_name = "legacy/process.html"
 
     def get_context_data(self, **kw):
         ctx = super(Process, self).get_context_data(**kw)
@@ -100,4 +102,47 @@ class Process(VisitProcessTemplateView):
                     }
                 }
 
+        return ctx
+
+
+class MailArchive(VisitProcessMixin, View):
+    require_visit_perms = "view_mbox"
+
+    def get(self, request, key, *args, **kw):
+        fname = self.process.mailbox_file
+        if fname is None:
+            raise http.Http404
+
+        user_fname = "%s.mbox" % (self.process.person.uid or self.process.person.email)
+
+        res = http.HttpResponse(content_type="application/octet-stream")
+        res["Content-Disposition"] = "attachment; filename=%s.gz" % user_fname
+
+        # Compress the mailbox and pass it to the request
+        from gzip import GzipFile
+        import os.path
+        import shutil
+        # The last mtime argument seems to only be supported in python 2.7
+        outfd = GzipFile(user_fname, "wb", 9, res) #, os.path.getmtime(fname))
+        try:
+            with open(fname, "rb") as infd:
+                shutil.copyfileobj(infd, outfd)
+        finally:
+            outfd.close()
+        return res
+
+
+class DisplayMailArchive(VisitProcessMixin, TemplateView):
+    template_name = "legacy/display-mail-archive.html"
+    require_visit_perms = "view_mbox"
+
+    def get_context_data(self, **kw):
+        ctx = super(DisplayMailArchive, self).get_context_data(**kw)
+
+        fname = self.process.mailbox_file
+        if fname is None:
+            raise http.Http404
+
+        ctx["mails"] = backend.email.get_mbox_as_dicts(fname)
+        ctx["class"] = "clickable"
         return ctx

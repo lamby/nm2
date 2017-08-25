@@ -974,15 +974,7 @@ class Process(models.Model):
 
         Currently, this is the email if the process is active, else the id.
         """
-        # If the process is active, and we only have one process, use the
-        # person's lookup key. In all other cases, use the process ID
-        if self.is_active:
-            if self.person.processes.filter(is_active=True).count() == 1:
-                return self.person.lookup_key
-            else:
-                return str(self.id)
-        else:
-            return str(self.id)
+        return str(self.id)
 
     @classmethod
     def lookup(cls, key):
