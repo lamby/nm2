@@ -33,6 +33,7 @@ urlpatterns = [
     url(r'^keyring/', include("keyring.urls")),
     url(r'^wizard/', include("wizard.urls")),
     url(r'^mia/', include("mia.urls")),
+    url(r'^minechangelogs/', include("minechangelogs.urls")),
 
     url(r'^rest/api/', include(router.urls)),
 

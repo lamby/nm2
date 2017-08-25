@@ -47,7 +47,7 @@
   <a href="{{person.get_ddpo_url}}">DDPO</a>
   <a href="{{person.get_portfolio_url}}">Portfolio</a>
   {% if person.get_contributors_url %}<a href="{{person.get_contributors_url}}">Contributor</a>{% endif %}
-  {% if visitor %}<a href="{% url 'restricted_minechangelogs' key=person.lookup_key %}">changelogs</a>{% endif %}
+  {% if visitor %}<a href="{% url 'minechangelogs_search' key=person.lookup_key %}">changelogs</a>{% endif %}
   {% if visitor.is_admin %}<a href="{{person.get_admin_url}}">admin person</a>{% endif %}
   {% if visitor.is_admin and person.can_become_am %}<a href="{% url 'admin:backend_am_add' %}?person={{person.id}}">make am</a>{% endif %}
   {% if visitor != person and visitor.is_admin %}<a href="{% url 'impersonate' key=person.lookup_key %}?url={{request.build_absolute_uri}}">impersonate</a>{% endif %}

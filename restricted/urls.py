@@ -5,8 +5,6 @@ from backend.mixins import VisitorTemplateView
 
 urlpatterns = [
     url(r'^$', VisitorTemplateView.as_view(template_name='restricted/index.html'), name="restricted_index"),
-    # Show changelogs (minechangelogs)
-    url(r'^minechangelogs/(?P<key>[^/]+)?$', views.MineChangelogs.as_view(), name="restricted_minechangelogs"),
     # Impersonate a user
     url(r'^impersonate/(?P<key>[^/]+)?$', views.Impersonate.as_view(), name="impersonate"),
     # Export database
@@ -21,4 +19,5 @@ urlpatterns = [
     # Compatibility
     url(r'^ammain$', RedirectView.as_view(url="/process/am-dashboard", permanent=True)),
     url(r'^amprofile(?:/(?P<key>[^/]+))?$', RedirectView.as_view(url="/person/%(key)s/amprofile", permanent=True)),
+    url(r'^minechangelogs/(?P<key>[^/]+)?$', RedirectView.as_view(url="/minechangelogs/search/%(key)s", permanent=True)),
 ]

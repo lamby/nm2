@@ -63,10 +63,3 @@ class PermissionsTestCase(NMBasicFixtureMixin, NMTestUtilsMixin, TestCase):
         # Success is a 404 because we did not create the file on disk
         for u in allowed:
             self.assertVisit(WhenView(user=self.users[u]), ThenNotFound())
-
-    def test_minechangelogs(self):
-        class WhenView(NMTestUtilsWhen):
-            url = reverse("restricted_minechangelogs", kwargs={ "key": self.users["app"].lookup_key })
-        self.assertVisit(WhenView(), ThenForbidden())
-        for u in self.users.keys():
-            self.assertVisit(WhenView(user=self.users[u]), ThenSuccess())
