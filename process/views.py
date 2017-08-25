@@ -653,6 +653,12 @@ So long, and thanks for all the fish.
                 or self.process.closed
         )
 
+    def get_form_class(self):
+        if not self.visitor.is_admin: return super().get_form_class()
+        class AdminForm(EmeritusForm):
+            silent = forms.BooleanField(label=_("Do not mail debian-private"), required=False)
+        return AdminForm
+
     def get_context_data(self, **kw):
         ctx = super().get_context_data(**kw)
         ctx["expired"] = self.expired
@@ -671,7 +677,12 @@ So long, and thanks for all the fish.
         if self.expired:
             raise PermissionDenied
 
-        op = pops.RequestEmeritus(audit_author=self.visitor, person=self.person, statement=form.cleaned_data["statement"])
+        op = pops.RequestEmeritus(
+            audit_author=self.visitor,
+            person=self.person,
+            statement=form.cleaned_data["statement"],
+            silent=form.cleaned_data.get("silent", False),
+        )
         op.execute(self.request)
 
         return redirect(op._statement.requirement.process.get_absolute_url())

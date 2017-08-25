@@ -25,6 +25,15 @@ You can change the address <a href="{% url 'person_edit_email' key=person.lookup
 
 <form action="{{request.build_absolute_uri}}" method="POST">{% csrf_token %}
 {{form.non_field_errors}}
+{% if form.silent %}
+  <p>
+  {{form.silent.errors}}
+  </p>
+  <p>
+  {{form.silent.label_tag}}
+  {{form.silent}}
+  </p>
+{% endif %}
   <p>
   {{form.statement.errors}}
   </p>

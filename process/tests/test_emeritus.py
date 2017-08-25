@@ -15,23 +15,31 @@ import datetime
 
 class TestEmeritus(ProcessFixtureMixin, TestCase):
     def test_base_op(self):
-        o = pops.RequestEmeritus(audit_author=self.persons.fd, person=self.persons.dd_u, statement="test bye")
+        o = pops.RequestEmeritus(audit_author=self.persons.fd, person=self.persons.dd_u, statement="test bye", silent=True)
         @self.assertOperationSerializes(o)
         def _(o):
             self.assertEqual(o.audit_author, self.persons.fd)
             self.assertEqual(o.audit_notes, "Requested to become emeritus")
             self.assertEqual(o.person, self.persons.dd_u)
             self.assertEqual(o.statement, "test bye")
+            self.assertEqual(o.silent, True)
 
-    def test_op_new_process(self):
-        self._test_op_common()
+    def test_op_new_process_silent(self):
+        self._test_op_silent()
 
-    def test_op_existing_process(self):
+    def test_op_new_process_public(self):
+        self._test_op_public()
+
+    def test_op_existing_process_silent(self):
         self.processes.create("dd_u", person=self.persons.dd_u, applying_for=const.STATUS_EMERITUS_DD, fd_comment="test")
-        self._test_op_common()
+        self._test_op_silent()
 
-    def _test_op_common(self):
-        o = pops.RequestEmeritus(audit_author=self.persons.fd, person=self.persons.dd_u, statement="test bye")
+    def test_op_existing_process_public(self):
+        self.processes.create("dd_u", person=self.persons.dd_u, applying_for=const.STATUS_EMERITUS_DD, fd_comment="test")
+        self._test_op_public()
+
+    def _test_op_public(self):
+        o = pops.RequestEmeritus(audit_author=self.persons.fd, person=self.persons.dd_u, statement="test bye", silent=False)
         o.execute()
 
         # No creation of duplicate processes
@@ -53,13 +61,14 @@ class TestEmeritus(ProcessFixtureMixin, TestCase):
         self.assertEqual(stm.uploaded_by, self.persons.fd)
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, ["debian-private@lists.debian.org"])
-        self.assertCountEqual(mail.outbox[0].cc, ["{} <{}>".format(process.person.fullname, process.person.email), process.archive_email, "mia-{}@qa.debian.org".format(process.person.uid)])
+        self.assertCountEqual(mail.outbox[0].cc, ["{} <{}>".format(process.person.fullname, process.person.email), process.archive_email])
+        self.assertCountEqual(mail.outbox[0].bcc, ["mia-{}@qa.debian.org".format(process.person.uid)])
         self.assertEqual(mail.outbox[0].extra_headers["X-MIA-Summary"], "in, retired; emeritus via nm.d.o")
         self.assertIn(stm.statement, mail.outbox[0].body)
 
         # Submit again, it adds a new one
         mail.outbox = []
-        o = pops.RequestEmeritus(audit_author=self.persons.fd, person=self.persons.dd_u, statement="test bye 1")
+        o = pops.RequestEmeritus(audit_author=self.persons.fd, person=self.persons.dd_u, statement="test bye 1", silent=False)
         o.execute()
 
         process.refresh_from_db()
@@ -75,7 +84,57 @@ class TestEmeritus(ProcessFixtureMixin, TestCase):
         self.assertEqual(stm.uploaded_by, self.persons.fd)
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, ["debian-private@lists.debian.org"])
-        self.assertCountEqual(mail.outbox[0].cc, ["{} <{}>".format(process.person.fullname, process.person.email), process.archive_email, "mia-{}@qa.debian.org".format(process.person.uid)])
+        self.assertCountEqual(mail.outbox[0].cc, ["{} <{}>".format(process.person.fullname, process.person.email), process.archive_email])
+        self.assertCountEqual(mail.outbox[0].bcc, ["mia-{}@qa.debian.org".format(process.person.uid)])
+        self.assertEqual(mail.outbox[0].extra_headers["X-MIA-Summary"], "in, retired; emeritus via nm.d.o")
+        self.assertIn(stm.statement, mail.outbox[0].body)
+
+    def _test_op_silent(self):
+        o = pops.RequestEmeritus(audit_author=self.persons.fd, person=self.persons.dd_u, statement="test bye", silent=True)
+        o.execute()
+
+        # No creation of duplicate processes
+        self.assertEquals(pmodels.Process.objects.filter(person=self.persons.dd_u).count(), 1)
+
+        stm = o._statement
+        req = stm.requirement
+        process = req.process
+
+        process.refresh_from_db()
+        self.assertEquals(process.hide_until, o.audit_time + datetime.timedelta(days=5))
+
+        status = req.compute_status()
+        self.assertTrue(status["satisfied"])
+        self.assertEqual(req.statements.count(), 1)
+
+        self.assertIsNone(stm.fpr)
+        self.assertEqual(stm.statement, "test bye")
+        self.assertEqual(stm.uploaded_by, self.persons.fd)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["mia-{}@qa.debian.org".format(process.person.uid)])
+        self.assertCountEqual(mail.outbox[0].cc, [process.archive_email])
+        self.assertEqual(mail.outbox[0].extra_headers["X-MIA-Summary"], "in, retired; emeritus via nm.d.o")
+        self.assertIn(stm.statement, mail.outbox[0].body)
+
+        # Submit again, it adds a new one
+        mail.outbox = []
+        o = pops.RequestEmeritus(audit_author=self.persons.fd, person=self.persons.dd_u, statement="test bye 1", silent=True)
+        o.execute()
+
+        process.refresh_from_db()
+        self.assertEquals(process.hide_until, o.audit_time + datetime.timedelta(days=5))
+
+        req.refresh_from_db()
+        status = req.compute_status()
+        self.assertTrue(status["satisfied"])
+        self.assertEqual(req.statements.count(), 2)
+
+        stm = req.statements.get(statement="test bye 1")
+        self.assertIsNone(stm.fpr)
+        self.assertEqual(stm.uploaded_by, self.persons.fd)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["mia-{}@qa.debian.org".format(process.person.uid)])
+        self.assertCountEqual(mail.outbox[0].cc, [process.archive_email])
         self.assertEqual(mail.outbox[0].extra_headers["X-MIA-Summary"], "in, retired; emeritus via nm.d.o")
         self.assertIn(stm.statement, mail.outbox[0].body)
 
@@ -111,7 +170,7 @@ class TestEmeritus(ProcessFixtureMixin, TestCase):
             self.assertEqual(len(ops), 0)
 
             response = client.post(url, data={"statement": "test statement"})
-            self.assertRedirectMatches(response, r"/process/1$")
+            self.assertFormRedirectMatches(response, r"/process/1$")
             self.assertEqual(len(ops), 1)
 
         op = ops[0]

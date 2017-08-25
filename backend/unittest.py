@@ -210,6 +210,17 @@ class TestBase(object):
         if target and not re.search(target, response["Location"]):
             self.fail("response redirects to {} which does not match {}".format(response["Location"], target))
 
+    def assertFormRedirectMatches(self, response, target, form_name="form"):
+        if response.status_code == 200:
+            form = response.context[form_name]
+            if form.errors:
+                self.fail("{} did not validate. Errors: {}".format(form_name, repr(form.errors)))
+            self.fail("response has status code 200 instead of redirecting, and did not find any form errors")
+        if response.status_code != 302:
+            self.fail("response has status code {} instead of a Redirect".format(response.status_code))
+        if target and not re.search(target, response["Location"]):
+            self.fail("response redirects to {} which does not match {}".format(response["Location"], target))
+
     def assertFormErrorMatches(self, response, form_name, field_name, regex):
         form = response.context[form_name]
         errors = form.errors

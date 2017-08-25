@@ -9,6 +9,7 @@ from backend.shortcuts import build_absolute_uri
 import backend.ops as op
 from backend import models as bmodels
 from . import models as pmodels
+from .email import build_django_message
 import logging
 
 log = logging.getLogger(__name__)
@@ -408,16 +409,13 @@ class ProcessApproveRT(op.Operation):
         self.process.add_log(self.audit_author, self.audit_notes, action="proc_approve", is_public=True, logdate=self.audit_time)
 
     def notify(self, request=None):
-        from process.email import _to_django_addr
-        from django.core.mail import EmailMessage
-
         if self.process.applying_for in (const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD):
             if self.process.applying_for == const.STATUS_EMERITUS_DD:
                 mia_summary = "in, retired; emeritus via nm.d.o"
             elif self.process.applying_for == const.STATUS_REMOVED_DD:
                 mia_summary = "in, removed; removed via nm.d.o"
-            msg = EmailMessage(
-                from_email=_to_django_addr(self.audit_author),
+            msg = build_django_message(
+                from_email=self.audit_author,
                 to=["mia-{}@qa.debian.org".format(self.process.person.uid)],
                 cc=[self.process.archive_email],
                 subject=self.rt_subject,
@@ -431,6 +429,7 @@ class ProcessApproveRT(op.Operation):
 class RequestEmeritus(op.Operation):
     person = op.PersonField()
     statement = op.StringField()
+    silent = op.BooleanField()
 
     def __init__(self, **kw):
         kw.setdefault("audit_notes", "Requested to become emeritus")
@@ -467,9 +466,36 @@ class RequestEmeritus(op.Operation):
         self._statement = statement
 
     def notify(self, request=None):
-        # See /srv/qa.debian.org/mia/README
-        from .email import notify_new_statement
-        return notify_new_statement(self._statement, request=request, cc_nm=False, notify_ml="private", mia="in, retired; emeritus via nm.d.o")
+        process = self._statement.requirement.process
+        url = build_absolute_uri(process.get_absolute_url(), request)
+        body = """{statement.statement}
+
+{statement.uploaded_by.fullname} (via nm.debian.org)
+
+For details and to comment, visit {url}
+"""
+        body += "-- \n" # Note the trailing space
+        body += "{url}\n"
+        body = body.format(statement=self._statement, url=url)
+
+        mia_address = "mia-{}@qa.debian.org".format(process.person.uid)
+
+        cc = [process.archive_email]
+        bcc = []
+        if self.silent:
+            to = mia_address
+        else:
+            to = "debian-private@lists.debian.org"
+            cc.append(process.person)
+            bcc.append(mia_address)
+
+        msg = build_django_message(
+            self._statement.uploaded_by,
+            to=to, cc=cc, bcc=bcc,
+            subject="{}: {}".format(process.person.fullname, self._statement.requirement.type_desc),
+            headers={"X-MIA-Summary": "in, retired; emeritus via nm.d.o"}, # See /srv/qa.debian.org/mia/README
+            body=body)
+        msg.send()
 
     def _mock_execute(self, request=None):
         try:
@@ -506,8 +532,6 @@ class ProcessCancel(op.Operation):
 @op.Operation.register
 class ProcessCancelEmeritus(ProcessCancel):
     def notify(self, request=None):
-        from .email import build_django_message
-
         process = self.process
 
         url = build_absolute_uri(process.get_absolute_url(), request)
