@@ -133,7 +133,7 @@ class MailArchive(VisitProcessMixin, View):
 
 
 class DisplayMailArchive(VisitProcessMixin, TemplateView):
-    template_name = "legacy/display-mail-archive.html"
+    template_name = "process/display-mail-archive.html"
     require_visit_perms = "view_mbox"
 
     def get_context_data(self, **kw):

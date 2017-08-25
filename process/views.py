@@ -387,7 +387,7 @@ class MailArchive(VisitProcessMixin, View):
 
 class DisplayMailArchive(VisitProcessMixin, TemplateView):
     require_visit_perms = "view_mbox"
-    template_name = "restricted/display-mail-archive.html"
+    template_name = "process/display-mail-archive.html"
 
     def get_context_data(self, **kw):
         import backend.email
