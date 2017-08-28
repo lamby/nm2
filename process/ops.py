@@ -460,6 +460,8 @@ class RequestEmeritus(op.Operation):
         requirement.save()
         requirement.add_log(self.audit_author, "Requirement automatically approved", True, action="req_approve", logdate=self.audit_time)
 
+        # Do not show in dashboard for 5 days, in case someone replies on -private that something went wrong.
+        # For example, the mail with the emeritus link is sent in cleartext, and someone else may click on it
         process.hide_until = self.audit_time + datetime.timedelta(days=5)
         process.save()
 
@@ -492,7 +494,7 @@ For details and to comment, visit {url}
         msg = build_django_message(
             self._statement.uploaded_by,
             to=to, cc=cc, bcc=bcc,
-            subject="{}: {}".format(process.person.fullname, self._statement.requirement.type_desc),
+            subject="Retiring from the Project",
             headers={"X-MIA-Summary": "in, retired; emeritus via nm.d.o"}, # See /srv/qa.debian.org/mia/README
             body=body)
         msg.send()
