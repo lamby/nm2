@@ -226,6 +226,12 @@ class ReqIntent(RequirementMixin, TemplateView):
     type = "intent"
     template_name = "process/req_intent.html"
 
+    def check_permissions(self):
+        super().check_permissions()
+        # FIXME: this is a temporary measure, to be replace with an actual visitor permission
+        if self.requirement.process.applying_for in (const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD) and not self.visitor.is_dd:
+            raise PermissionDenied
+
 
 class ReqAgreements(RequirementMixin, TemplateView):
     type = "sc_dmup"
