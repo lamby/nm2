@@ -229,8 +229,9 @@ class ReqIntent(RequirementMixin, TemplateView):
     def check_permissions(self):
         super().check_permissions()
         # FIXME: this is a temporary measure, to be replace with an actual visitor permission
-        if self.requirement.process.applying_for in (const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD) and not self.visitor.is_dd:
-            raise PermissionDenied
+        if self.requirement.process.applying_for in (const.STATUS_EMERITUS_DD, const.STATUS_REMOVED_DD):
+            if self.visitor is None or not self.visitor.is_dd:
+                raise PermissionDenied
 
 
 class ReqAgreements(RequirementMixin, TemplateView):
