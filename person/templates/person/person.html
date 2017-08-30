@@ -47,6 +47,10 @@ $(function() {
     (changed before data import)
     {% endif %}
     {% if "request_new_status" in visit_perms and person.possible_new_statuses %}(<a href="{% url 'process_create' key=person.lookup_key %}">request new status</a>){% endif %}
+    {% if show_new_change_warning %}
+    <br>
+    <b>Note:</b> the change happened recently and there might still be work to be done to finish activating the account. Please do not assume everything works until you get a mail from Debian System Administrators telling you that your account has been created.
+    {% endif %}
     </td></tr>
     {% if person.pending %}
     <tr><th>Pending</th><td>This is a new entry that requires confirmation before {{person.expires}}. Click <a href="{% url 'public_newnm_resend_challenge' key=person.lookup_key %}">here</a> to send the email challenge again.</td></tr>

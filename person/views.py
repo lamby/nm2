@@ -1,10 +1,12 @@
 from django import http, forms
+from django.utils.timezone import now
 from django.views.generic import TemplateView, View
 from django.views.generic.edit import UpdateView, FormView
 from django.core.exceptions import PermissionDenied
 from backend.mixins import VisitorMixin, VisitPersonMixin
 import backend.models as bmodels
 from backend import const
+import datetime
 import markdown
 import json
 
@@ -57,6 +59,8 @@ class Person(VisitPersonMixin, TemplateView):
                     "changes": changes,
                 })
 
+        show_new_change_warning = self.person.status in (const.STATUS_DD_U, const.STATUS_DD_NU) and self.person.status_changed + datetime.timedelta(days=15) > now()
+
         ctx.update(
             am=am,
             processes=processes,
@@ -68,6 +72,7 @@ class Person(VisitPersonMixin, TemplateView):
                     .order_by("is_active", "ended"),
             adv_processes2=adv_processes2,
             audit_log=audit_log,
+            show_new_change_warning=show_new_change_warning,
         )
 
         if self.person.bio:
