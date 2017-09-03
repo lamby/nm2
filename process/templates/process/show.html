@@ -14,6 +14,7 @@
   {{block.super}}
 {% if process.applying_for == "dd_e" %}
   <br>
+  {% if visitor.is_admin %}<a href="{% url 'mia_wat_ping' key=person.lookup_key %}">Resend ping</a>{% endif %}
   {% if visitor.is_admin %}<a href="{% url 'mia_wat_remove' pk=process.pk %}">WAT remove</a>{% endif %}
 {% endif %}
 {% endblock %}

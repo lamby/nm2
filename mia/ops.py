@@ -26,9 +26,12 @@ class WATPing(op.Operation):
         self._process = None
 
     def _execute(self):
-        self._process = pmodels.Process.objects.create(self.person, const.STATUS_EMERITUS_DD)
-        self._process.hide_until = self.audit_time + datetime.timedelta(days=30)
-        self._process.save()
+        try:
+            self._process = pmodels.Process.objects.get(person=self.person, applying_for=const.STATUS_EMERITUS_DD, closed_by__isnull=True)
+        except pmodels.Process.DoesNotExist:
+            self._process = pmodels.Process.objects.create(self.person, const.STATUS_EMERITUS_DD)
+            self._process.hide_until = self.audit_time + datetime.timedelta(days=30)
+            self._process.save()
         self._process.add_log(self.audit_author, self.audit_notes, is_public=True, logdate=self.audit_time)
 
     def _mock_execute(self):

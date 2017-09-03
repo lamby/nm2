@@ -54,6 +54,32 @@ class TestWatPing(PersonFixtureMixin, TestCase):
         self.assertIn(process.get_absolute_url(), mail.outbox[0].body)
         self.assertIn("test ping", mail.outbox[0].body)
 
+        # Invoke again to resend
+        mail.outbox = []
+        o = mops.WATPing(audit_author=self.persons.fd, audit_notes="resend message", person=self.persons.dd_u, text="test second ping")
+        o.execute()
+        self.assertEqual(o._process, process)
+        log = process.log.order_by("-logdate")[0]
+        self.assertEqual(log.changed_by, self.persons.fd)
+        self.assertEqual(log.process, process)
+        self.assertIsNone(log.requirement)
+        self.assertTrue(log.is_public)
+        self.assertEqual(log.action, "")
+        self.assertEquals(log.logtext, "resend message")
+
+        mia_addr = "mia-{}@qa.debian.org".format(self.persons.dd_u.uid)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].from_email, "Debian MIA team <wat@debian.org>")
+        self.assertEqual(mail.outbox[0].to, [self.persons.dd_u.email])
+        self.assertEqual(mail.outbox[0].cc, ["archive-{}@nm.debian.org".format(process.pk)])
+        self.assertEqual(mail.outbox[0].bcc, [mia_addr, "wat@debian.org"])
+        self.assertEqual(mail.outbox[0].extra_headers["X-MIA-Summary"], "out, wat; WAT by nm.d.o")
+        self.assertIn(reverse("process_emeritus") + "?t=", mail.outbox[0].body)
+        self.assertIn(reverse("process_cancel", args=[process.pk]), mail.outbox[0].body)
+        self.assertIn(process.get_absolute_url(), mail.outbox[0].body)
+        self.assertIn("test second ping", mail.outbox[0].body)
+
+
     @classmethod
     def __add_extra_tests__(cls):
         for visited in "pending", "dc", "dc_ga", "dm", "dm_ga", "dd_e", "dd_r":
