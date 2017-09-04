@@ -172,11 +172,13 @@ class CheckLDAPConsistency(hk.Task):
                             process = None
 
                         if process is not None:
+                            audit_notes = "closed from dsa: " + entry.single("accountStatus")
                             op = pops.ProcessClose(
-                                audit_author=self.hk.housekeeper.user, audit_notes="closed from dsa: " + entry.single("accountStatus"),
+                                audit_author=self.hk.housekeeper.user, audit_notes=audit_notes,
                                 process=process,
                             )
                             op.execute()
+                            log.info("%s: %s %s", self.IDENTIFIER, self.hk.link(person), audit_notes)
                         else:
                             log.warn("%s: %s has accountStatus '%s' but in our db the state is %s",
                                      self.IDENTIFIER, self.hk.link(person), entry.single("accountStatus"), const.ALL_STATUS_DESCS[person.status])
