@@ -1,19 +1,3 @@
-# nm.debian.org website housekeeping
-#
-# Copyright (C) 2012--2014  Enrico Zini <enrico@debian.org>
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as
-# published by the Free Software Foundation, either version 3 of the
-# License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import django_housekeeping as hk
 from django.db import transaction
 from backend.housekeeping import MakeLink, Housekeeper
@@ -32,7 +16,7 @@ class NewGuestAccountsFromDSA(hk.Task):
     """
     Create new Person entries for guest accounts created by DSA
     """
-    DEPENDS = [MakeLink]
+    DEPENDS = [MakeLink, Housekeeper]
 
     @transaction.atomic
     def run_main(self, stage):
@@ -106,7 +90,7 @@ class NewGuestAccountsFromDSA(hk.Task):
                     audit_notes = "entry found in LDAP, adding 'guest account' status"
 
                     try:
-                        process = pmodels.Process.objects.get(person=person, applying_for=new_status)
+                        process = pmodels.Process.objects.get(person=person, closed_by__isnull=True, applying_for=new_status)
                     except pmodels.Process.DoesNotExist:
                         process = None
 
@@ -182,8 +166,20 @@ class CheckLDAPConsistency(hk.Task):
                     if person.status in (const.STATUS_DC_GA, const.STATUS_DM_GA):
                         pass # TODO: handle guest accounts that have been closed
                     elif person.status not in (const.STATUS_REMOVED_DD, const.STATUS_EMERITUS_DD):
-                        log.warn("%s: %s has accountStatus '%s' but in our db the state is %s",
-                                 self.IDENTIFIER, self.hk.link(person), entry.single("accountStatus"), const.ALL_STATUS_DESCS[person.status])
+                        try:
+                            process = pmodels.Process.objects.get(person=person, closed_by__isnull=True, applying_for__in=(const.STATUS_REMOVED_DD, const.STATUS_EMERITUS_DD))
+                        except pmodels.Process.DoesNotExist:
+                            process = None
+
+                        if process is not None:
+                            op = pops.ProcessClose(
+                                audit_author=self.hk.housekeeper.user, audit_notes="closed from dsa: " + entry.single("accountStatus"),
+                                process=process,
+                            )
+                            op.execute()
+                        else:
+                            log.warn("%s: %s has accountStatus '%s' but in our db the state is %s",
+                                     self.IDENTIFIER, self.hk.link(person), entry.single("accountStatus"), const.ALL_STATUS_DESCS[person.status])
 
                 if entry.is_dd and entry.single("keyFingerPrint") is not None:
                     if person.status not in (const.STATUS_DD_U, const.STATUS_DD_NU):
