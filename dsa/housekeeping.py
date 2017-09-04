@@ -174,6 +174,18 @@ class CheckLDAPConsistency(hk.Task):
                     person = bmodels.Person.objects.create_user(**args)
                     log.warn("%s: %s: %s", self.IDENTIFIER, self.hk.link(person), args["audit_notes"])
             else:
+                dsa_status = entry.single("accountStatus")
+                if dsa_status is not None:
+                    dsa_status = dsa_status.split()[0]
+
+                if dsa_status == "inactive" and person.status != const.STATUS_REMOVED_DD:
+                    log.warn("%s: %s has accountStatus '%s' but in our db the state is %s",
+                             self.IDENTIFIER, self.hk.link(person), entry.single("accountStatus"), const.ALL_STATUS_DESCS[person.status])
+
+                if dsa_status == "retiring" and person.status != const.STATUS_EMERITUS_DD:
+                    log.warn("%s: %s has accountStatus '%s' but in our db the state is %s",
+                             self.IDENTIFIER, self.hk.link(person), entry.single("accountStatus"), const.ALL_STATUS_DESCS[person.status])
+
                 if entry.is_dd and entry.single("keyFingerPrint") is not None:
                     if person.status not in (const.STATUS_DD_U, const.STATUS_DD_NU):
                         log.warn("%s: %s has supplementaryGid 'Debian' and fingerprint %s in LDAP, but in our db the state is %s",
