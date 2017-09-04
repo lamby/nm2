@@ -12,19 +12,15 @@ class TestPerson(PersonFixtureMixin, TestCase):
     def setUpClass(cls):
         super(TestPerson, cls).setUpClass()
         cls.page_elements = PageElements()
-#        cls.page_elements.add_id("log_form")
-#        cls.page_elements.add_id("log_public")
-#        cls.page_elements.add_id("log_private")
-#        cls.page_elements.add_id("proc_freeze")
-#        cls.page_elements.add_id("proc_unfreeze")
-#        cls.page_elements.add_id("proc_approve")
-#        cls.page_elements.add_id("proc_unapprove")
-#        cls.page_elements.add_id("req_approve")
-#        cls.page_elements.add_id("req_unapprove")
-#        cls.page_elements.add_id("statement_add")
-#        cls.page_elements.add_class("statement_delete")
+        cls.page_elements.add_id("view_person_fd_comment")
+        cls.page_elements.add_id("edit_ldap_link")
+        # cls.page_elements.add_id("edit_am_link") TODO: turn this into a permission-based element
+        cls.page_elements.add_id("edit_bio_link")
+        cls.page_elements.add_id("audit_log")
 
         cls.visited = cls.persons.activeam
+        cls.visited.mn = "Test"
+        cls.visited.save(audit_author=cls.persons.dam, audit_notes="test")
         cls.visitor = cls.persons.dc
         cls.url = cls.visited.get_absolute_url()
 
@@ -33,13 +29,14 @@ class TestPerson(PersonFixtureMixin, TestCase):
         Compute what page elements we want, based on visit_perms
         """
         wanted = []
-#        if "add_log" in visit_perms:
-#            wanted += ["log_public", "log_private", "log_form"]
-#        for el in ("req_approve", "req_unapprove"):
-#            if el in visit_perms: wanted.append(el)
-#        if "edit_statements" in visit_perms and self.req.type != "keycheck":
-#            wanted.append("statement_add")
-#            wanted.append("statement_delete")
+        if "fd_comments" in visit_perms:
+            wanted += ["view_person_fd_comment"]
+        if "edit_ldap" in visit_perms:
+            wanted += ["edit_ldap_link"]
+        if "edit_bio" in visit_perms:
+            wanted += ["edit_bio_link"]
+        if "view_person_audit_log" in visit_perms:
+            wanted += ["audit_log"]
         return wanted
 
     def assertPageElements(self, response):
@@ -57,13 +54,13 @@ class TestPerson(PersonFixtureMixin, TestCase):
     def test_none(self):
         self.tryVisitingWithPerms(set())
 
-#    def test_fd(self):
-#        perms = self.req.permissions_of(self.persons.fd)
-#        self.tryVisitingWithPerms(perms)
-#
-#    def test_dam(self):
-#        perms = self.req.permissions_of(self.persons.dam)
-#        self.tryVisitingWithPerms(perms)
+    def test_person(self):
+        self.tryVisitingWithPerms(set(["view_person_audit_log", "edit_bio"]))
+        self.tryVisitingWithPerms(set(["view_person_audit_log", "edit_bio", "edit_ldap"]))
+
+    def test_fd_dam(self):
+        self.tryVisitingWithPerms(set(["view_person_audit_log", "edit_bio", "fd_comment"]))
+        self.tryVisitingWithPerms(set(["view_person_audit_log", "edit_bio", "edit_ldap", "fd_comment"]))
 
 
 class TestEditMixin(PersonFixtureMixin):

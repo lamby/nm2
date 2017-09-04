@@ -73,15 +73,18 @@ $(function() {
         </td>
     </tr>
     {% endif %}
+    {% if "fd_comments" in visit_perms and person.fd_comment %}
+    <tr id="view_person_fd_comment"><th>FD comments</th><td>{{person.fd_comment}}</td></tr>
+    {% endif %}
 </table>
 
 {% if "edit_ldap" in visit_perms %}
-<a href="{% url 'person_edit_ldap' key=person.lookup_key %}">edit LDAP information</a>
+<a id="edit_ldap_link" href="{% url 'person_edit_ldap' key=person.lookup_key %}">edit LDAP information</a>
 {% endif %}
 
 {% if am %}
 {% if visitor == person or visitor.is_am or visitor.is_admin %}
-<a href="{% url 'person_amprofile' key=person.lookup_key %}">edit AM</a>
+<a id="edit_am_link" href="{% url 'person_amprofile' key=person.lookup_key %}">edit AM</a>
 {% endif %}
 {% endif %}
 
@@ -101,7 +104,7 @@ $(function() {
 </div>
 
 {% if "edit_bio" in visit_perms %}
-<a href="{% url 'person_edit_bio' key=person.lookup_key %}">[edit]</a>
+<a id="edit_bio_link" href="{% url 'person_edit_bio' key=person.lookup_key %}">[edit]</a>
 {% endif %}
 
 <h2>Personal history</h2>
@@ -134,7 +137,7 @@ $(function() {
 
 <h2>Audit log</h2>
 
-<table>
+<table id="audit_log">
   <thead>
     <tr>
       <th>Date</th>

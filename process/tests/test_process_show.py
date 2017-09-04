@@ -15,7 +15,7 @@ class TestProcessShow(ProcessFixtureMixin, TestCase):
         super(TestProcessShow, cls).setUpClass()
         cls.visitor = cls.persons.dc
 
-        cls.persons.create("app", status=const.STATUS_DC)
+        cls.persons.create("app", status=const.STATUS_DC, fd_comment="test")
         cls.processes.create("app", person=cls.persons.app, applying_for=const.STATUS_DD_U, fd_comment="test")
         cls.persons.create("am", status=const.STATUS_DD_NU)
         cls.ams.create("am", person=cls.persons.am)
@@ -26,7 +26,8 @@ class TestProcessShow(ProcessFixtureMixin, TestCase):
         cls.processes.app.add_log(cls.visitor, "xxxx_ownprivate_xxxx", is_public=False)
 
         cls.page_elements = PageElements()
-        cls.page_elements.add_id("view_fd_comment")
+        cls.page_elements.add_id("view_person_fd_comment")
+        cls.page_elements.add_id("view_process_fd_comment")
         cls.page_elements.add_id("view_mbox")
         cls.page_elements.add_id("log_form")
         cls.page_elements.add_id("log_public")
@@ -44,7 +45,7 @@ class TestProcessShow(ProcessFixtureMixin, TestCase):
         visit_perms = self.processes.app.permissions_of(self.visitor)
         wanted = ["view_public_log", "view_ownprivate_log"]
         if "fd_comments" in visit_perms:
-            wanted.append("view_fd_comment")
+            wanted += ["view_person_fd_comment", "view_process_fd_comment"]
         if "add_log" in visit_perms:
             wanted += ["log_public", "log_private", "log_form"]
         for el in ("view_mbox", "view_private_log", "proc_freeze", "proc_unfreeze", "proc_approve", "proc_unapprove"):

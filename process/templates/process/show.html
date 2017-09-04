@@ -156,7 +156,8 @@
   </tr>
 
   {% if "fd_comments" in visit_perms %}
-  <tr id="view_fd_comment"><th>FD comments</th><td>{{process.fd_comment}}</td></tr>
+  {% if person.fd_comment %}<tr id="view_person_fd_comment"><th>FD comments</th><td>{{person.fd_comment}}</td></tr>{% endif %}
+  {% if process.fd_comment %}<tr id="view_process_fd_comment"><th>FD comments</th><td>{{process.fd_comment}}</td></tr>{% endif %}
   {% endif %}
 
   {% if "view_mbox" in visit_perms %}
