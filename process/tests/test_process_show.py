@@ -26,6 +26,7 @@ class TestProcessShow(ProcessFixtureMixin, TestCase):
         cls.processes.app.add_log(cls.visitor, "xxxx_ownprivate_xxxx", is_public=False)
 
         cls.page_elements = PageElements()
+        cls.page_elements.add_id("edit_fpr_link")
         cls.page_elements.add_id("view_person_fd_comment")
         cls.page_elements.add_id("view_process_fd_comment")
         cls.page_elements.add_id("view_mbox")
@@ -44,6 +45,8 @@ class TestProcessShow(ProcessFixtureMixin, TestCase):
         # Check page elements based on visit_perms
         visit_perms = self.processes.app.permissions_of(self.visitor)
         wanted = ["view_public_log", "view_ownprivate_log"]
+        if "edit_ldap" in visit_perms:
+            wanted += ["edit_fpr_link"]
         if "fd_comments" in visit_perms:
             wanted += ["view_person_fd_comment", "view_process_fd_comment"]
         if "add_log" in visit_perms:
@@ -61,6 +64,9 @@ class TestProcessShow(ProcessFixtureMixin, TestCase):
 
     def test_none(self):
         self.tryVisitingWithPerms(set())
+
+    def test_edit_ldap(self):
+        self.tryVisitingWithPerms(set(["edit_ldap"]))
 
     def test_view_private_log(self):
         self.tryVisitingWithPerms(set(["view_private_log"]))

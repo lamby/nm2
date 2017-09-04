@@ -35,6 +35,7 @@
     <th>Applying for</th>
     <td>{{process.applying_for|desc_status}}</td>
   </tr>
+  <tr><th>OpenPGP fingerprint</th><td>{{person.fpr|fingerprint}}{% if "edit_ldap" in visit_perms %} (<a id="edit_fpr_link" href="{% url 'fprs_person_list' key=person.lookup_key %}">manage</a>){% endif %}</td></tr>
   <tr><th>Activity timespan</th><td>{{status.log_first.logdate|date:"Y-m-d"}} to {{status.log_last.logdate|date:"Y-m-d"}}</td></tr>
   <tr>
     <th>Status</th>

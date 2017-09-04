@@ -38,7 +38,7 @@ $(function() {
 
 <table class="personinfo">
     <tr><th>Account name</th><td>{{person.uid|default:"None chosen yet"}}</td></tr>
-    <tr><th>OpenPGP fingerprint</th><td>{{person.fpr|fingerprint}}{% if "edit_ldap" in visit_perms %} (<a href="{% url 'fprs_person_list' key=person.lookup_key %}">manage</a>){% endif %}</td></tr>
+    <tr><th>OpenPGP fingerprint</th><td>{{person.fpr|fingerprint}}{% if "edit_ldap" in visit_perms %} (<a id="edit_fpr_link" href="{% url 'fprs_person_list' key=person.lookup_key %}">manage</a>){% endif %}</td></tr>
     {% if "edit_email" in visit_perms %}
     <tr><th>Contact email</th><td>{{person.email}} <a href="{% url 'person_edit_email' key=person.lookup_key %}">[edit]</a></td></tr>
     {% endif %}

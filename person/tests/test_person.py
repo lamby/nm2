@@ -16,6 +16,7 @@ class TestPerson(PersonFixtureMixin, TestCase):
         cls.page_elements.add_id("edit_ldap_link")
         # cls.page_elements.add_id("edit_am_link") TODO: turn this into a permission-based element
         cls.page_elements.add_id("edit_bio_link")
+        cls.page_elements.add_id("edit_fpr_link")
         cls.page_elements.add_id("audit_log")
 
         cls.visited = cls.persons.activeam
@@ -32,7 +33,7 @@ class TestPerson(PersonFixtureMixin, TestCase):
         if "fd_comments" in visit_perms:
             wanted += ["view_person_fd_comment"]
         if "edit_ldap" in visit_perms:
-            wanted += ["edit_ldap_link"]
+            wanted += ["edit_ldap_link", "edit_fpr_link"]
         if "edit_bio" in visit_perms:
             wanted += ["edit_bio_link"]
         if "view_person_audit_log" in visit_perms:
