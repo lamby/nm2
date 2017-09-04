@@ -178,13 +178,12 @@ class CheckLDAPConsistency(hk.Task):
                 if dsa_status is not None:
                     dsa_status = dsa_status.split()[0]
 
-                if dsa_status == "inactive" and person.status != const.STATUS_REMOVED_DD:
-                    log.warn("%s: %s has accountStatus '%s' but in our db the state is %s",
-                             self.IDENTIFIER, self.hk.link(person), entry.single("accountStatus"), const.ALL_STATUS_DESCS[person.status])
-
-                if dsa_status == "retiring" and person.status != const.STATUS_EMERITUS_DD:
-                    log.warn("%s: %s has accountStatus '%s' but in our db the state is %s",
-                             self.IDENTIFIER, self.hk.link(person), entry.single("accountStatus"), const.ALL_STATUS_DESCS[person.status])
+                if dsa_status in ("retiring", "inactive"):
+                    if person.status in (const.STATUS_DC_GA, const.STATUS_DM_GA):
+                        pass # TODO: handle guest accounts that have been closed
+                    elif person.status not in (const.STATUS_REMOVED_DD, const.STATUS_EMERITUS_DD):
+                        log.warn("%s: %s has accountStatus '%s' but in our db the state is %s",
+                                 self.IDENTIFIER, self.hk.link(person), entry.single("accountStatus"), const.ALL_STATUS_DESCS[person.status])
 
                 if entry.is_dd and entry.single("keyFingerPrint") is not None:
                     if person.status not in (const.STATUS_DD_U, const.STATUS_DD_NU):
