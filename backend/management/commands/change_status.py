@@ -44,7 +44,7 @@ class Command(BaseCommand):
         if opts["rt"]:
             message += " RT#{}".format(opts["rt"])
         if opts["date"]:
-            date = dateutil.parser.parse(opts["date"])
+            date = dateutil.parser.parse(opts["date"]).replace(tzinfo=utc)
         else:
             date = now()
 
@@ -56,7 +56,7 @@ class Command(BaseCommand):
             status=status,
             rt=opts["rt"],
         )
-        print(op.to_json())
+        print(op.to_json(indent=1))
 
         if opts["execute"]:
             with transaction.atomic():
