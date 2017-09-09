@@ -54,7 +54,7 @@ class Command(BaseCommand):
             audit_time=date,
             person=person,
             status=status,
-            rt=ops["rt"],
+            rt=opts["rt"],
         )
         print(op.to_json())
 
