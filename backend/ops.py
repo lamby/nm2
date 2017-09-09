@@ -46,6 +46,15 @@ class BooleanField(OperationField):
         return val
 
 
+class IntegerField(OperationField):
+    def validate(self, val):
+        if val is None: return val
+        return int(val)
+
+    def to_json(self, val):
+        return val
+
+
 class DateField(OperationField):
     def validate(self, val):
         if val is None: return val
@@ -287,6 +296,7 @@ class CreatePerson(Operation):
 class ChangeStatus(Operation):
     person = PersonField()
     status = PersonStatusField()
+    rt_ticket = IntegerField(null=True)
     
     def __str__(self):
         return "Change status of {} to {}".format(self.person.lookup_key, self.status)
@@ -300,6 +310,7 @@ class ChangeStatus(Operation):
             frozen_time=self.audit_time,
             approved_by=self.audit_author,
             approved_time=self.audit_time,
+            rt_ticket=self.rt_ticket,
             closed_by=self.audit_author,
             closed_time=self.audit_time,
             skip_requirements=True,

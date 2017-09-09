@@ -1,8 +1,3 @@
-# coding: utf-8
-
-
-
-
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.timezone import utc, now
 from django.db import transaction
@@ -59,6 +54,7 @@ class Command(BaseCommand):
             audit_time=date,
             person=person,
             status=status,
+            rt=ops["rt"],
         )
         print(op.to_json())
 
